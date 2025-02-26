@@ -66,7 +66,7 @@ app.post("/chat", async (req, res) => {
 app.use(errorHandler);
 
 // Start Server on Render's assigned port
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+const PORT = process.env.PORT || 3000;  // Use the correct port assigned by Render
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`✅ Server running on port ${PORT}`);
 });
