@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Migrant Hilfe Chatbot</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+        #chat-container {
+            width: 400px;
+            height: 500px;
+            margin: auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+        }
+        #chat-box {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 10px;
+            border-bottom: 1px solid #ccc;
+            max-height: 400px;
+        }
+        #user-input {
+            width: 75%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        #send-button {
+            width: 20%;
+            padding: 10px;
+            background: blue;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .message {
+            text-align: left;
+            margin: 5px 0;
+        }
+        .user-message {
+            color: blue;
+            font-weight: bold;
+        }
+        .bot-message {
+            color: green;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Migrant Hilfe Chatbot</h1>
+    <div id="chat-container">
+        <div id="chat-box"></div>
+        <input type="text" id="user-input" placeholder="Type a message...">
+        <button id="send-button">Send</button>
+    </div>
+
+    <script>
+        document.getElementById("send-button").addEventListener("click", function() {
+            let userMessage = document.getElementById("user-input").value.trim();
+            if (!userMessage) return;
+
+            let chatBox = document.getElementById("chat-box");
+            chatBox.innerHTML += `<p class="message user-message"><strong>You:</strong> ${userMessage}</p>`;
+            document.getElementById("user-input").value = "";
+
+            fetch("https://migrant-hilfe-chatbot.onrender.com/chat", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ message: userMessage })
+            })
+            .then(response => response.json())
+            .then(data => {
+                chatBox.innerHTML += `<p class="message bot-message"><strong>Bot:</strong> ${data.reply}</p>`;
+                chatBox.scrollTop = chatBox.scrollHeight;
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                chatBox.innerHTML += `<p class="message bot-message"><strong>Bot:</strong> Error contacting server.</p>`;
+            });
+        });
+    </script>
+</body>
+</html>
