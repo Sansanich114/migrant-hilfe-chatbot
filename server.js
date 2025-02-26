@@ -7,6 +7,7 @@ const errorHandler = require('./errorHandler');
 
 // Access the API key
 const apiKey = process.env.DEEPSEEK_API_KEY;
+console.log("DeepSeek API Key Loaded:", process.env.DEEPSEEK_API_KEY ? "Yes" : "No");
 
 const app = express();
 
@@ -16,6 +17,9 @@ app.use(cors());
 
 // Serve Static Files (Chat UI)
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Suppress favicon.ico 404 errors
+app.get('/favicon.ico', (req, res) => res.status(204));
 
 // Root Route Serves HTML
 app.get("/", (req, res) => {
@@ -46,7 +50,8 @@ app.post("/chat", async (req, res) => {
 
     try {
         // Send the request to DeepSeek API
-        const response = await axios.post('https://api.deepseek.com', requestData, {
+        const API_URL = 'https://api.deepseek.com/v1/chat/completions';
+        const response = await axios.post(API_URL, requestData, {
             headers: {
                 Authorization: `Bearer ${apiKey}`,
                 'Content-Type': 'application/json',
@@ -57,8 +62,19 @@ app.post("/chat", async (req, res) => {
         const aiReply = response.data.choices[0].message.content;
         res.status(200).json({ reply: aiReply });
     } catch (error) {
-        console.error('DeepSeek API Error:', error.response?.data || error.message);
-        res.status(500).json({ error: 'Error: Unable to process request.' });
+        if (error.response) {
+            // Server responded with a status other than 2xx
+            console.error('DeepSeek API Error:', error.response.data);
+            res.status(error.response.status).json({ error: error.response.data.error.message });
+        } else if (error.request) {
+            // No response received from server
+            console.error('No response from DeepSeek API:', error.request);
+            res.status(500).json({ error: 'No response from DeepSeek API.' });
+        } else {
+            // Error setting up the request
+            console.error('Error setting up request to DeepSeek API:', error.message);
+            res.status(500).json({ error: 'Error setting up request to DeepSeek API.' });
+        }
     }
 });
 
