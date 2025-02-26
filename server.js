@@ -1,16 +1,8 @@
-app.get("/", (req, res) => {
-    res.send("Migrant Hilfe Chatbot is Live! 🚀");
-});
-
-
-require('dotenv').config();
-console.log("DeepSeek API Key:", process.env.DEEPSEEK_API_KEY ? "Loaded ✅" : "Not Loaded ❌");
-
 // Import necessary modules
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
-require('dotenv').config();
+require('dotenv').config(); // Load environment variables
 const errorHandler = require('./errorHandler'); // Ensure this file exists
 
 // Initialize the Express application
@@ -23,6 +15,14 @@ app.use(cors()); // Enable Cross-Origin Resource Sharing
 // Retrieve API key from environment variables
 const API_KEY = process.env.DEEPSEEK_API_KEY;
 const API_URL = 'https://api.deepseek.com/v1/chat/completions';
+
+// Log API Key Status (for debugging)
+console.log("DeepSeek API Key:", API_KEY ? "Loaded ✅" : "Not Loaded ❌");
+
+// ✅ Fix: Define root route AFTER initializing `app`
+app.get("/", (req, res) => {
+    res.send("Migrant Hilfe Chatbot is Live! 🚀");
+});
 
 // Define the /chat route
 app.post("/chat", async (req, res) => {
