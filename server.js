@@ -1,49 +1,44 @@
-// Import necessary modules
 const express = require('express');
 const cors = require('cors');
-const axios = require('axios');
-require('dotenv').config(); // Load environment variables
-const errorHandler = require('./errorHandler'); // Ensure this file exists
+const path = require('path');
+require('dotenv').config();
+const errorHandler = require('./errorHandler');
 
-// Initialize the Express application
 const app = express();
 
-// Apply middleware
-app.use(express.json()); // Parse JSON request bodies
-app.use(cors()); // Enable Cross-Origin Resource Sharing
+// Middleware
+app.use(express.json());
+app.use(cors());
 
-// Retrieve API key from environment variables
-const API_KEY = process.env.DEEPSEEK_API_KEY;
-const API_URL = 'https://api.deepseek.com/v1/chat/completions';
+// ✅ Serve Static Files (Chat UI)
+app.use(express.static(path.join(__dirname, 'public')));
 
-// Log API Key Status (for debugging)
-console.log("DeepSeek API Key:", API_KEY ? "Loaded ✅" : "Not Loaded ❌");
-
-// ✅ Fix: Define root route AFTER initializing `app`
+// ✅ Root Route Serves HTML
 app.get("/", (req, res) => {
-    res.send("Migrant Hilfe Chatbot is Live! 🚀");
+    res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// Define the /chat route
+// ✅ Chatbot API Route
 app.post("/chat", async (req, res) => {
     console.log("Received request:", req.body);
+    
+    if (!req.body || !req.body.message) {
+        return res.status(400).json({ error: "Invalid request. Expected {\"message\":\"Hello\"}" });
+    }
 
-    // Dummy response (Fake AI)
+    // Dummy chatbot response
     const fakeResponse = {
         reply: `You said: "${req.body.message}". This is a test response!`
     };
 
-    console.log("Responding with:", fakeResponse.reply);
-
-    // ✅ Ensure the response sends JSON with a 200 status
     res.status(200).json(fakeResponse);
 });
 
-// Error Handling Middleware (Should Be the Last Middleware)
+// Error Handler Middleware
 app.use(errorHandler);
 
-// Start the server
-const PORT = process.env.PORT || 3000; // Use the port Render gives you
+// Start Server on Render's assigned port
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
