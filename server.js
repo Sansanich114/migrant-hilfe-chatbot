@@ -1,3 +1,8 @@
+app.get("/", (req, res) => {
+    res.send("Migrant Hilfe Chatbot is Live! 🚀");
+});
+
+
 require('dotenv').config();
 console.log("DeepSeek API Key:", process.env.DEEPSEEK_API_KEY ? "Loaded ✅" : "Not Loaded ❌");
 
