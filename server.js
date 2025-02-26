@@ -46,7 +46,7 @@ app.post("/chat", async (req, res) => {
 
     try {
         // Send the request to DeepSeek API
-        const response = await axios.post('https://api.deepseek.com/v1/chat/completions', requestData, {
+        const response = await axios.post('https://api.deepseek.com', requestData, {
             headers: {
                 Authorization: `Bearer ${apiKey}`,
                 'Content-Type': 'application/json',
