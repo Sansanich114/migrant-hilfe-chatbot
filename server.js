@@ -44,7 +44,7 @@ app.post("/chat", async (req, res) => {
 
   // ✅ Prepare the request payload for OpenRouter API
   const requestData = {
-    model: "deepseek/deepseek-r1:free", // OpenRouter model identifier
+    model: "deepseek-r1:free", // Updated model identifier
     messages: [
       { role: "system", content: "You are an immigration expert helping people move to Germany." },
       { role: "user", content: userMessage },
