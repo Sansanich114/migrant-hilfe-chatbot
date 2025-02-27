@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
-const { OpenAI } = require("openai"); // Ensure you've installed this package
+const { OpenAI } = require("openai"); // Ensure you've installed this package via npm install openai
 require("dotenv").config();
 const errorHandler = require("./errorHandler");
 
@@ -24,7 +24,7 @@ app.get("/", (req, res) => {
 // ✅ Initialize OpenAI client with OpenRouter settings
 const openai = new OpenAI({
   apiKey: apiKey,
-  baseURL: "https://openrouter.ai//api/v1/chat/completions"
+  baseURL: "https://openrouter.ai/api/v1" // Base URL without the completions path
 });
 
 // ✅ Chatbot API Route using OpenAI client
@@ -32,18 +32,16 @@ app.post("/chat", async (req, res) => {
   console.log("Received request:", req.body);
   
   if (!req.body || !req.body.message) {
-    return res
-      .status(400)
-      .json({ error: 'Invalid request. Expected {"message":"Hello"}' });
+    return res.status(400).json({ error: 'Invalid request. Expected {"message":"Hello"}' });
   }
 
   const userMessage = req.body.message;
 
   try {
-    // Create chat completion using the OpenAI client
+    // Create chat completion using the OpenAI client.
+    // We use the model ID as suggested by the article.
     const result = await openai.chat.completions.create({
-      // Replace with the valid model ID as determined by your research
-      model: "deepseek/deepseek-r1:free", 
+      model: "deepseek-ai/deepseek-coder-1.3b-base", // Candidate model ID from the article
       messages: [
         {
           role: "system",
