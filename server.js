@@ -1,39 +1,36 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
-const axios = require("axios");
+const { OpenAI } = require("openai"); // Ensure you've installed this package
 require("dotenv").config();
 const errorHandler = require("./errorHandler");
 
 // ✅ Load OpenRouter API key from .env
 const apiKey = process.env.OPENROUTER_API_KEY;
-
 console.log("OpenRouter API Key Loaded:", apiKey ? "Yes ✅" : "No ❌");
-
-// ✅ OpenRouter API URL
-const API_URL = "https://openrouter.ai/api/v1/chat/completions";
 
 const app = express();
 
 // ✅ Middleware
 app.use(express.json());
 app.use(cors());
-
-// ✅ Serve Static Files (Chat UI)
 app.use(express.static(path.join(__dirname, "public")));
 
-// ✅ Suppress favicon.ico 404 errors
 app.get("/favicon.ico", (req, res) => res.status(204));
-
-// ✅ Root Route Serves HTML
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// ✅ Chatbot API Route
+// ✅ Initialize OpenAI client with OpenRouter settings
+const openai = new OpenAI({
+  apiKey: apiKey,
+  baseURL: "https://openrouter.ai/api/v1"
+});
+
+// ✅ Chatbot API Route using OpenAI client
 app.post("/chat", async (req, res) => {
   console.log("Received request:", req.body);
-
+  
   if (!req.body || !req.body.message) {
     return res
       .status(400)
@@ -42,31 +39,27 @@ app.post("/chat", async (req, res) => {
 
   const userMessage = req.body.message;
 
-  // ✅ Prepare the request payload for OpenRouter API with the correct model identifier
-  const requestData = {
-    model: "deepseek-r1:free", // Updated model identifier
-    messages: [
-      { role: "system", content: "You are an immigration expert helping people move to Germany." },
-      { role: "user", content: userMessage },
-    ],
-  };
-
   try {
-    // ✅ Send the request to OpenRouter API
-    const response = await axios.post(API_URL, requestData, {
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
+    // Create chat completion using the OpenAI client
+    const result = await openai.chat.completions.create({
+      // Replace with the valid model ID as determined by your research
+      model: "deepseek-ai/deepseek-coder-1.3b-base", 
+      messages: [
+        {
+          role: "system",
+          content: "You are an immigration expert helping people move to Germany."
+        },
+        {
+          role: "user",
+          content: userMessage
+        }
+      ]
     });
-
-    console.log("OpenRouter API Response:", response.data);
-
-    // ✅ Extract and send the AI's response back to the client
-    const aiReply =
-      response.data.choices?.[0]?.message?.content ||
-      "Error: No valid response from OpenRouter.";
-    res.status(200).json({ reply: aiReply });
+    
+    // Extract the reply message from the result
+    const { message } = result.choices[0];
+    console.log("OpenRouter API Response:", message.content);
+    res.status(200).json({ reply: message.content });
   } catch (error) {
     console.error("OpenRouter API Error:", error.response?.data || error.message);
     res.status(500).json({ error: "Error: Unable to process request." });
