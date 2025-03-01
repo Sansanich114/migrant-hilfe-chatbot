@@ -24,7 +24,7 @@ app.get("/", (req, res) => {
 // ✅ Initialize OpenAI client with OpenRouter settings
 const openai = new OpenAI({
   apiKey: apiKey,
-  baseURL: "https://openrouter.ai/api/v1" // Base URL without the completions path
+  baseURL: "https://openrouter.ai/api/v1" // Base URL for OpenRouter API
 });
 
 // ✅ Chatbot API Route using OpenAI client
@@ -38,10 +38,9 @@ app.post("/chat", async (req, res) => {
   const userMessage = req.body.message;
 
   try {
-    // Create chat completion using the OpenAI client.
-    // We use the model ID as suggested by the article.
+    // Create chat completion using the correct model identifier for DeepSeek R1 (free version)
     const result = await openai.chat.completions.create({
-      model: "deepseek-ai/deepseek-coder-1.3b-base", // Candidate model ID from the article
+      model: "deepseek/deepseek-r1:free", // Correct model identifier for free DeepSeek R1
       messages: [
         {
           role: "system",
