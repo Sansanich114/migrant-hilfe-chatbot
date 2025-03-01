@@ -1,17 +1,14 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
-const { OpenAI } = require("openai"); // Ensure you've installed this package via npm install openai
+const { OpenAI } = require("openai"); 
 require("dotenv").config();
 const errorHandler = require("./errorHandler");
 
-// ✅ Load OpenRouter API key from .env
 const apiKey = process.env.OPENROUTER_API_KEY;
 console.log("OpenRouter API Key Loaded:", apiKey ? "Yes ✅" : "No ❌");
 
 const app = express();
-
-// ✅ Middleware
 app.use(express.json());
 app.use(cors());
 app.use(express.static(path.join(__dirname, "public")));
@@ -21,13 +18,28 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// ✅ Initialize OpenAI client with OpenRouter settings
+function stripFormatting(text) {
+  // Remove Markdown bullets, bold, or other patterns
+  // e.g. remove '*', '-', or '#' lines
+  // remove double asterisks for bold, etc.
+  
+  // Simple example: remove asterisks, dashes, and #:
+  return text
+    .replace(/\*\*/g, "")       // remove bold markers
+    .replace(/^- /gm, "")       // remove bullet lines
+    .replace(/^# /gm, "")       // remove heading markers
+    .trim();
+}
+
+// Usage:
+const rawReply = result.choices[0].message.content;
+const finalReply = stripFormatting(rawReply);
+
 const openai = new OpenAI({
   apiKey: apiKey,
-  baseURL: "https://openrouter.ai/api/v1" // Base URL for OpenRouter API
+  baseURL: "https://openrouter.ai/api/v1"
 });
 
-// ✅ Chatbot API Route using OpenAI client
 app.post("/chat", async (req, res) => {
   console.log("Received request:", req.body);
   
@@ -38,14 +50,22 @@ app.post("/chat", async (req, res) => {
   const userMessage = req.body.message;
 
   try {
-    // Create chat completion using the correct model identifier for DeepSeek R1 (free version)
     const result = await openai.chat.completions.create({
-      model: "deepseek/deepseek-r1:free", // Correct model identifier for free DeepSeek R1
+      model: "deepseek/deepseek-chat:free",
+      // You can tweak max_tokens, temperature, etc. as needed:
+      // max_tokens: 150,
+      // temperature: 0.7,
       messages: [
         {
           role: "system",
-          content: "You are an immigration expert helping people move to Germany."
-        },
+          content: `
+      "You are DeepSeek, a full-featured assistant for migrants planning to move to Germany. Your role is to guide users through the migration process by asking simple, sequential questions to get a complete picture of each person's situation. This allows you to offer highly personalized recommendations and provide support at every stage of the journey. You do not redirect users to official websites or provide links to government agencies. All necessary information must be given directly here without leaving the platform. Keep answers short, quickly readable, and free of unnecessary details. Cover key aspects of migration such as visas, residence permits, work, education, housing, adaptation, healthcare, integration, and legal questions in a way that is easy for a beginner to understand. Use simple language and clarify details only as needed, based on the user's knowledge level. Present instructions as clear next actions: what to do, where to go, and which documents to prepare. Avoid overwhelming users with too much information at once. If a user asks where they should go next, provide only one place or action they need to take right now. If the next step depends on more details, ask one clarifying question before giving the final answer. When you need more information about the user, ask only one question at a time, phrased simply as if speaking to a fifth grader. If a user's request is unrelated to moving to Germany, respond briefly that you are here to help with migration to Germany. Stay focused on providing relevant, actionable information for newcomers with minimal background knowledge."
+      You are an assistant providing very concise answers. 
+      - Respond in no more than 2 short sentences.
+      - Do not use any bold text, bullet points, or numbered lists.
+      - Keep your text minimal, with no special formatting.
+      `
+      },
         {
           role: "user",
           content: userMessage
@@ -53,7 +73,6 @@ app.post("/chat", async (req, res) => {
       ]
     });
     
-    // Extract the reply message from the result
     const { message } = result.choices[0];
     console.log("OpenRouter API Response:", message.content);
     res.status(200).json({ reply: message.content });
@@ -63,10 +82,8 @@ app.post("/chat", async (req, res) => {
   }
 });
 
-// ✅ Error Handler Middleware
 app.use(errorHandler);
 
-// ✅ Start Server on Render's assigned port
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`✅ Server running on port ${PORT}`);
