@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>DeepSeek Chatbot</title>
+  <title>Migrant Hilfe by Capyhust</title>
   <style>
     /* Reset & Base Styling */
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -16,8 +16,28 @@
       height: 100vh;
       transition: background 0.3s, color 0.3s;
     }
-    
-    /* Bright Mode Styles (Default) */
+
+    /* Header Styling */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 20px;
+      background: #8D6E63;
+      color: #FFF8E1;
+      font-weight: bold;
+      font-size: 1.2em;
+      border-bottom: 2px solid #795548;
+    }
+    .header button {
+      background: none;
+      border: none;
+      color: #FFF8E1;
+      font-size: 1.2em;
+      cursor: pointer;
+    }
+
+    /* Chat Container */
     .chat-container {
       flex: 1;
       overflow-y: auto;
@@ -65,6 +85,8 @@
     .message.bot .bubble {
       border-top-left-radius: 0;
     }
+
+    /* Predictive Questions */
     .suggestions {
       display: flex;
       flex-wrap: wrap;
@@ -86,6 +108,8 @@
     .suggestion:hover {
       background: #f0f0f0;
     }
+
+    /* Input Area */
     .input-container {
       display: flex;
       padding: 10px 20px;
@@ -120,7 +144,7 @@
     .input-container button:hover {
       background: #795548;
     }
-    
+
     /* Dark Mode Styles */
     body.dark-mode {
       background: #2E1C16; /* Darker dark brown */
@@ -159,7 +183,7 @@
     body.dark-mode .suggestion:hover {
       background: #6D4C41;
     }
-    
+
     /* Dark Mode Toggle Button */
     .dark-mode-toggle {
       position: fixed;
@@ -177,7 +201,7 @@
     .dark-mode-toggle:hover {
       background: #795548;
     }
-    
+
     /* Responsive adjustments for mobile */
     @media (max-width: 600px) {
       .bubble { max-width: 85%; }
@@ -188,25 +212,37 @@
   </style>
 </head>
 <body>
+  <!-- Header -->
+  <div class="header" id="header">
+    <span>Migrant Hilfe by Capyhust</span>
+    <button id="hideHeaderBtn">&#9660;</button>
+  </div>
+
   <!-- Dark Mode Toggle Button -->
   <button class="dark-mode-toggle" id="darkModeToggle">Dark Mode</button>
-  
+
   <!-- Chat Window -->
   <div class="chat-container" id="chatContainer">
-    <!-- Chat messages will appear here -->
+    <!-- Embedded Introduction Message -->
+    <div class="message bot">
+      <img class="avatar" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDQwIDQwIj4KICA8cmVjdCB4PSIxMCIgeT0iMTIiIHdpZHRoPSIyMCIgaGVpZ2h0PSIxNiIgcng9IjMiIHJ5PSIzIiBmaWxsPSIjM0UyNzIzIiAvPgogIDxjaXJjbGUgY3g9IjE3IiBjeT0iMjAiIHI9IjIiIGZpbGw9IiNGRkYiIC8+CiAgPGNpcmNsZSBjeD0iMjMiIGN5PSIyMCIgcj0iMiIgZmlsbD0iI0ZGRiIgLz4KICA8cmVjdCB4PSIxNSIgeT0iMjgiIHdpZHRoPSIxMCIgaGVpZ2h0PSIyIiBmaWxsPSIjRkZGIiAvPgo8L3N2Zz4=" alt="Bot Avatar">
+      <div class="bubble">
+        Hello! I am DeepSeek, your assistant for migration to Germany. How can I help you today?
+      </div>
+    </div>
   </div>
-  
+
   <!-- Predictive Questions -->
   <div class="suggestions" id="suggestions">
     <!-- Suggested questions will be added here -->
   </div>
-  
+
   <!-- Input Area -->
   <div class="input-container">
     <textarea id="chatInput" placeholder="Type your message..."></textarea>
     <button id="sendBtn">Send</button>
   </div>
-  
+
   <script>
     // Minimalistic inline SVG avatars encoded as data URIs:
     const avatars = {
@@ -251,15 +287,15 @@
         // Create a new message element
         const messageDiv = document.createElement('div');
         messageDiv.className = 'message ' + sender;
-        
+
         const avatarImg = document.createElement('img');
         avatarImg.className = 'avatar';
         avatarImg.src = avatars[sender];
-        
+
         const bubbleDiv = document.createElement('div');
         bubbleDiv.className = 'bubble';
         bubbleDiv.innerText = text;
-        
+
         messageDiv.appendChild(avatarImg);
         messageDiv.appendChild(bubbleDiv);
         chatContainer.appendChild(messageDiv);
@@ -278,23 +314,6 @@
       autoResize(chatInput);
     });
 
-    // On page load, fetch the introduction message from the /intro endpoint
-    window.onload = function() {
-      fetch('/intro')
-        .then(response => response.json())
-        .then(data => {
-          if (data.reply) {
-            addMessage('bot', data.reply);
-          } else {
-            addMessage('bot', "Hello! I am DeepSeek, your assistant for migration to Germany.");
-          }
-        })
-        .catch(error => {
-          console.error("Error fetching intro:", error);
-          addMessage('bot', "Hello! I am DeepSeek, your assistant for migration to Germany.");
-        });
-    };
-
     // Send message functionality
     document.getElementById('sendBtn').addEventListener('click', sendMessage);
     chatInput.addEventListener('keypress', function(e) {
@@ -307,7 +326,7 @@
     function sendMessage() {
       const userMessage = chatInput.value.trim();
       if (!userMessage) return;
-      
+
       // Add user's message to the chat
       addMessage('user', userMessage);
       chatInput.value = '';
@@ -340,6 +359,14 @@
     darkModeToggle.addEventListener('click', () => {
       document.body.classList.toggle('dark-mode');
       darkModeToggle.innerText = document.body.classList.contains('dark-mode') ? 'Light Mode' : 'Dark Mode';
+    });
+
+    // Hide/show header functionality
+    const hideHeaderBtn = document.getElementById('hideHeaderBtn');
+    const header = document.getElementById('header');
+    hideHeaderBtn.addEventListener('click', () => {
+      header.style.display = header.style.display === 'none' ? 'flex' : 'none';
+      hideHeaderBtn.innerHTML = header.style.display === 'none' ? '&#9650;' : '&#9660;';
     });
   </script>
 </body>
