@@ -13,12 +13,10 @@ app.use(express.json());
 app.use(cors());
 app.use(express.static(path.join(__dirname, "public")));
 
-app.get("/favicon.ico", (req, res) => res.status(204));
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
+// Store conversation history for each user (in-memory storage)
+const conversationHistory = {};
 
-// A helper function to strip away formatting (bold, bullets, headings, etc.)
+// Helper function to strip away formatting
 function stripFormatting(text) {
   return text
     .replace(/\*\*/g, "")  // remove bold markers (**)
@@ -32,7 +30,7 @@ const openai = new OpenAI({
   baseURL: "https://openrouter.ai/api/v1"
 });
 
-// Define the system prompt as a constant
+// Define the system prompt
 const systemPrompt = `
 You are DeepSeek, a full-featured assistant for migrants planning to move to Germany. Your role is to guide users through the migration process by providing detailed, accurate, and actionable information. You should cover all aspects of migration, including visas, residence permits, work, education, housing, adaptation, healthcare, integration, and legal questions. 
 
@@ -83,25 +81,32 @@ app.post("/chat", async (req, res) => {
     return res.status(200).json({});
   }
   
-  if (!req.body || !req.body.message) {
-    return res.status(400).json({ error: 'Invalid request. Expected {"message":"Hello"}' });
+  if (!req.body || !req.body.message || !req.body.userId) {
+    return res.status(400).json({ error: 'Invalid request. Expected {"userId": "123", "message":"Hello"}' });
   }
 
-  const userMessage = req.body.message;
+  const { userId, message } = req.body;
+
+  // Initialize conversation history for the user if it doesn't exist
+  if (!conversationHistory[userId]) {
+    conversationHistory[userId] = [
+      {
+        role: "system",
+        content: systemPrompt
+      }
+    ];
+  }
+
+  // Add the user's message to the conversation history
+  conversationHistory[userId].push({
+    role: "user",
+    content: message
+  });
 
   try {
     const result = await openai.chat.completions.create({
       model: "deepseek/deepseek-chat:free",
-      messages: [
-        {
-          role: "system",
-          content: systemPrompt
-        },
-        {
-          role: "user",
-          content: userMessage
-        }
-      ],
+      messages: conversationHistory[userId], // Pass the entire conversation history
       temperature: 0.7,
       max_tokens: 500,
       search: true // Enable internet search
@@ -109,8 +114,13 @@ app.post("/chat", async (req, res) => {
 
     // Extract the raw response
     const rawReply = result.choices[0].message.content;
-    // Strip away extra formatting
     const finalReply = stripFormatting(rawReply);
+
+    // Add the bot's response to the conversation history
+    conversationHistory[userId].push({
+      role: "assistant",
+      content: finalReply
+    });
 
     console.log("OpenRouter API Response:", finalReply);
     res.status(200).json({ reply: finalReply });
