@@ -32,6 +32,16 @@ function isResponseRepetitive(response) {
   return uniqueSentences.size < sentences.length;
 }
 
+// Helper function to check if the question is relevant
+function isRelevantQuestion(message) {
+  const relevantKeywords = [
+    "germany", "visa", "embassy", "migration", "residence", "work", "education",
+    "housing", "healthcare", "integration", "legal", "documents", "permit"
+  ];
+  const lowerCaseMessage = message.toLowerCase();
+  return relevantKeywords.some(keyword => lowerCaseMessage.includes(keyword));
+}
+
 const openai = new OpenAI({
   apiKey: apiKey,
   baseURL: "https://openrouter.ai/api/v1"
@@ -114,6 +124,16 @@ app.post("/chat", async (req, res) => {
     role: "user",
     content: message
   });
+
+  // Check if the question is relevant
+  if (!isRelevantQuestion(message)) {
+    const finalReply = "I'm here to help with migration to Germany. Please ask me questions related to that!";
+    conversationHistory[userId].push({
+      role: "assistant",
+      content: finalReply
+    });
+    return res.status(200).json({ reply: finalReply });
+  }
 
   try {
     const result = await openai.chat.completions.create({
