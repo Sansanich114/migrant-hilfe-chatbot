@@ -25,26 +25,33 @@ function stripFormatting(text) {
     .trim();
 }
 
+// Helper function to detect repetitive responses
+function isResponseRepetitive(response) {
+  const sentences = response.split(". ");
+  const uniqueSentences = new Set(sentences);
+  return uniqueSentences.size < sentences.length;
+}
+
 const openai = new OpenAI({
   apiKey: apiKey,
   baseURL: "https://openrouter.ai/api/v1"
 });
 
-// Define the system prompt with explicit instructions to use online search results for complete details.
+// Define the system prompt
 const systemPrompt = `
-You are DeepSeek, a full-featured assistant for migrants planning to move to Germany. Your role is to guide users through the migration process by providing detailed, accurate, and actionable information. You should cover all aspects of migration, including visas, residence permits, work, education, housing, adaptation, healthcare, integration, and legal questions.
+You are DeepSeek, a full-featured assistant for migrants planning to move to Germany. Your role is to guide users through the migration process by providing detailed, accurate, and actionable information. You should cover all aspects of migration, including visas, residence permits, work, education, housing, adaptation, healthcare, integration, and legal questions. 
 
-- Provide all necessary information directly without redirecting users to external websites.
-- Use online search results to fetch and include all complete details, such as addresses, contact information, forms, and step-by-step instructions.
-- Use simple language and adjust details based on the user's knowledge level.
+- Provide all necessary information directly without redirecting users to external platforms.
+- Use simple language and clarify details based on the user's knowledge level.
 - Present instructions as clear next actions: what to do, where to go, and which documents to prepare.
-- Avoid overwhelming users with too much information at once. If more details are needed for the next step, ask one clarifying question before giving the final answer.
+- Avoid overwhelming users with too much information at once. If the next step depends on more details, ask one clarifying question before giving the final answer.
 - If a user's request is unrelated to moving to Germany, respond briefly that you are here to help with migration to Germany.
 - Stay focused on providing relevant, actionable information for newcomers with minimal background knowledge.
 - Use the internet search feature to provide the most accurate and up-to-date information when necessary.
 - Respond in no more than 2-3 short sentences unless more detail is explicitly requested.
 - Do not use any bold text, bullet points, or numbered lists.
 - Keep your text minimal, with no special formatting.
+- **Do not repeat yourself. Provide concise and clear answers without looping or redundancy.**
 `;
 
 // New GET endpoint to serve the introduction message
@@ -76,12 +83,12 @@ app.get("/intro", async (req, res) => {
 
 app.post("/chat", async (req, res) => {
   console.log("Received request body:", req.body); // Log the request body
-  
+
   // Handle pre-flight OPTIONS requests explicitly
   if (req.method === "OPTIONS") {
     return res.status(200).json({});
   }
-  
+
   // Check if required fields are present
   if (!req.body || !req.body.message) {
     console.error("Missing required fields in request body:", req.body);
@@ -112,14 +119,19 @@ app.post("/chat", async (req, res) => {
     const result = await openai.chat.completions.create({
       model: "deepseek/deepseek-chat:free",
       messages: conversationHistory[userId], // Pass the entire conversation history
-      temperature: 0.7,
-      max_tokens: 500,
+      temperature: 0.8, // Increased temperature to reduce repetition
+      max_tokens: 200, // Limit response length
       search: true // Enable internet search
     });
 
     // Extract the raw response
-    const rawReply = result.choices[0].message.content;
-    const finalReply = stripFormatting(rawReply);
+    let rawReply = result.choices[0].message.content;
+    let finalReply = stripFormatting(rawReply);
+
+    // Check for repetitive responses
+    if (isResponseRepetitive(finalReply)) {
+      finalReply = "Let me know if you need more details or have another question!";
+    }
 
     // Add the bot's response to the conversation history
     conversationHistory[userId].push({
