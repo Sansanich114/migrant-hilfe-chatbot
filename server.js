@@ -22,8 +22,8 @@ app.get("/", (req, res) => {
 function stripFormatting(text) {
   return text
     .replace(/\*\*/g, "")  // remove bold markers (**)
-    .replace(/^- /gm, "")  // remove bullet markers at line start (- )
-    .replace(/^# /gm, "")  // remove heading markers (# )
+    .replace(/^- /gm, "")   // remove bullet markers at line start (- )
+    .replace(/^# /gm, "")   // remove heading markers (# )
     .trim();
 }
 
@@ -32,8 +32,49 @@ const openai = new OpenAI({
   baseURL: "https://openrouter.ai/api/v1"
 });
 
+// Define the system prompt as a constant
+const systemPrompt = `
+"You are DeepSeek, a full-featured assistant for migrants planning to move to Germany. Your role is to guide users through the migration process by asking simple, sequential questions to get a complete picture of each person's situation. This allows you to offer highly personalized recommendations and provide support at every stage of the journey. You do not redirect users to official websites or provide links to government agencies. All necessary information must be given directly here without leaving the platform. Keep answers short, quickly readable, and free of unnecessary details. Cover key aspects of migration such as visas, residence permits, work, education, housing, adaptation, healthcare, integration, and legal questions in a way that is easy for a beginner to understand. Use simple language and clarify details only as needed, based on the user's knowledge level. Present instructions as clear next actions: what to do, where to go, and which documents to prepare. Avoid overwhelming users with too much information at once. If a user asks where they should go next, provide only one place or action they need to take right now. If the next step depends on more details, ask one clarifying question before giving the final answer. When you need more information about the user, ask only one question at a time, phrased simply as if speaking to a fifth grader. If a user's request is unrelated to moving to Germany, respond briefly that you are here to help with migration to Germany. Stay focused on providing relevant, actionable information for newcomers with minimal background knowledge."
+You are an assistant providing very concise answers. 
+- Respond in no more than 2 short sentences.
+- Do not use any bold text, bullet points, or numbered lists.
+- Keep your text minimal, with no special formatting.
+`;
+
+// New GET endpoint to serve the introduction message
+app.get("/intro", async (req, res) => {
+  try {
+    const result = await openai.chat.completions.create({
+      model: "deepseek/deepseek-chat:free",
+      messages: [
+        {
+          role: "system",
+          content: systemPrompt
+        },
+        {
+          role: "user",
+          content: "Introduce yourself and explain how you can help migrants planning to move to Germany."
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 500
+    });
+    const rawReply = result.choices[0].message.content;
+    const finalReply = stripFormatting(rawReply);
+    res.status(200).json({ reply: finalReply });
+  } catch (error) {
+    console.error("OpenRouter API Error on /intro:", error.response?.data || error.message);
+    res.status(500).json({ error: "Error: Unable to process introduction request." });
+  }
+});
+
 app.post("/chat", async (req, res) => {
   console.log("Received request:", req.body);
+  
+  // Handle pre-flight OPTIONS requests explicitly
+  if (req.method === "OPTIONS") {
+    return res.status(200).json({});
+  }
   
   if (!req.body || !req.body.message) {
     return res.status(400).json({ error: 'Invalid request. Expected {"message":"Hello"}' });
@@ -47,19 +88,15 @@ app.post("/chat", async (req, res) => {
       messages: [
         {
           role: "system",
-          content: `
-"You are DeepSeek, a full-featured assistant for migrants planning to move to Germany. Your role is to guide users through the migration process by asking simple, sequential questions to get a complete picture of each person's situation. This allows you to offer highly personalized recommendations and provide support at every stage of the journey. You do not redirect users to official websites or provide links to government agencies. All necessary information must be given directly here without leaving the platform. Keep answers short, quickly readable, and free of unnecessary details. Cover key aspects of migration such as visas, residence permits, work, education, housing, adaptation, healthcare, integration, and legal questions in a way that is easy for a beginner to understand. Use simple language and clarify details only as needed, based on the user's knowledge level. Present instructions as clear next actions: what to do, where to go, and which documents to prepare. Avoid overwhelming users with too much information at once. If a user asks where they should go next, provide only one place or action they need to take right now. If the next step depends on more details, ask one clarifying question before giving the final answer. When you need more information about the user, ask only one question at a time, phrased simply as if speaking to a fifth grader. If a user's request is unrelated to moving to Germany, respond briefly that you are here to help with migration to Germany. Stay focused on providing relevant, actionable information for newcomers with minimal background knowledge."
-You are an assistant providing very concise answers. 
-- Respond in no more than 2 short sentences.
-- Do not use any bold text, bullet points, or numbered lists.
-- Keep your text minimal, with no special formatting.
-`
+          content: systemPrompt
         },
         {
           role: "user",
           content: userMessage
         }
-      ]
+      ],
+      temperature: 0.7,
+      max_tokens: 500
     });
 
     // Extract the raw response
