@@ -134,6 +134,11 @@ app.post("/chat", async (req, res) => {
   }
 });
 
+// Serve the index.html file for the root route
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 3000;
