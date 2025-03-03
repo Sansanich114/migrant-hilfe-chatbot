@@ -263,9 +263,21 @@
       autoResize(chatInput);
     });
 
-    // On page load, display an introductory message from the bot
+    // On page load, fetch the introduction message from the /intro endpoint
     window.onload = function() {
-      addMessage('bot', 'Hello! I am DeepSeek, your assistant for migration to Germany. How can I help you today?');
+      fetch('/intro')
+        .then(response => response.json())
+        .then(data => {
+          if (data.reply) {
+            addMessage('bot', data.reply);
+          } else {
+            addMessage('bot', "Hello! I am DeepSeek, your assistant for migration to Germany.");
+          }
+        })
+        .catch(error => {
+          console.error("Error fetching intro:", error);
+          addMessage('bot', "Hello! I am DeepSeek, your assistant for migration to Germany.");
+        });
     };
 
     // Send message functionality
@@ -286,10 +298,26 @@
       chatInput.value = '';
       autoResize(chatInput);
 
-      // Replace this simulation with an API call to your /chat endpoint.
-      setTimeout(() => {
-        addMessage('bot', 'This is a simulated response.');
-      }, 1000);
+      // Send the user's message to the /chat endpoint
+      fetch('/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ message: userMessage })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.reply) {
+          addMessage('bot', data.reply);
+        } else {
+          addMessage('bot', "Sorry, I didn't get a response.");
+        }
+      })
+      .catch(error => {
+        console.error("Error in /chat:", error);
+        addMessage('bot', "Error: Unable to process request.");
+      });
     }
 
     // Dark mode toggle functionality
