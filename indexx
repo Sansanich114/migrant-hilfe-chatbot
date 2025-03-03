@@ -48,7 +48,7 @@
       color: #3E2723;
       box-shadow: 0 1px 3px rgba(0,0,0,0.1);
       transition: background 0.3s, color 0.3s;
-      white-space: pre-wrap;       /* Wrap text into multiple lines */
+      white-space: pre-wrap;
       word-break: break-word;
     }
     .message.user .bubble {
@@ -201,10 +201,12 @@
   </div>
   
   <script>
-    // Avatars for bot and user (replace URLs with your preferred images)
+    // Minimalistic inline SVG avatars encoded as data URIs:
     const avatars = {
-      bot: 'https://via.placeholder.com/40?text=Bot',
-      user: 'https://via.placeholder.com/40?text=You'
+      // Chatbot: A simple robot face icon
+      bot: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDQwIDQwIj4KICA8cmVjdCB4PSIxMCIgeT0iMTIiIHdpZHRoPSIyMCIgaGVpZ2h0PSIxNiIgcng9IjMiIHJ5PSIzIiBmaWxsPSIjM0UyNzIzIiAvPgogIDxjaXJjbGUgY3g9IjE3IiBjeT0iMjAiIHI9IjIiIGZpbGw9IiNGRkYiIC8+CiAgPGNpcmNsZSBjeD0iMjMiIGN5PSIyMCIgcj0iMiIgZmlsbD0iI0ZGRiIgLz4KICA8cmVjdCB4PSIxNSIgeT0iMjgiIHdpZHRoPSIxMCIgaGVpZ2h0PSIyIiBmaWxsPSIjRkZGIiAvPgo8L3N2Zz4=',
+      // User: A minimalistic user silhouette
+      user: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDQwIDQwIj4KICA8Y2lyY2xlIGN4PSIyMCIgY3k9IjE0IiByPSI2IiBmaWxsPSIjM0UyNzIzIiAvPgogIDxwYXRoIGQ9Ik0yMCAyMmMtNS4zMyAwLTEwIDIuNjctMTAgNnY0aDIwdi00YzAtMy4zMy00LjY3LTYtMTAtNnoiIGZpbGw9IiM0RTI3MjMiIC8+Cjwvc3ZnPg=='
     };
 
     // Predictive questions suggestions

@@ -82,12 +82,14 @@ app.post("/chat", async (req, res) => {
   }
   
   // Check if required fields are present
-  if (!req.body || !req.body.message || !req.body.userId) {
+  if (!req.body || !req.body.message) {
     console.error("Missing required fields in request body:", req.body);
-    return res.status(400).json({ error: 'Invalid request. Expected {"userId": "123", "message":"Hello"}' });
+    return res.status(400).json({ error: 'Invalid request. Expected {"message":"Hello"}' });
   }
 
-  const { userId, message } = req.body;
+  // Generate a temporary userId if not provided
+  const userId = req.body.userId || `temp-${Date.now()}`;
+  const message = req.body.message;
 
   // Initialize conversation history for the user if it doesn't exist
   if (!conversationHistory[userId]) {
