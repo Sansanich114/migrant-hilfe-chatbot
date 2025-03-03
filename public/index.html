@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>DeepSeek Chatbot</title>
   <style>
     /* Reset & Base Styling */
@@ -27,11 +27,18 @@
     }
     .message {
       display: flex;
+      width: 100%;
       margin-bottom: 15px;
       align-items: flex-start;
     }
-    .message.bot { flex-direction: row; }
-    .message.user { flex-direction: row-reverse; }
+    .message.bot {
+      flex-direction: row;
+      justify-content: flex-start;
+    }
+    .message.user {
+      flex-direction: row-reverse;
+      justify-content: flex-end;
+    }
     .avatar {
       width: 40px;
       height: 40px;
@@ -233,22 +240,30 @@
 
     const chatContainer = document.getElementById('chatContainer');
 
-    // Function to add a message to the chat
+    // Function to add a message to the chat. It groups consecutive messages from the same sender.
     function addMessage(sender, text) {
-      const messageDiv = document.createElement('div');
-      messageDiv.className = 'message ' + sender;
-      
-      const avatarImg = document.createElement('img');
-      avatarImg.className = 'avatar';
-      avatarImg.src = avatars[sender];
-      
-      const bubbleDiv = document.createElement('div');
-      bubbleDiv.className = 'bubble';
-      bubbleDiv.innerText = text;
-      
-      messageDiv.appendChild(avatarImg);
-      messageDiv.appendChild(bubbleDiv);
-      chatContainer.appendChild(messageDiv);
+      const lastMessage = chatContainer.lastElementChild;
+      if (lastMessage && lastMessage.classList.contains('message') && lastMessage.classList.contains(sender)) {
+        // Append to the existing bubble
+        const bubble = lastMessage.querySelector('.bubble');
+        bubble.innerText += "\n" + text;
+      } else {
+        // Create a new message element
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message ' + sender;
+        
+        const avatarImg = document.createElement('img');
+        avatarImg.className = 'avatar';
+        avatarImg.src = avatars[sender];
+        
+        const bubbleDiv = document.createElement('div');
+        bubbleDiv.className = 'bubble';
+        bubbleDiv.innerText = text;
+        
+        messageDiv.appendChild(avatarImg);
+        messageDiv.appendChild(bubbleDiv);
+        chatContainer.appendChild(messageDiv);
+      }
       chatContainer.scrollTop = chatContainer.scrollHeight;
     }
 
