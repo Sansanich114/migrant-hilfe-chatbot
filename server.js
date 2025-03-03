@@ -74,14 +74,16 @@ app.get("/intro", async (req, res) => {
 });
 
 app.post("/chat", async (req, res) => {
-  console.log("Received request:", req.body);
+  console.log("Received request body:", req.body); // Log the request body
   
   // Handle pre-flight OPTIONS requests explicitly
   if (req.method === "OPTIONS") {
     return res.status(200).json({});
   }
   
+  // Check if required fields are present
   if (!req.body || !req.body.message || !req.body.userId) {
+    console.error("Missing required fields in request body:", req.body);
     return res.status(400).json({ error: 'Invalid request. Expected {"userId": "123", "message":"Hello"}' });
   }
 

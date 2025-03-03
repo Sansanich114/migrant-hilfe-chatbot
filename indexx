@@ -16,7 +16,7 @@
       height: 100vh;
       transition: background 0.3s, color 0.3s;
     }
-
+    
     /* Bright Mode Styles (Default) */
     .chat-container {
       flex: 1;
@@ -48,9 +48,11 @@
       color: #3E2723;
       box-shadow: 0 1px 3px rgba(0,0,0,0.1);
       transition: background 0.3s, color 0.3s;
+      white-space: pre-wrap;       /* Wrap text into multiple lines */
+      word-break: break-word;
     }
     .message.user .bubble {
-      background: #BBDEFB; /* Light blue for user */
+      background: #D7CCC8; /* Warm grey-brown for user */
       border-top-right-radius: 0;
     }
     .message.bot .bubble {
@@ -84,7 +86,7 @@
       border-top: 1px solid #ddd;
       transition: background 0.3s;
     }
-    .input-container input {
+    .input-container textarea {
       flex: 1;
       padding: 10px;
       font-size: 16px;
@@ -93,6 +95,9 @@
       background: #FFECB3;
       color: #3E2723;
       transition: background 0.3s, color 0.3s;
+      resize: none;
+      overflow: hidden;
+      min-height: 30px;
     }
     .input-container button {
       padding: 10px 20px;
@@ -108,44 +113,46 @@
     .input-container button:hover {
       background: #795548;
     }
+    
     /* Dark Mode Styles */
     body.dark-mode {
-      background: #4E342E; /* Cool dark brown */
+      background: #2E1C16; /* Darker dark brown */
       color: #FFECB3; /* Light creme text */
     }
     body.dark-mode .chat-container {
-      background: #4E342E;
+      background: #2E1C16;
     }
     body.dark-mode .bubble {
       color: #FFECB3;
     }
     body.dark-mode .message.bot .bubble {
-      background: #6D4C41; /* Distinct dark tone for bot */
+      background: #6D4C41; /* Dark tone for bot */
       border-top-left-radius: 0;
     }
     body.dark-mode .message.user .bubble {
-      background: #8D6E63; /* Different tone for user */
+      background: #8D6E63; /* Distinct tone for user */
       border-top-right-radius: 0;
     }
     body.dark-mode .input-container {
-      background: #4E342E;
+      background: #2E1C16;
     }
-    body.dark-mode .input-container input {
+    body.dark-mode .input-container textarea {
       background: #5D4037;
       color: #FFECB3;
       border: 1px solid #555;
     }
     body.dark-mode .suggestions {
-      background: #4E342E;
+      background: #2E1C16;
     }
     body.dark-mode .suggestion {
-      background: #5D4037; /* Dark background for suggestions */
+      background: #5D4037;
       border-color: #BCAAA4;
       color: #FFECB3;
     }
     body.dark-mode .suggestion:hover {
       background: #6D4C41;
     }
+    
     /* Dark Mode Toggle Button */
     .dark-mode-toggle {
       position: fixed;
@@ -163,10 +170,11 @@
     .dark-mode-toggle:hover {
       background: #795548;
     }
+    
     /* Responsive adjustments for mobile */
     @media (max-width: 600px) {
       .bubble { max-width: 85%; }
-      .input-container input, .input-container button { font-size: 14px; padding: 8px; }
+      .input-container textarea, .input-container button { font-size: 14px; padding: 8px; }
       .suggestion { font-size: 12px; padding: 4px 10px; }
       .avatar { width: 35px; height: 35px; }
     }
@@ -188,7 +196,7 @@
   
   <!-- Input Area -->
   <div class="input-container">
-    <input type="text" id="chatInput" placeholder="Type your message..." />
+    <textarea id="chatInput" placeholder="Type your message..."></textarea>
     <button id="sendBtn">Send</button>
   </div>
   
@@ -216,6 +224,7 @@
       suggestionBtn.innerText = question;
       suggestionBtn.onclick = () => {
         document.getElementById('chatInput').value = question;
+        autoResize(document.getElementById('chatInput'));
       };
       suggestionsDiv.appendChild(suggestionBtn);
     });
@@ -241,6 +250,17 @@
       chatContainer.scrollTop = chatContainer.scrollHeight;
     }
 
+    // Auto-resize textarea function
+    function autoResize(textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = textarea.scrollHeight + 'px';
+    }
+
+    const chatInput = document.getElementById('chatInput');
+    chatInput.addEventListener('input', function() {
+      autoResize(chatInput);
+    });
+
     // On page load, display an introductory message from the bot
     window.onload = function() {
       addMessage('bot', 'Hello! I am DeepSeek, your assistant for migration to Germany. How can I help you today?');
@@ -248,18 +268,21 @@
 
     // Send message functionality
     document.getElementById('sendBtn').addEventListener('click', sendMessage);
-    document.getElementById('chatInput').addEventListener('keypress', function(e) {
-      if (e.key === 'Enter') sendMessage();
+    chatInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
     });
 
     function sendMessage() {
-      const inputField = document.getElementById('chatInput');
-      const userMessage = inputField.value.trim();
+      const userMessage = chatInput.value.trim();
       if (!userMessage) return;
       
       // Add user's message to the chat
       addMessage('user', userMessage);
-      inputField.value = '';
+      chatInput.value = '';
+      autoResize(chatInput);
 
       // Replace this simulation with an API call to your /chat endpoint.
       setTimeout(() => {
