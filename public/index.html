@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, maximum-scale=1.0, user-scalable=no" />
   <title>Migrant Hilfe by Capyhust</title>
   <style>
     /* Reset & Base Styling */
@@ -56,8 +56,8 @@
       justify-content: flex-start;
     }
     .message.user {
-      flex-direction: row-reverse;
-      justify-content: flex-end;
+      flex-direction: row-reverse; /* Align user messages to the right */
+      justify-content: flex-end;   /* Ensure the bubble is anchored to the right */
     }
     .avatar {
       width: 40px;
@@ -80,7 +80,8 @@
     }
     .message.user .bubble {
       background: #D7CCC8; /* Warm grey-brown for user */
-      border-top-right-radius: 0;
+      border-top-right-radius: 0; /* Remove top-right radius for a chat bubble effect */
+      border-top-left-radius: 15px; /* Add left radius for a smooth edge */
     }
     .message.bot .bubble {
       border-top-left-radius: 0;
@@ -163,6 +164,7 @@
     body.dark-mode .message.user .bubble {
       background: #8D6E63; /* Distinct tone for user */
       border-top-right-radius: 0;
+      border-top-left-radius: 15px;
     }
     body.dark-mode .input-container {
       background: #2E1C16;
@@ -219,7 +221,7 @@
   </div>
 
   <!-- Dark Mode Toggle Button -->
-  <button class="dark-mode-toggle" id="darkModeToggle">Dark Mode</button>
+  
 
   <!-- Chat Window -->
   <div class="chat-container" id="chatContainer">
@@ -246,9 +248,7 @@
   <script>
     // Minimalistic inline SVG avatars encoded as data URIs:
     const avatars = {
-      // Chatbot: A simple robot face icon
       bot: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDQwIDQwIj4KICA8cmVjdCB4PSIxMCIgeT0iMTIiIHdpZHRoPSIyMCIgaGVpZ2h0PSIxNiIgcng9IjMiIHJ5PSIzIiBmaWxsPSIjM0UyNzIzIiAvPgogIDxjaXJjbGUgY3g9IjE3IiBjeT0iMjAiIHI9IjIiIGZpbGw9IiNGRkYiIC8+CiAgPGNpcmNsZSBjeD0iMjMiIGN5PSIyMCIgcj0iMiIgZmlsbD0iI0ZGRiIgLz4KICA8cmVjdCB4PSIxNSIgeT0iMjgiIHdpZHRoPSIxMCIgaGVpZ2h0PSIyIiBmaWxsPSIjRkZGIiAvPgo8L3N2Zz4=',
-      // User: A minimalistic user silhouette
       user: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDQwIDQwIj4KICA8Y2lyY2xlIGN4PSIyMCIgY3k9IjE0IiByPSI2IiBmaWxsPSIjM0UyNzIzIiAvPgogIDxwYXRoIGQ9Ik0yMCAyMmMtNS4zMyAwLTEwIDIuNjctMTAgNnY0aDIwdi00YzAtMy4zMy00LjY3LTYtMTAtNnoiIGZpbGw9IiM0RTI3MjMiIC8+Cjwvc3ZnPg=='
     };
 
@@ -261,7 +261,6 @@
       "What is the cost of living in Germany?"
     ];
 
-    // Populate predictive suggestions
     const suggestionsDiv = document.getElementById('suggestions');
     predictiveQuestions.forEach(question => {
       const suggestionBtn = document.createElement('div');
@@ -276,7 +275,6 @@
 
     const chatContainer = document.getElementById('chatContainer');
 
-    // Function to add a message to the chat. It groups consecutive messages from the same sender.
     function addMessage(sender, text) {
       const lastMessage = chatContainer.lastElementChild;
       if (lastMessage && lastMessage.classList.contains('message') && lastMessage.classList.contains(sender)) {
@@ -303,7 +301,6 @@
       chatContainer.scrollTop = chatContainer.scrollHeight;
     }
 
-    // Auto-resize textarea function
     function autoResize(textarea) {
       textarea.style.height = 'auto';
       textarea.style.height = textarea.scrollHeight + 'px';
@@ -312,15 +309,6 @@
     const chatInput = document.getElementById('chatInput');
     chatInput.addEventListener('input', function() {
       autoResize(chatInput);
-    });
-
-    // Send message functionality
-    document.getElementById('sendBtn').addEventListener('click', sendMessage);
-    chatInput.addEventListener('keypress', function(e) {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        sendMessage();
-      }
     });
 
     function sendMessage() {
@@ -353,6 +341,14 @@
         addMessage('bot', "Error: Unable to process request.");
       });
     }
+
+    document.getElementById('sendBtn').addEventListener('click', sendMessage);
+    chatInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
 
     // Dark mode toggle functionality
     const darkModeToggle = document.getElementById('darkModeToggle');

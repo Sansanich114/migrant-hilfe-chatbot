@@ -1,0 +1,46 @@
+/* Ensure the message container uses flexbox */
+.message {
+  display: flex;
+  margin-bottom: 15px;
+  align-items: flex-start;
+  padding: 0 10px;
+}
+
+/* For bot messages, keep left alignment */
+.message.bot {
+  flex-direction: row;
+  justify-content: flex-start;
+}
+
+/* For user messages, reverse the order and align to the right */
+.message.user {
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+}
+
+/* Additional styling for the chat bubble to ensure proper text alignment */
+.message.user .bubble {
+  background: #D7CCC8;
+  border-top-right-radius: 0;
+  border-top-left-radius: 15px;
+  text-align: right;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .bubble {
+    max-width: 85%;
+  }
+  .input-container textarea, .input-container button {
+    font-size: 14px;
+    padding: 8px;
+  }
+  .suggestion {
+    font-size: 12px;
+    padding: 4px 10px;
+  }
+  .avatar {
+    width: 35px;
+    height: 35px;
+  }
+}
