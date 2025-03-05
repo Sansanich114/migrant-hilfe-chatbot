@@ -1,17 +1,74 @@
-.message.user {
+.message {
   display: flex;
+  align-items: flex-start;
+  margin-bottom: 15px;
+  padding: 0 10px;
+}
+
+.message.bot {
+  flex-direction: row;
+  justify-content: flex-start;
+}
+
+.message.user {
+  flex-direction: row-reverse;
   justify-content: flex-end;
-  flex-direction: row-reverse; /* Ensures avatar is on the right */
-  text-align: right;
+  align-items: flex-end;
+  width: 100%;
+}
+
+.message .bubble {
+  max-width: 70%;
+  padding: 10px;
+  border-radius: 15px;
+  position: relative;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  word-break: break-word;
+  white-space: pre-wrap;
 }
 
 .message.user .bubble {
-  background: #D7CCC8; /* User message color */
+  background: #D7CCC8;
   color: #3E2723;
-  border-radius: 15px;
   border-top-right-radius: 0;
-  padding: 10px;
-  max-width: 70%;
+  border-top-left-radius: 15px;
   text-align: right;
   align-self: flex-end;
+}
+
+.message.bot .bubble {
+  background: #FFE0B2;
+  color: #3E2723;
+  border-top-left-radius: 0;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  margin: 0 10px;
+  object-fit: cover;
+}
+
+.message.user .avatar {
+  margin-left: 10px;
+  margin-right: 0;
+}
+
+@media (max-width: 600px) {
+  .bubble {
+    max-width: 85%;
+  }
+  .input-container textarea, .input-container button {
+    font-size: 14px;
+    padding: 8px;
+  }
+  .suggestion {
+    font-size: 12px;
+    padding: 4px 10px;
+  }
+  .avatar {
+    width: 35px;
+    height: 35px;
+  }
 }
