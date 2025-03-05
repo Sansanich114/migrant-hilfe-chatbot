@@ -1,46 +1,17 @@
-/* Ensure the message container uses flexbox */
-.message {
-  display: flex;
-  margin-bottom: 15px;
-  align-items: flex-start;
-  padding: 0 10px;
-}
-
-/* For bot messages, keep left alignment */
-.message.bot {
-  flex-direction: row;
-  justify-content: flex-start;
-}
-
-/* For user messages, reverse the order and align to the right */
 .message.user {
-  flex-direction: row-reverse;
+  display: flex;
   justify-content: flex-end;
-}
-
-/* Additional styling for the chat bubble to ensure proper text alignment */
-.message.user .bubble {
-  background: #D7CCC8;
-  border-top-right-radius: 0;
-  border-top-left-radius: 15px;
+  flex-direction: row-reverse; /* Ensures avatar is on the right */
   text-align: right;
 }
 
-/* Responsive adjustments */
-@media (max-width: 600px) {
-  .bubble {
-    max-width: 85%;
-  }
-  .input-container textarea, .input-container button {
-    font-size: 14px;
-    padding: 8px;
-  }
-  .suggestion {
-    font-size: 12px;
-    padding: 4px 10px;
-  }
-  .avatar {
-    width: 35px;
-    height: 35px;
-  }
+.message.user .bubble {
+  background: #D7CCC8; /* User message color */
+  color: #3E2723;
+  border-radius: 15px;
+  border-top-right-radius: 0;
+  padding: 10px;
+  max-width: 70%;
+  text-align: right;
+  align-self: flex-end;
 }
