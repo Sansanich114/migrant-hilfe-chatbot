@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Migrant Hilfe by Capyhust</title>
   <style>
     /* Reset & Base Styling */
@@ -10,7 +10,7 @@
     body {
       font-family: Arial, sans-serif;
       background: #FFF8E1; /* Creme white */
-      color: #3E2723; /* Dark brown text */
+      color: #3E2723;      /* Dark brown text */
       display: flex;
       flex-direction: column;
       height: 100vh;
@@ -50,15 +50,22 @@
       width: 100%;
       margin-bottom: 15px;
       align-items: flex-start;
+      padding: 0 10px;
     }
+    /* Bot messages: on the LEFT */
     .message.bot {
-      flex-direction: row;
+      flex-direction: row;       /* Avatar left, bubble to its right */
       justify-content: flex-start;
+      align-items: flex-start;
     }
+    /* User messages: on the RIGHT */
     .message.user {
-      flex-direction: row-reverse; /* Align user messages to the right */
-      justify-content: flex-end;   /* Ensure the bubble is anchored to the right */
+      flex-direction: row-reverse; /* Avatar right, bubble to its left */
+      justify-content: flex-end;
+      align-items: flex-end;
     }
+
+    /* Avatars */
     .avatar {
       width: 40px;
       height: 40px;
@@ -66,25 +73,38 @@
       margin: 0 10px;
       object-fit: cover;
     }
+    /* Adjust user avatar spacing */
+    .message.user .avatar {
+      margin-left: 10px;
+      margin-right: 0;
+    }
+
+    /* Chat Bubbles */
     .bubble {
       max-width: 70%;
       padding: 10px 15px;
       border-radius: 15px;
       position: relative;
-      background: #FFE0B2; /* Light orange cream for bot */
-      color: #3E2723;
       box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-      transition: background 0.3s, color 0.3s;
-      white-space: pre-wrap;
       word-break: break-word;
+      white-space: pre-wrap;
+      transition: background 0.3s, color 0.3s;
     }
-    .message.user .bubble {
-      background: #D7CCC8; /* Warm grey-brown for user */
-      border-top-right-radius: 0; /* Remove top-right radius for a chat bubble effect */
-      border-top-left-radius: 15px; /* Add left radius for a smooth edge */
-    }
+    /* Bot bubble: light orange, on the left */
     .message.bot .bubble {
+      background: #FFE0B2;
+      color: #3E2723;
       border-top-left-radius: 0;
+      text-align: left;
+    }
+    /* User bubble: warm gray-brown, on the right */
+    .message.user .bubble {
+      background: #D7CCC8;
+      color: #3E2723;
+      border-top-right-radius: 0;
+      border-top-left-radius: 15px;
+      text-align: right;
+      align-self: flex-end;
     }
 
     /* Predictive Questions */
@@ -149,7 +169,7 @@
     /* Dark Mode Styles */
     body.dark-mode {
       background: #2E1C16; /* Darker dark brown */
-      color: #FFECB3; /* Light creme text */
+      color: #FFECB3;      /* Light creme text */
     }
     body.dark-mode .chat-container {
       background: #2E1C16;
@@ -158,7 +178,7 @@
       color: #FFECB3;
     }
     body.dark-mode .message.bot .bubble {
-      background: #6D4C41; /* Dark tone for bot */
+      background: #6D4C41; /* Darker brown for bot */
       border-top-left-radius: 0;
     }
     body.dark-mode .message.user .bubble {
@@ -206,10 +226,21 @@
 
     /* Responsive adjustments for mobile */
     @media (max-width: 600px) {
-      .bubble { max-width: 85%; }
-      .input-container textarea, .input-container button { font-size: 14px; padding: 8px; }
-      .suggestion { font-size: 12px; padding: 4px 10px; }
-      .avatar { width: 35px; height: 35px; }
+      .bubble {
+        max-width: 85%;
+      }
+      .input-container textarea, .input-container button {
+        font-size: 14px;
+        padding: 8px;
+      }
+      .suggestion {
+        font-size: 12px;
+        padding: 4px 10px;
+      }
+      .avatar {
+        width: 35px;
+        height: 35px;
+      }
     }
   </style>
 </head>
@@ -221,11 +252,11 @@
   </div>
 
   <!-- Dark Mode Toggle Button -->
-  
+  <button class="dark-mode-toggle" id="darkModeToggle">Dark Mode</button>
 
   <!-- Chat Window -->
   <div class="chat-container" id="chatContainer">
-    <!-- Embedded Introduction Message -->
+    <!-- Embedded Introduction Message (Bot) -->
     <div class="message bot">
       <img class="avatar" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDQwIDQwIj4KICA8cmVjdCB4PSIxMCIgeT0iMTIiIHdpZHRoPSIyMCIgaGVpZ2h0PSIxNiIgcng9IjMiIHJ5PSIzIiBmaWxsPSIjM0UyNzIzIiAvPgogIDxjaXJjbGUgY3g9IjE3IiBjeT0iMjAiIHI9IjIiIGZpbGw9IiNGRkYiIC8+CiAgPGNpcmNsZSBjeD0iMjMiIGN5PSIyMCIgcj0iMiIgZmlsbD0iI0ZGRiIgLz4KICA8cmVjdCB4PSIxNSIgeT0iMjgiIHdpZHRoPSIxMCIgaGVpZ2h0PSIyIiBmaWxsPSIjRkZGIiAvPgo8L3N2Zz4=" alt="Bot Avatar">
       <div class="bubble">
@@ -236,7 +267,7 @@
 
   <!-- Predictive Questions -->
   <div class="suggestions" id="suggestions">
-    <!-- Suggested questions will be added here -->
+    <!-- Suggested questions will be added here dynamically -->
   </div>
 
   <!-- Input Area -->
@@ -261,6 +292,7 @@
       "What is the cost of living in Germany?"
     ];
 
+    // Populate predictive suggestions
     const suggestionsDiv = document.getElementById('suggestions');
     predictiveQuestions.forEach(question => {
       const suggestionBtn = document.createElement('div');
@@ -275,14 +307,15 @@
 
     const chatContainer = document.getElementById('chatContainer');
 
+    // Function to add a message to the chat
     function addMessage(sender, text) {
       const lastMessage = chatContainer.lastElementChild;
       if (lastMessage && lastMessage.classList.contains('message') && lastMessage.classList.contains(sender)) {
-        // Append to the existing bubble
+        // If the last message is from the same sender, append text to the same bubble
         const bubble = lastMessage.querySelector('.bubble');
         bubble.innerText += "\n" + text;
       } else {
-        // Create a new message element
+        // Otherwise, create a new message element
         const messageDiv = document.createElement('div');
         messageDiv.className = 'message ' + sender;
 
@@ -301,6 +334,7 @@
       chatContainer.scrollTop = chatContainer.scrollHeight;
     }
 
+    // Auto-resize textarea function
     function autoResize(textarea) {
       textarea.style.height = 'auto';
       textarea.style.height = textarea.scrollHeight + 'px';
@@ -311,16 +345,27 @@
       autoResize(chatInput);
     });
 
+    // Send message functionality
+    document.getElementById('sendBtn').addEventListener('click', sendMessage);
+    chatInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
     function sendMessage() {
       const userMessage = chatInput.value.trim();
       if (!userMessage) return;
 
-      // Add user's message to the chat
+      // Add user's message to the chat (right side)
       addMessage('user', userMessage);
       chatInput.value = '';
       autoResize(chatInput);
 
-      // Send the user's message to the /chat endpoint
+      // Example fetch to your backend: 
+      // (If you have a working /chat endpoint, uncomment and adjust accordingly)
+      /*
       fetch('/chat', {
         method: 'POST',
         headers: {
@@ -331,6 +376,7 @@
       .then(response => response.json())
       .then(data => {
         if (data.reply) {
+          // Bot's reply (left side)
           addMessage('bot', data.reply);
         } else {
           addMessage('bot', "Sorry, I didn't get a response.");
@@ -340,24 +386,20 @@
         console.error("Error in /chat:", error);
         addMessage('bot', "Error: Unable to process request.");
       });
+      */
+
+      // For now, if no backend is available:
+      addMessage('bot', "Error: Unable to process request.");
     }
 
-    document.getElementById('sendBtn').addEventListener('click', sendMessage);
-    chatInput.addEventListener('keypress', function(e) {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        sendMessage();
-      }
-    });
-
-    // Dark mode toggle functionality
+    // Dark mode toggle
     const darkModeToggle = document.getElementById('darkModeToggle');
     darkModeToggle.addEventListener('click', () => {
       document.body.classList.toggle('dark-mode');
       darkModeToggle.innerText = document.body.classList.contains('dark-mode') ? 'Light Mode' : 'Dark Mode';
     });
 
-    // Hide/show header functionality
+    // Hide/show header
     const hideHeaderBtn = document.getElementById('hideHeaderBtn');
     const header = document.getElementById('header');
     hideHeaderBtn.addEventListener('click', () => {

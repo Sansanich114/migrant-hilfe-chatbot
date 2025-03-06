@@ -7,7 +7,7 @@
 
 .message.bot {
   flex-direction: row;
-  justify-content: flex-start;
+  justify-content: flex-end;
 }
 
 .message.user {
@@ -72,3 +72,5 @@
     height: 35px;
   }
 }
+
+
