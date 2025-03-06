@@ -39,6 +39,11 @@ const systemPrompt = `
 You are DeepSeek, an assistant guiding migrants planning to move to Germany. Provide clear, actionable guidance covering visas, residence permits, employment, education, housing, healthcare, integration, and legal matters. Avoid repetition, external redirects, and excessive details. Keep answers concise and ask clarifying questions if needed.
 `;
 
+// Helper function to strip formatting from AI responses
+function stripFormatting(text) {
+  return text.replace(/\*\*|- |# /g, "").trim();
+}
+
 app.post("/chat", async (req, res) => {
   const userId = req.body.userId || `temp-${Date.now()}`;
   const userMessage = req.body.message;
@@ -70,7 +75,7 @@ app.post("/chat", async (req, res) => {
       conversationSummary[userId] = summary.trim();
     }
 
-    res.status(200).json({ reply: reply.trim() });
+    res.status(200).json({ reply: stripFormatting(reply) });
   } catch (error) {
     console.error("OpenRouter API Error:", error);
     res.status(500).json({ error: "Unable to process request." });
@@ -89,8 +94,7 @@ app.get("/intro", async (req, res) => {
       max_tokens: 500
     });
     const rawReply = result.choices[0].message.content;
-    const finalReply = rawReply.replace(/\*\*|- |# /g, "").trim();
-    res.status(200).json({ reply: finalReply });
+    res.status(200).json({ reply: stripFormatting(rawReply) });
   } catch (error) {
     console.error("Intro Error:", error.response?.data || error.message);
     res.status(500).json({ error: "Unable to process introduction request." });
