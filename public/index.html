@@ -355,42 +355,34 @@
     });
 
     function sendMessage() {
-      const userMessage = chatInput.value.trim();
-      if (!userMessage) return;
+  const userMessage = chatInput.value.trim();
+  if (!userMessage) return;
 
-      // Add user's message to the chat (right side)
-      addMessage('user', userMessage);
-      chatInput.value = '';
-      autoResize(chatInput);
+  // Add user's message to the chat (right side)
+  addMessage('user', userMessage);
+  chatInput.value = '';
+  autoResize(chatInput);
 
-      // Example fetch to your backend: 
-      // (If you have a working /chat endpoint, uncomment and adjust accordingly)
-      /*
-      fetch('/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ message: userMessage })
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.reply) {
-          // Bot's reply (left side)
-          addMessage('bot', data.reply);
-        } else {
-          addMessage('bot', "Sorry, I didn't get a response.");
-        }
-      })
-      .catch(error => {
-        console.error("Error in /chat:", error);
-        addMessage('bot', "Error: Unable to process request.");
-      });
-      */
-
-      // For now, if no backend is available:
-      addMessage('bot', "Error: Unable to process request.");
+  fetch('http://localhost:3000/chat', {  // Adjust if hosted on another domain
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ message: userMessage })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.reply) {
+      addMessage('bot', data.reply);
+    } else {
+      addMessage('bot', "Sorry, I didn't get a response.");
     }
+  })
+  .catch(error => {
+    console.error("Error in /chat:", error);
+    addMessage('bot', "Error: Unable to process request.");
+  });
+}
 
     // Dark mode toggle
     const darkModeToggle = document.getElementById('darkModeToggle');
