@@ -84,19 +84,32 @@ app.post("/chat", async (req, res) => {
     let rawReply = result.choices[0].message.content;
     console.log("Raw reply:", rawReply);
 
-    // Check if the response contains the "Summary:" marker
-    if (!rawReply.includes("Summary:")) {
-      console.warn("No summary found in the response.");
-    }
-
-    let [reply, summary] = rawReply.split("Summary:");
-    if (summary) {
-      conversationSummary[userId] = summary.trim();
+    if (rawReply.includes("Summary:")) {
+      let [reply, summary] = rawReply.split("Summary:");
+      if (summary && summary.trim() !== "") {
+        conversationSummary[userId] = summary.trim();
+      } else {
+        console.warn("Summary is empty; retaining previous summary.");
+      }
+      rawReply = reply;
     } else {
-      console.warn("Summary is empty; retaining previous summary.");
+      console.warn("No summary found in the response. Generating summary from conversation context.");
+      // Fallback: use an additional API call to generate a summary from the conversation context.
+      const summaryPrompt = `${systemPrompt}\nPlease summarize the following conversation context concisely:\n${currentSummary}\nUser: ${userMessage}`;
+      const summaryResult = await openai.chat.completions.create({
+        model: "deepseek/deepseek-chat:free",
+        messages: [
+          { role: "system", content: summaryPrompt },
+        ],
+        temperature: 0.8,
+        max_tokens: 60,
+      });
+      let generatedSummary = summaryResult.choices[0].message.content;
+      console.log("Generated summary:", generatedSummary);
+      conversationSummary[userId] = generatedSummary;
     }
 
-    res.status(200).json({ reply: stripFormatting(reply) });
+    res.status(200).json({ reply: stripFormatting(rawReply) });
   } catch (error) {
     console.error("OpenRouter API Error:", error);
     res.status(500).json({ error: "Unable to process request." });
