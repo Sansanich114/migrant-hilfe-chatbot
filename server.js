@@ -1,4 +1,4 @@
-const express = require("express");
+﻿const express = require("express");
 const path = require("path");
 const cors = require("cors");
 const { OpenAI } = require("openai");
@@ -45,9 +45,9 @@ const openai = new OpenAI({
 
 const conversationSummary = {};
 
-const systemPrompt = `
+const systemPrompt = 
 You are DeepSeek, an assistant guiding migrants planning to move to Germany. Provide clear, actionable guidance covering visas, residence permits, employment, education, housing, healthcare, integration, and legal matters. Avoid repetition, external redirects, and excessive details. Keep answers concise and ask clarifying questions if needed.
-`;
+;
 
 // Helper function to strip formatting from AI responses
 function stripFormatting(text) {
@@ -55,7 +55,7 @@ function stripFormatting(text) {
 }
 
 app.post("/chat", async (req, res) => {
-  const userId = req.body.userId || `temp-${Date.now()}`;
+  const userId = req.body.userId || 	emp-;
   const userMessage = req.body.message;
 
   if (!userMessage) {
@@ -64,7 +64,7 @@ app.post("/chat", async (req, res) => {
 
   const currentSummary = conversationSummary[userId] || "None";
 
-  const prompt = `${systemPrompt}\nSummary so far: ${currentSummary}\n\nUser: ${userMessage}\n\nProvide a concise answer, followed by a brief updated summary prefixed with 'Summary:'`;
+  const prompt = ${systemPrompt}\nSummary so far: \n\nUser: \n\nProvide a concise answer, followed by a brief updated summary prefixed with 'Summary:';
 
   try {
     const result = await openai.chat.completions.create({
@@ -95,7 +95,7 @@ app.post("/chat", async (req, res) => {
     } else {
       console.warn("No summary found in the response. Generating summary from conversation context.");
       // Fallback: use an additional API call to generate a summary from the conversation context.
-      const summaryPrompt = `${systemPrompt}\nPlease summarize the following conversation context concisely:\n${currentSummary}\nUser: ${userMessage}`;
+      const summaryPrompt = ${systemPrompt}\nPlease summarize the following conversation context concisely:\n\nUser: ;
       const summaryResult = await openai.chat.completions.create({
         model: "deepseek/deepseek-chat:free",
         messages: [
@@ -147,5 +147,5 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`✅ Server running on port ${PORT}`);
+  console.log(✅ Server running on port );
 });
