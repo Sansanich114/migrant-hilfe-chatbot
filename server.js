@@ -78,11 +78,22 @@ app.post("/chat", async (req, res) => {
       search: true,
     });
 
-    let rawReply = result.choices[0].message.content;
-    let [reply, summary] = rawReply.split("Summary:");
+    // Log the entire API response for debugging
+    console.log("API Response:", result);
 
+    let rawReply = result.choices[0].message.content;
+    console.log("Raw reply:", rawReply);
+
+    // Check if the response contains the "Summary:" marker
+    if (!rawReply.includes("Summary:")) {
+      console.warn("No summary found in the response.");
+    }
+
+    let [reply, summary] = rawReply.split("Summary:");
     if (summary) {
       conversationSummary[userId] = summary.trim();
+    } else {
+      console.warn("Summary is empty; retaining previous summary.");
     }
 
     res.status(200).json({ reply: stripFormatting(reply) });
