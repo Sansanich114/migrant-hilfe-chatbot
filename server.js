@@ -6,7 +6,7 @@ require("dotenv").config();
 const errorHandler = require("./errorHandler");
 
 const apiKey = process.env.OPENROUTER_API_KEY;
-console.log("OpenRouter API Key Loaded:", apiKey ? "Yes вњ…" : "No вќЊ");
+console.log("OpenRouter API Key Loaded:", apiKey ? "Yes ✅" : "No ❌");
 
 const app = express();
 
@@ -43,7 +43,8 @@ const openai = new OpenAI({
   baseURL: "https://openrouter.ai/api/v1",
 });
 
-const conversationSummary = {};
+// Instead of storing a summary, we store the full conversation history per user.
+const conversationHistory = {};
 
 const systemPrompt = `
 You are DeepSeek, an assistant guiding migrants planning to move to Germany. Provide clear, actionable guidance covering visas, residence permits, employment, education, housing, healthcare, integration, and legal matters. Avoid repetition, external redirects, and excessive details. Keep answers concise and ask clarifying questions if needed.
@@ -62,54 +63,29 @@ app.post("/chat", async (req, res) => {
     return res.status(400).json({ error: "Message required." });
   }
 
-  const currentSummary = conversationSummary[userId] || "None";
+  // Initialize conversation history for this user if it doesn't exist.
+  if (!conversationHistory[userId]) {
+    conversationHistory[userId] = [];
+    // Always start with the system prompt.
+    conversationHistory[userId].push({ role: "system", content: systemPrompt });
+  }
 
-  const prompt = `${systemPrompt}\nSummary so far: ${currentSummary}\n\nUser: ${userMessage}\n\nProvide a concise answer, followed by a brief updated summary prefixed with 'Summary:'`;
+  // Append the new user message to the conversation history.
+  conversationHistory[userId].push({ role: "user", content: userMessage });
 
   try {
     const result = await openai.chat.completions.create({
       model: "deepseek/deepseek-chat:free",
-      messages: [
-        { role: "system", content: prompt },
-        { role: "user", content: userMessage },
-      ],
+      messages: conversationHistory[userId],
       temperature: 0.8,
       max_tokens: 300,
       search: true,
     });
 
-    // Log the entire API response for debugging
-    console.log("API Response:", result);
-
-    let rawReply = result.choices[0].message.content;
-    console.log("Raw reply:", rawReply);
-
-    if (rawReply.includes("Summary:")) {
-      let [reply, summary] = rawReply.split("Summary:");
-      if (summary && summary.trim() !== "") {
-        conversationSummary[userId] = summary.trim();
-      } else {
-        console.warn("Summary is empty; retaining previous summary.");
-      }
-      rawReply = reply;
-    } else {
-      console.warn("No summary found in the response. Generating summary from conversation context.");
-      // Fallback: use an additional API call to generate a summary from the conversation context.
-      const summaryPrompt = `${systemPrompt}\nPlease summarize the following conversation context concisely:\n${currentSummary}\nUser: ${userMessage}`;
-      const summaryResult = await openai.chat.completions.create({
-        model: "deepseek/deepseek-chat:free",
-        messages: [
-          { role: "system", content: summaryPrompt },
-        ],
-        temperature: 0.8,
-        max_tokens: 60,
-      });
-      let generatedSummary = summaryResult.choices[0].message.content;
-      console.log("Generated summary:", generatedSummary);
-      conversationSummary[userId] = generatedSummary;
-    }
-
-    res.status(200).json({ reply: stripFormatting(rawReply) });
+    let reply = result.choices[0].message.content;
+    // Append the assistant's reply to the conversation history.
+    conversationHistory[userId].push({ role: "assistant", content: reply });
+    res.status(200).json({ reply: stripFormatting(reply) });
   } catch (error) {
     console.error("OpenRouter API Error:", error);
     res.status(500).json({ error: "Unable to process request." });
@@ -118,16 +94,18 @@ app.post("/chat", async (req, res) => {
 
 app.get("/intro", async (req, res) => {
   try {
+    // For an introduction, we start a fresh conversation with the system prompt.
+    const messages = [
+      { role: "system", content: systemPrompt },
+      {
+        role: "user",
+        content:
+          "Introduce yourself and explain how you can help migrants planning to move to Germany.",
+      },
+    ];
     const result = await openai.chat.completions.create({
       model: "deepseek/deepseek-chat:free",
-      messages: [
-        { role: "system", content: systemPrompt },
-        {
-          role: "user",
-          content:
-            "Introduce yourself and explain how you can help migrants planning to move to Germany.",
-        },
-      ],
+      messages: messages,
       temperature: 0.7,
       max_tokens: 500,
     });
@@ -147,5 +125,5 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`вњ… Server running on port ${PORT}`);
+  console.log(`✅ Server running on port ${PORT}`);
 });
