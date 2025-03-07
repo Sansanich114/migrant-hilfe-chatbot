@@ -1,4 +1,24 @@
-﻿const express = require("express");
+# Define the project root directory
+$projectDir = "C:\migrant-hilfe-chatbot"
+
+# Verify the project directory exists
+if (-Not (Test-Path $projectDir)) {
+    Write-Error "Project directory $projectDir does not exist."
+    exit
+}
+
+# Create the chat_data directory if it doesn't exist
+$chatDataDir = Join-Path $projectDir "chat_data"
+if (-Not (Test-Path $chatDataDir)) {
+    New-Item -ItemType Directory -Path $chatDataDir | Out-Null
+    Write-Output "Created directory: $chatDataDir"
+} else {
+    Write-Output "Directory already exists: $chatDataDir"
+}
+
+# Write the server.js file using a single-quoted here-string to preserve content
+$serverJsContent = @'
+const express = require("express");
 const path = require("path");
 const cors = require("cors");
 const { OpenAI } = require("openai");
@@ -6,7 +26,7 @@ require("dotenv").config();
 const errorHandler = require("./errorHandler");
 
 const apiKey = process.env.OPENROUTER_API_KEY;
-console.log("OpenRouter API Key Loaded:", apiKey ? "Yes вњ…" : "No вќЊ");
+console.log("OpenRouter API Key Loaded:", apiKey ? "Yes ✅" : "No ❌");
 
 const app = express();
 
@@ -147,5 +167,11 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`вњ… Server running on port ${PORT}`);
+  console.log(`✅ Server running on port ${PORT}`);
 });
+'@;
+
+$serverJsPath = Join-Path $projectDir "server.js"
+Set-Content -Path $serverJsPath -Value $serverJsContent -Encoding UTF8
+
+Write-Output "server.js and chat_data directory set up successfully in $projectDir"
