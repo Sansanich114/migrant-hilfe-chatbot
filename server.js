@@ -1,7 +1,6 @@
 const express = require("express");
-const net = require('net');
-const cors = require("cors");
 const path = require("path");
+const cors = require("cors");
 const { OpenAI } = require("openai");
 require("dotenv").config();
 const errorHandler = require("./errorHandler");
@@ -11,26 +10,37 @@ console.log("OpenRouter API Key Loaded:", apiKey ? "Yes ✅" : "No ❌");
 
 const app = express();
 
-// Automatically free port 3000 if already in use
-const serverCheck = net.createServer();
-serverCheck.once("error", (err) => {
-  if (err.code === "EADDRINUSE") {
-    console.log("Port 3000 is in use. Trying to free it...");
-    require("child_process").execSync("taskkill /F /IM node.exe");
-    console.log("Previous process killed. Restarting server...");
-    process.exit(1);
-  }
-});
-serverCheck.once("listening", () => serverCheck.close());
-serverCheck.listen(3000);
+// In development, free port 3000 if already in use.
+// In production (on Render), skip this.
+if (process.env.NODE_ENV !== "production") {
+  const net = require("net");
+  const serverCheck = net.createServer();
+  serverCheck.once("error", (err) => {
+    if (err.code === "EADDRINUSE") {
+      console.log("Port 3000 is in use. Trying to free it...");
+      require("child_process").execSync("taskkill /F /IM node.exe");
+      console.log("Previous process killed. Restarting server...");
+      process.exit(1);
+    }
+  });
+  serverCheck.once("listening", () => serverCheck.close());
+  serverCheck.listen(3000);
+}
+
+// Setup CORS.
+// When in production, restrict origin to your Render domain.
+const allowedOrigin =
+  process.env.NODE_ENV === "production"
+    ? "https://migrant-hilfe-chatbot.onrender.com"
+    : "*";
+app.use(cors({ origin: allowedOrigin }));
 
 app.use(express.json());
-app.use(cors());
 app.use(express.static(path.join(__dirname, "public")));
 
 const openai = new OpenAI({
   apiKey: apiKey,
-  baseURL: "https://openrouter.ai/api/v1"
+  baseURL: "https://openrouter.ai/api/v1",
 });
 
 const conversationSummary = {};
@@ -54,18 +64,18 @@ app.post("/chat", async (req, res) => {
 
   const currentSummary = conversationSummary[userId] || "None";
 
-  const prompt = `${systemPrompt}\nSummary so far: ${currentSummary}\n\nUser: ${userMessage}\n\nProvide a concise answer, followed by a brief updated summary prefixed with 'Summary:'.`;
+  const prompt = `${systemPrompt}\nSummary so far: ${currentSummary}\n\nUser: ${userMessage}\n\nProvide a concise answer, followed by a brief updated summary prefixed with 'Summary:'`;
 
   try {
     const result = await openai.chat.completions.create({
       model: "deepseek/deepseek-chat:free",
       messages: [
         { role: "system", content: prompt },
-        { role: "user", content: userMessage }
+        { role: "user", content: userMessage },
       ],
       temperature: 0.8,
       max_tokens: 300,
-      search: true
+      search: true,
     });
 
     let rawReply = result.choices[0].message.content;
@@ -88,10 +98,14 @@ app.get("/intro", async (req, res) => {
       model: "deepseek/deepseek-chat:free",
       messages: [
         { role: "system", content: systemPrompt },
-        { role: "user", content: "Introduce yourself and explain how you can help migrants planning to move to Germany." }
+        {
+          role: "user",
+          content:
+            "Introduce yourself and explain how you can help migrants planning to move to Germany.",
+        },
       ],
       temperature: 0.7,
-      max_tokens: 500
+      max_tokens: 500,
     });
     const rawReply = result.choices[0].message.content;
     res.status(200).json({ reply: stripFormatting(rawReply) });
