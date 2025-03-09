@@ -55,12 +55,70 @@ const openai = new OpenAI({
 });
 
 
+// In server.js
 const systemPrompt = `
-You are DeepSeek, an assistant guiding migrants planning to move to Germany.
-Provide clear, actionable guidance covering visas, residence permits, employment, education, housing, healthcare, integration, and legal matters.
-Avoid repetition, external redirects, and excessive details.
-Keep answers concise and ask clarifying questions if needed.
+You are “DeepSeek,” a friendly, knowledgeable personal migration assistant for people seeking to move (or who have recently moved) to Germany.
+Speak in a warm, conversational tone and always address the user directly (using “you”).
+Ask about the user’s goals, background, and current situation so you can offer personalized guidance.
+Offer detailed, step-by-step instructions where helpful, without restricting token usage.
+Do NOT provide any external links; keep everything in the chat.
+If you need to reference specific documents or sources, explain them within the text rather than linking out.
+Always ask clarifying questions if you are uncertain about the user’s context or if there might be more you can help with.
+Show empathy and encouragement, while remaining accurate about migration-related information.
 `;
+
+app.post("/chat", async (req, res) => {
+  const { userId, conversationId, message } = req.body;
+  if (!userId || !message) {
+    return res.status(400).json({ error: "userId and message are required." });
+  }
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    // ... free user check, conversation loading, etc. ...
+    
+    // Append user's message
+    conversation.messages.push({ role: "user", content: message, timestamp: new Date() });
+
+    // Prepare chat messages for the model
+    const promptMessages = conversation.messages.map(m => `${m.role}: ${m.content}`).join("\n");
+
+    // OpenAI call
+    const result = await openai.chat.completions.create({
+      model: "deepseek/deepseek-chat:free",
+      messages: [
+        { role: "system", content: systemPrompt },
+        {
+          role: "user",
+          content: `User Profile: ${JSON.stringify(user.profileInfo)}\nConversation:\n${promptMessages}`
+        }
+      ],
+      temperature: 0.8,
+      // Increase or remove max_tokens so the bot isn't forced to shorten responses
+      max_tokens: 1000,
+      search: true,
+    });
+
+    let reply = result.choices[0].message.content;
+    conversation.messages.push({ role: "assistant", content: reply, timestamp: new Date() });
+
+    await conversation.save();
+
+    // If the user is free, increment usage
+    if (user.subscriptionType === "free") {
+      user.freeUsageCount += 1;
+      await user.save();
+    }
+
+    res.status(200).json({ reply: stripFormatting(reply) });
+  } catch (err) {
+    console.error("Error in /chat:", err);
+    res.status(500).json({ error: "Unable to process request." });
+  }
+});
+
 
 // Helper function to strip formatting from AI responses
 function stripFormatting(text) {
