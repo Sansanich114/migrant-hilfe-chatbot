@@ -16,7 +16,6 @@
       height: 100vh;
       transition: background 0.3s, color 0.3s;
     }
-
     /* Header Styling */
     .header {
       display: flex;
@@ -36,7 +35,6 @@
       font-size: 1.2em;
       cursor: pointer;
     }
-
     /* Chat Container */
     .chat-container {
       flex: 1;
@@ -54,17 +52,16 @@
     }
     /* Bot messages: on the LEFT */
     .message.bot {
-      flex-direction: row;       /* Avatar left, bubble to its right */
+      flex-direction: row;
       justify-content: flex-start;
       align-items: flex-start;
     }
     /* User messages: on the RIGHT */
     .message.user {
-      flex-direction: row-reverse; /* Avatar right, bubble to its left */
+      flex-direction: row-reverse;
       justify-content: flex-end;
       align-items: flex-end;
     }
-
     /* Avatars */
     .avatar {
       width: 40px;
@@ -73,12 +70,10 @@
       margin: 0 10px;
       object-fit: cover;
     }
-    /* Adjust user avatar spacing */
     .message.user .avatar {
       margin-left: 10px;
       margin-right: 0;
     }
-
     /* Chat Bubbles */
     .bubble {
       max-width: 70%;
@@ -90,14 +85,12 @@
       white-space: pre-wrap;
       transition: background 0.3s, color 0.3s;
     }
-    /* Bot bubble: light orange, on the left */
     .message.bot .bubble {
       background: #FFE0B2;
       color: #3E2723;
       border-top-left-radius: 0;
       text-align: left;
     }
-    /* User bubble: warm gray-brown, on the right */
     .message.user .bubble {
       background: #D7CCC8;
       color: #3E2723;
@@ -106,7 +99,6 @@
       text-align: right;
       align-self: flex-end;
     }
-
     /* Predictive Questions */
     .suggestions {
       display: flex;
@@ -129,7 +121,6 @@
     .suggestion:hover {
       background: #f0f0f0;
     }
-
     /* Input Area */
     .input-container {
       display: flex;
@@ -165,11 +156,10 @@
     .input-container button:hover {
       background: #795548;
     }
-
     /* Dark Mode Styles */
     body.dark-mode {
-      background: #2E1C16; /* Darker dark brown */
-      color: #FFECB3;      /* Light creme text */
+      background: #2E1C16;
+      color: #FFECB3;
     }
     body.dark-mode .chat-container {
       background: #2E1C16;
@@ -178,11 +168,11 @@
       color: #FFECB3;
     }
     body.dark-mode .message.bot .bubble {
-      background: #6D4C41; /* Darker brown for bot */
+      background: #6D4C41;
       border-top-left-radius: 0;
     }
     body.dark-mode .message.user .bubble {
-      background: #8D6E63; /* Distinct tone for user */
+      background: #8D6E63;
       border-top-right-radius: 0;
       border-top-left-radius: 15px;
     }
@@ -205,7 +195,6 @@
     body.dark-mode .suggestion:hover {
       background: #6D4C41;
     }
-
     /* Dark Mode Toggle Button */
     .dark-mode-toggle {
       position: fixed;
@@ -223,7 +212,6 @@
     .dark-mode-toggle:hover {
       background: #795548;
     }
-
     /* Responsive adjustments for mobile */
     @media (max-width: 600px) {
       .bubble {
@@ -260,7 +248,7 @@
     <div class="message bot">
       <img class="avatar" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDQwIDQwIj4KICA8cmVjdCB4PSIxMCIgeT0iMTIiIHdpZHRoPSIyMCIgaGVpZ2h0PSIxNiIgcng9IjMiIHJ5PSIzIiBmaWxsPSIjM0UyNzIzIiAvPgogIDxjaXJjbGUgY3g9IjE3IiBjeT0iMjAiIHI9IjIiIGZpbGw9IiNGRkYiIC8+CiAgPGNpcmNsZSBjeD0iMjMiIGN5PSIyMCIgcj0iMiIgZmlsbD0iI0ZGRiIgLz4KICA8cmVjdCB4PSIxNSIgeT0iMjgiIHdpZHRoPSIxMCIgaGVpZ2h0PSIyIiBmaWxsPSIjRkZGIiAvPgo8L3N2Zz4=" alt="Bot Avatar">
       <div class="bubble">
-      Hello! I am DeepSeek, your assistant for migration to Germany. How can I help you today?
+        Hello! I am DeepSeek, your assistant for migration to Germany. How can I help you today?
       </div>
     </div>
   </div>
@@ -277,13 +265,14 @@
   </div>
 
   <script>
+    // Debug logging for profile creation
     console.log("Checking for existing user profile...");
     if (!localStorage.getItem("userId")) {
       console.log("No userId found. Creating profile...");
       createProfile();
+    } else {
+      console.log("Found userId:", localStorage.getItem("userId"));
     }
-  
-  // ... rest of your JavaScript code (e.g., createProfile function, sendMessage, etc.)
 
     // Minimalistic inline SVG avatars encoded as data URIs:
     const avatars = {
@@ -315,48 +304,38 @@
 
     const chatContainer = document.getElementById('chatContainer');
 
+    // Create a user profile by calling the backend endpoint
     function createProfile() {
-  console.log("createProfile function called.");
-  fetch('https://migrant-hilfe-chatbot.onrender.com/createProfile', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ profileInfo: {} })
-  })
-  .then(res => res.json())
-  .then(data => {
-    console.log("Profile created:", data);
-    localStorage.setItem("userId", data.userId);
-    localStorage.setItem("conversationId", data.conversationId);
-  })
-  .catch(err => console.error("Error creating profile:", err));
-}
-
-console.log("Checking for existing user profile...");
-if (!localStorage.getItem("userId")) {
-  console.log("No userId found. Calling createProfile...");
-  createProfile();
-}
+      console.log("createProfile function called.");
+      fetch('https://migrant-hilfe-chatbot.onrender.com/createProfile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profileInfo: {} })
+      })
+      .then(res => res.json())
+      .then(data => {
+        console.log("Profile created:", data);
+        localStorage.setItem("userId", data.userId);
+        localStorage.setItem("conversationId", data.conversationId);
+      })
+      .catch(err => console.error("Error creating profile:", err));
+    }
 
     // Function to add a message to the chat
     function addMessage(sender, text) {
       const lastMessage = chatContainer.lastElementChild;
       if (lastMessage && lastMessage.classList.contains('message') && lastMessage.classList.contains(sender)) {
-        // If the last message is from the same sender, append text to the same bubble
         const bubble = lastMessage.querySelector('.bubble');
         bubble.innerText += "\n" + text;
       } else {
-        // Otherwise, create a new message element
         const messageDiv = document.createElement('div');
         messageDiv.className = 'message ' + sender;
-
         const avatarImg = document.createElement('img');
         avatarImg.className = 'avatar';
         avatarImg.src = avatars[sender];
-
         const bubbleDiv = document.createElement('div');
         bubbleDiv.className = 'bubble';
         bubbleDiv.innerText = text;
-
         messageDiv.appendChild(avatarImg);
         messageDiv.appendChild(bubbleDiv);
         chatContainer.appendChild(messageDiv);
@@ -376,6 +355,43 @@ if (!localStorage.getItem("userId")) {
     });
 
     // Send message functionality
+    function sendMessage() {
+      const userMessage = chatInput.value.trim();
+      if (!userMessage) return;
+
+      // Add user's message to the chat
+      addMessage('user', userMessage);
+      chatInput.value = '';
+      autoResize(chatInput);
+
+      // Retrieve values from localStorage
+      const userId = localStorage.getItem("userId");
+      const conversationId = localStorage.getItem("conversationId");
+
+      // Log the payload to debug
+      const payload = { userId, conversationId, message: userMessage };
+      console.log("Payload being sent:", payload);
+
+      fetch('https://migrant-hilfe-chatbot.onrender.com/chat', {  
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.reply) {
+          addMessage('bot', data.reply);
+        } else {
+          addMessage('bot', "Sorry, I didn't get a response.");
+        }
+      })
+      .catch(error => {
+        console.error("Error in /chat:", error);
+        addMessage('bot', "Error: Unable to process request.");
+      });
+    }
+
+    // Attach event listeners for sending messages
     document.getElementById('sendBtn').addEventListener('click', sendMessage);
     chatInput.addEventListener('keypress', function(e) {
       if (e.key === 'Enter' && !e.shiftKey) {
@@ -383,36 +399,6 @@ if (!localStorage.getItem("userId")) {
         sendMessage();
       }
     });
-
-    function sendMessage() {
-  const userMessage = chatInput.value.trim();
-  if (!userMessage) return;
-
-  // Add user's message to the chat (right side)
-  addMessage('user', userMessage);
-  chatInput.value = '';
-  autoResize(chatInput);
-
-  fetch(' https://migrant-hilfe-chatbot.onrender.com/chat', {  
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ message: userMessage })
-  })
-  .then(response => response.json())
-  .then(data => {
-    if (data.reply) {
-      addMessage('bot', data.reply);
-    } else {
-      addMessage('bot', "Sorry, I didn't get a response.");
-    }
-  })
-  .catch(error => {
-    console.error("Error in /chat:", error);
-    addMessage('bot', "Error: Unable to process request.");
-  });
-}
 
     // Dark mode toggle
     const darkModeToggle = document.getElementById('darkModeToggle');
