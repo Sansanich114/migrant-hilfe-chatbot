@@ -54,8 +54,7 @@ const openai = new OpenAI({
   defaultHeaders: { Authorization: `Bearer ${apiKey}` }
 });
 
-
-// In server.js
+// Updated system prompt (feel free to adjust as needed)
 const systemPrompt = `
 You are “DeepSeek,” a friendly, knowledgeable personal migration assistant for people seeking to move (or who have recently moved) to Germany.
 Speak in a warm, conversational tone and always address the user directly (using “you”).
@@ -66,59 +65,6 @@ If you need to reference specific documents or sources, explain them within the 
 Always ask clarifying questions if you are uncertain about the user’s context or if there might be more you can help with.
 Show empathy and encouragement, while remaining accurate about migration-related information.
 `;
-
-app.post("/chat", async (req, res) => {
-  const { userId, conversationId, message } = req.body;
-  if (!userId || !message) {
-    return res.status(400).json({ error: "userId and message are required." });
-  }
-
-  try {
-    const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ error: "User not found" });
-
-    // ... free user check, conversation loading, etc. ...
-    
-    // Append user's message
-    conversation.messages.push({ role: "user", content: message, timestamp: new Date() });
-
-    // Prepare chat messages for the model
-    const promptMessages = conversation.messages.map(m => `${m.role}: ${m.content}`).join("\n");
-
-    // OpenAI call
-    const result = await openai.chat.completions.create({
-      model: "deepseek/deepseek-chat:free",
-      messages: [
-        { role: "system", content: systemPrompt },
-        {
-          role: "user",
-          content: `User Profile: ${JSON.stringify(user.profileInfo)}\nConversation:\n${promptMessages}`
-        }
-      ],
-      temperature: 0.8,
-      // Increase or remove max_tokens so the bot isn't forced to shorten responses
-      max_tokens: 1000,
-      search: true,
-    });
-
-    let reply = result.choices[0].message.content;
-    conversation.messages.push({ role: "assistant", content: reply, timestamp: new Date() });
-
-    await conversation.save();
-
-    // If the user is free, increment usage
-    if (user.subscriptionType === "free") {
-      user.freeUsageCount += 1;
-      await user.save();
-    }
-
-    res.status(200).json({ reply: stripFormatting(reply) });
-  } catch (err) {
-    console.error("Error in /chat:", err);
-    res.status(500).json({ error: "Unable to process request." });
-  }
-});
-
 
 // Helper function to strip formatting from AI responses
 function stripFormatting(text) {
@@ -177,33 +123,37 @@ app.post("/chat", async (req, res) => {
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    // If user is free and has reached the free trial limit, block further messages.
+    // Check free user usage limit
     if (user.subscriptionType === "free" && user.freeUsageCount >= 10) {
       return res.status(403).json({ error: "Free usage limit reached. Please upgrade." });
     }
 
-    // Load the conversation. For free users, use the default conversation if conversationId is not provided.
+    // Retrieve the conversation (if provided, else use the default conversation for the user)
     let conversation;
     if (conversationId) {
       conversation = await Conversation.findById(conversationId);
     } else {
       conversation = await Conversation.findOne({ userId: userId });
     }
-    if (!conversation) return res.status(404).json({ error: "Conversation not found." });
+    if (!conversation) {
+      return res.status(404).json({ error: "Conversation not found." });
+    }
 
     // Append user's message to the conversation
     conversation.messages.push({ role: "user", content: message, timestamp: new Date() });
 
-    // Build the prompt by combining the user's profile information and conversation history.
-    // (For simplicity, we just join the messages.)
+    // Build the prompt by combining the user's profile info and conversation history
     const promptMessages = conversation.messages.map(m => `${m.role}: ${m.content}`).join("\n");
 
+    // Call the OpenRouter API
     const result = await openai.chat.completions.create({
       model: "deepseek/deepseek-chat:free",
-      messages: [{ role: "system", content: systemPrompt },
-                 { role: "user", content: `User Profile: ${JSON.stringify(user.profileInfo)}\nConversation:\n${promptMessages}` }],
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: `User Profile: ${JSON.stringify(user.profileInfo)}\nConversation:\n${promptMessages}` }
+      ],
       temperature: 0.8,
-      max_tokens: 300,
+      max_tokens: 1000,  // Increased token limit for more detailed responses
       search: true,
     });
 
@@ -213,7 +163,7 @@ app.post("/chat", async (req, res) => {
     // Save the conversation
     await conversation.save();
 
-    // If the user is free, increment the freeUsageCount.
+    // Increment free usage count for free users
     if (user.subscriptionType === "free") {
       user.freeUsageCount += 1;
       await user.save();
