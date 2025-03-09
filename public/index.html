@@ -260,7 +260,7 @@
     <div class="message bot">
       <img class="avatar" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDQwIDQwIj4KICA8cmVjdCB4PSIxMCIgeT0iMTIiIHdpZHRoPSIyMCIgaGVpZ2h0PSIxNiIgcng9IjMiIHJ5PSIzIiBmaWxsPSIjM0UyNzIzIiAvPgogIDxjaXJjbGUgY3g9IjE3IiBjeT0iMjAiIHI9IjIiIGZpbGw9IiNGRkYiIC8+CiAgPGNpcmNsZSBjeD0iMjMiIGN5PSIyMCIgcj0iMiIgZmlsbD0iI0ZGRiIgLz4KICA8cmVjdCB4PSIxNSIgeT0iMjgiIHdpZHRoPSIxMCIgaGVpZ2h0PSIyIiBmaWxsPSIjRkZGIiAvPgo8L3N2Zz4=" alt="Bot Avatar">
       <div class="bubble">
-        Hello! I am DeepSeek, your assistant for migration to Germany. How can I help you today?
+      Hello! I am DeepSeek, your assistant for migration to Germany. How can I help you today?
       </div>
     </div>
   </div>
@@ -277,6 +277,14 @@
   </div>
 
   <script>
+    console.log("Checking for existing user profile...");
+    if (!localStorage.getItem("userId")) {
+      console.log("No userId found. Creating profile...");
+      createProfile();
+    }
+  
+  // ... rest of your JavaScript code (e.g., createProfile function, sendMessage, etc.)
+
     // Minimalistic inline SVG avatars encoded as data URIs:
     const avatars = {
       bot: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDQwIDQwIj4KICA8cmVjdCB4PSIxMCIgeT0iMTIiIHdpZHRoPSIyMCIgaGVpZ2h0PSIxNiIgcng9IjMiIHJ5PSIzIiBmaWxsPSIjM0UyNzIzIiAvPgogIDxjaXJjbGUgY3g9IjE3IiBjeT0iMjAiIHI9IjIiIGZpbGw9IiNGRkYiIC8+CiAgPGNpcmNsZSBjeD0iMjMiIGN5PSIyMCIgcj0iMiIgZmlsbD0iI0ZGRiIgLz4KICA8cmVjdCB4PSIxNSIgeT0iMjgiIHdpZHRoPSIxMCIgaGVpZ2h0PSIyIiBmaWxsPSIjRkZGIiAvPgo8L3N2Zz4=',
@@ -306,6 +314,28 @@
     });
 
     const chatContainer = document.getElementById('chatContainer');
+
+    function createProfile() {
+  console.log("createProfile function called.");
+  fetch('https://migrant-hilfe-chatbot.onrender.com/createProfile', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ profileInfo: {} })
+  })
+  .then(res => res.json())
+  .then(data => {
+    console.log("Profile created:", data);
+    localStorage.setItem("userId", data.userId);
+    localStorage.setItem("conversationId", data.conversationId);
+  })
+  .catch(err => console.error("Error creating profile:", err));
+}
+
+console.log("Checking for existing user profile...");
+if (!localStorage.getItem("userId")) {
+  console.log("No userId found. Calling createProfile...");
+  createProfile();
+}
 
     // Function to add a message to the chat
     function addMessage(sender, text) {
