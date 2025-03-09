@@ -123,10 +123,7 @@ app.post("/chat", async (req, res) => {
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    // Check free user usage limit
-    if (user.subscriptionType === "free" && user.freeUsageCount >= 10) {
-      return res.status(403).json({ error: "Free usage limit reached. Please upgrade." });
-    }
+    // (Removed the free usage limit check that returned 403)
 
     // Retrieve the conversation (if provided, else use the default conversation for the user)
     let conversation;
@@ -150,7 +147,10 @@ app.post("/chat", async (req, res) => {
       model: "deepseek/deepseek-chat:free",
       messages: [
         { role: "system", content: systemPrompt },
-        { role: "user", content: `User Profile: ${JSON.stringify(user.profileInfo)}\nConversation:\n${promptMessages}` }
+        {
+          role: "user",
+          content: `User Profile: ${JSON.stringify(user.profileInfo)}\nConversation:\n${promptMessages}`
+        }
       ],
       temperature: 0.8,
       max_tokens: 1000,  // Increased token limit for more detailed responses
@@ -163,11 +163,10 @@ app.post("/chat", async (req, res) => {
     // Save the conversation
     await conversation.save();
 
-    // Increment free usage count for free users
-    if (user.subscriptionType === "free") {
-      user.freeUsageCount += 1;
-      await user.save();
-    }
+    // (Removed the increment usage code for free users, if you no longer want to track usage)
+    // If you still want to track usage but not block, leave this in:
+    // user.freeUsageCount += 1;
+    // await user.save();
 
     res.status(200).json({ reply: stripFormatting(reply) });
   } catch (err) {
@@ -183,14 +182,13 @@ app.post("/clearHistory", async (req, res) => {
     return res.status(400).json({ error: "userId and conversationId are required." });
   }
   try {
-    // Only allow clearing if the user is not free
+    // (Removed the check that prevented free users from clearing history)
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ error: "User not found." });
-    if (user.subscriptionType === "free") {
-      return res.status(403).json({ error: "Free users cannot clear history." });
-    }
+
     const conversation = await Conversation.findById(conversationId);
     if (!conversation) return res.status(404).json({ error: "Conversation not found." });
+
     conversation.messages = [{ role: "system", content: systemPrompt }];
     await conversation.save();
     res.status(200).json({ message: "Conversation history cleared." });
