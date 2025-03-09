@@ -51,7 +51,9 @@ app.use(express.static(path.join(__dirname, "public")));
 const openai = new OpenAI({
   apiKey: apiKey,
   baseURL: "https://openrouter.ai/api/v1",
+  defaultHeaders: { Authorization: `Bearer ${apiKey}` }
 });
+
 
 const systemPrompt = `
 You are DeepSeek, an assistant guiding migrants planning to move to Germany.
