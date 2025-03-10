@@ -10,6 +10,9 @@ const errorHandler = require("./errorHandler");
 const User = require("./models/User");
 const Conversation = require("./models/Conversation");
 
+// Import classification helper
+const { classifyQueryWithDeepSeek } = require("./classification");
+
 const apiKey = process.env.OPENROUTER_API_KEY;
 console.log("OpenRouter API Key Loaded:", apiKey ? "Yes ✅" : "No ❌");
 
@@ -133,9 +136,7 @@ app.post("/chat", async (req, res) => {
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    // (Removed the free usage limit check that returned 403)
-
-    // Retrieve the conversation (if provided, else use the default conversation for the user)
+    // Retrieve or find the conversation
     let conversation;
     if (conversationId) {
       conversation = await Conversation.findById(conversationId);
@@ -146,13 +147,29 @@ app.post("/chat", async (req, res) => {
       return res.status(404).json({ error: "Conversation not found." });
     }
 
-    // Append user's message to the conversation
+    // 1) Classify the new user message before saving
+    // Provide the entire existing conversation (messages) + the new message
+    const classification = await classifyQueryWithDeepSeek(
+      openai,                // The OpenAI client
+      conversation.messages, // The entire conversation so far
+      message                // The new user message
+    );
+
+    if (!classification || classification === "other") {
+      // Off-topic or uncertain. Refuse politely and do NOT save user message.
+      return res.status(200).json({
+        reply: "I’m sorry, I can only help with immigration or relocation to Germany. Please rephrase your question to focus on Germany."
+      });
+    }
+
+    // 2) If classification is "germany", proceed:
+    // Append the user's message to the conversation
     conversation.messages.push({ role: "user", content: message, timestamp: new Date() });
 
     // Build the prompt by combining the user's profile info and conversation history
     const promptMessages = conversation.messages.map(m => `${m.role}: ${m.content}`).join("\n");
 
-    // Call the OpenRouter API
+    // Call the OpenRouter API with the final system prompt
     const result = await openai.chat.completions.create({
       model: "deepseek/deepseek-chat:free",
       messages: [
@@ -163,21 +180,17 @@ app.post("/chat", async (req, res) => {
         }
       ],
       temperature: 0.8,
-      max_tokens: 1000,  // Increased token limit for more detailed responses
+      max_tokens: 1000,  // For more detailed answers
       search: true,
     });
 
     let reply = result.choices[0].message.content;
-    conversation.messages.push({ role: "assistant", content: reply, timestamp: new Date() });
 
-    // Save the conversation
+    // Save the assistant's reply
+    conversation.messages.push({ role: "assistant", content: reply, timestamp: new Date() });
     await conversation.save();
 
-    // (Removed the increment usage code for free users, if you no longer want to track usage)
-    // If you still want to track usage but not block, leave this in:
-    // user.freeUsageCount += 1;
-    // await user.save();
-
+    // Return the reply
     res.status(200).json({ reply: stripFormatting(reply) });
   } catch (err) {
     console.error("Error in /chat:", err);
@@ -192,7 +205,6 @@ app.post("/clearHistory", async (req, res) => {
     return res.status(400).json({ error: "userId and conversationId are required." });
   }
   try {
-    // (Removed the check that prevented free users from clearing history)
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ error: "User not found." });
 
@@ -208,7 +220,7 @@ app.post("/clearHistory", async (req, res) => {
   }
 });
 
-// Introduction endpoint
+// Introduction endpoint (optional)
 app.get("/intro", async (req, res) => {
   const messages = [
     { role: "system", content: systemPrompt },
