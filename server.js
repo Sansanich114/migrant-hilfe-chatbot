@@ -24,30 +24,7 @@ mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log("✅ Connected to MongoDB"))
   .catch(err => console.error("MongoDB connection error:", err));
 
-// In development, free port 3000 if already in use.
-if (process.env.NODE_ENV !== "production") {
-  const net = require("net");
-  const serverCheck = net.createServer();
-  serverCheck.once("error", (err) => {
-    if (err.code === "EADDRINUSE") {
-      console.log("Port 3000 is in use. Trying to free it...");
-      require("child_process").execSync("taskkill /F /IM node.exe");
-      console.log("Previous process killed. Restarting server...");
-      process.exit(1);
-    }
-  });
-  serverCheck.once("listening", () => serverCheck.close());
-  serverCheck.listen(3000);
-}
-
-// Setup CORS.
-// When in production, restrict origin to your Render domain.
-const allowedOrigin =
-  process.env.NODE_ENV === "production"
-    ? "https://migrant-hilfe-chatbot.onrender.com"
-    : "*";
-app.use(cors({ origin: allowedOrigin }));
-
+app.use(cors({ origin: process.env.NODE_ENV === "production" ? "https://migrant-hilfe-chatbot.onrender.com" : "*" }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
@@ -57,26 +34,34 @@ const openai = new OpenAI({
   defaultHeaders: { Authorization: `Bearer ${apiKey}` }
 });
 
-// Updated system prompt (feel free to adjust as needed)
+// Updated system prompt
 const systemPrompt = `
-You are “DeepSeek,” a friendly, professional personal migration assistant specializing in helping individuals who plan to move, or have recently relocated, to Germany.
+You are Sasha, a professional migration assistant helping people move to and integrate into life in Germany. You chat like a real person—short, natural, and direct.
 
-Always communicate in a warm, conversational, and direct manner, addressing users personally using "you."
+Rules:
+1. Keep responses short and simple, like a real conversation.
+2. Ask only one question at a time before moving forward.
+3. Answer only one topic at a time, even if the user asks multiple things.
+4. Always clarify what the user needs before giving too much detail.
+5. No external links. Summarize external info instead.
+6. Stay Germany-focused. Politely decline unrelated questions.
 
-When a user poses a question:
+Example Chat:
 
-1. First, ensure the question strictly relates to immigration, relocation, legal documentation, or integration into life in Germany. If the question is off-topic, kindly remind the user of your focus on migration topics and invite them to ask a relevant question.
+User: Hi, I want to move to Germany. Also, how much does rent cost in Berlin?  
+Sasha: Got it! Are you moving for work, study, or something else?  
 
-2. Before providing detailed answers, ask clarifying questions to precisely understand the user's current situation and specific needs. Suitable questions might cover:
-- Their current phase in the migration process (e.g., considering a move, preparing documents, already in Germany).
-- Personal circumstances or professional context (e.g., studying, employment, family situation).
-- Their preferences or requirements regarding housing, employment, education, budget, or legal status.
+User: I want to find a job there.  
+Sasha: Makes sense. Do you already have a job offer, or are you planning to search after you arrive?  
 
-3. Provide responses clearly structured into concise, numbered steps or organized bullet points, ensuring readability and practical usability without overwhelming the user.
+User: I don’t have an offer yet.  
+Sasha: Then you might need a Job Seeker Visa. It gives you six months to find work. Want to know how to apply?  
 
-4. Always maintain empathy, encouragement, and professional accuracy, directly addressing the user with "you" throughout your interactions.
+User: Yes, and I also asked about rent.  
+Sasha: We’ll get to that soon. First, are you applying from your home country or somewhere else?  
 
-Avoid external links entirely; if referencing external information is necessary, summarize it directly in your response.
+When a user starts a conversation, introduce yourself naturally:  
+"Hey, I’m Sasha, your personal immigration assistant for Germany. What do you need help with?"
 `;
 
 // Helper function to strip formatting from AI responses
@@ -84,18 +69,12 @@ function stripFormatting(text) {
   return text.replace(/\*\*|- |# /g, "").trim();
 }
 
-// --- Endpoint to create a new user profile ---
+// Create a new user profile
 app.post("/createProfile", async (req, res) => {
   try {
-    // Create a new user with default free subscription and freeUsageCount = 0
-    const newUser = new User({
-      subscriptionType: "free",
-      freeUsageCount: 0,
-      profileInfo: req.body.profileInfo || {},
-    });
+    const newUser = new User({ subscriptionType: "free", freeUsageCount: 0, profileInfo: req.body.profileInfo || {} });
     const savedUser = await newUser.save();
 
-    // Create a default conversation for free users
     const conversation = new Conversation({
       userId: savedUser._id,
       conversationName: "Default Conversation",
@@ -110,7 +89,7 @@ app.post("/createProfile", async (req, res) => {
   }
 });
 
-// --- Endpoint to retrieve a user profile and list conversations ---
+// Retrieve a user profile and list conversations
 app.get("/profile/:userId", async (req, res) => {
   try {
     const user = await User.findById(req.params.userId).lean();
@@ -124,73 +103,45 @@ app.get("/profile/:userId", async (req, res) => {
   }
 });
 
-// --- Chat Endpoint ---
+// Chat Endpoint
 app.post("/chat", async (req, res) => {
   const { userId, conversationId, message } = req.body;
-  if (!userId || !message) {
-    return res.status(400).json({ error: "userId and message are required." });
-  }
+  if (!userId || !message) return res.status(400).json({ error: "userId and message are required." });
 
   try {
-    // Retrieve the user
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    // Retrieve or find the conversation
-    let conversation;
-    if (conversationId) {
-      conversation = await Conversation.findById(conversationId);
-    } else {
-      conversation = await Conversation.findOne({ userId: userId });
-    }
-    if (!conversation) {
-      return res.status(404).json({ error: "Conversation not found." });
-    }
+    let conversation = conversationId
+      ? await Conversation.findById(conversationId)
+      : await Conversation.findOne({ userId });
 
-    // 1) Classify the new user message before saving
-    // Provide the entire existing conversation (messages) + the new message
-    const classification = await classifyQueryWithDeepSeek(
-      openai,                // The OpenAI client
-      conversation.messages, // The entire conversation so far
-      message                // The new user message
-    );
+    if (!conversation) return res.status(404).json({ error: "Conversation not found." });
+
+    const classification = await classifyQueryWithDeepSeek(openai, conversation.messages, message);
 
     if (!classification || classification === "other") {
-      // Off-topic or uncertain. Refuse politely and do NOT save user message.
-      return res.status(200).json({
-        reply: "I’m sorry, I can only help with immigration or relocation to Germany. Please rephrase your question to focus on Germany."
-      });
+      return res.status(200).json({ reply: "I’m only here to help with immigration and life in Germany. Let me know if you have a question about that." });
     }
 
-    // 2) If classification is "germany", proceed:
-    // Append the user's message to the conversation
     conversation.messages.push({ role: "user", content: message, timestamp: new Date() });
 
-    // Build the prompt by combining the user's profile info and conversation history
     const promptMessages = conversation.messages.map(m => `${m.role}: ${m.content}`).join("\n");
 
-    // Call the OpenRouter API with the final system prompt
     const result = await openai.chat.completions.create({
       model: "deepseek/deepseek-chat:free",
       messages: [
         { role: "system", content: systemPrompt },
-        {
-          role: "user",
-          content: `User Profile: ${JSON.stringify(user.profileInfo)}\nConversation:\n${promptMessages}`
-        }
+        { role: "user", content: `User Profile: ${JSON.stringify(user.profileInfo)}\nConversation:\n${promptMessages}` }
       ],
-      temperature: 0.8,
-      max_tokens: 1000,  // For more detailed answers
-      search: true,
+      temperature: 0.8
     });
 
     let reply = result.choices[0].message.content;
 
-    // Save the assistant's reply
     conversation.messages.push({ role: "assistant", content: reply, timestamp: new Date() });
     await conversation.save();
 
-    // Return the reply
     res.status(200).json({ reply: stripFormatting(reply) });
   } catch (err) {
     console.error("Error in /chat:", err);
@@ -198,15 +149,14 @@ app.post("/chat", async (req, res) => {
   }
 });
 
-// --- Endpoint to clear a conversation (for registered users) ---
+// Clear conversation history
 app.post("/clearHistory", async (req, res) => {
   const { userId, conversationId } = req.body;
-  if (!userId || !conversationId) {
-    return res.status(400).json({ error: "userId and conversationId are required." });
-  }
+  if (!userId || !conversationId) return res.status(400).json({ error: "userId and conversationId are required." });
+
   try {
     const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ error: "User not found." });
+    if (!user) return res.status(404).json({ error: "User not found" });
 
     const conversation = await Conversation.findById(conversationId);
     if (!conversation) return res.status(404).json({ error: "Conversation not found." });
@@ -220,37 +170,16 @@ app.post("/clearHistory", async (req, res) => {
   }
 });
 
-// Introduction endpoint (optional)
+// Introduction endpoint
 app.get("/intro", async (req, res) => {
-  const messages = [
-    { role: "system", content: systemPrompt },
-    {
-      role: "user",
-      content: "Introduce yourself and explain how you can help migrants planning to move to Germany.",
-    },
-  ];
   try {
-    const result = await openai.chat.completions.create({
-      model: "deepseek/deepseek-chat:free",
-      messages: messages,
-      temperature: 0.7,
-      max_tokens: 500,
-    });
-    const rawReply = result.choices[0].message.content;
-    res.status(200).json({ reply: stripFormatting(rawReply) });
+    const messages = [{ role: "system", content: systemPrompt }, { role: "user", content: "Introduce yourself." }];
+    const result = await openai.chat.completions.create({ model: "deepseek/deepseek-chat:free", messages, temperature: 0.7 });
+    res.status(200).json({ reply: stripFormatting(result.choices[0].message.content) });
   } catch (error) {
-    console.error("Intro Error:", error.response?.data || error.message);
+    console.error("Intro Error:", error);
     res.status(500).json({ error: "Unable to process introduction request." });
   }
 });
 
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-
-app.use(errorHandler);
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`✅ Server running on port ${PORT}`);
-});
+app.listen(3000, () => console.log("✅ Server running on port 3000"));
