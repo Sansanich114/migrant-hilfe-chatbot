@@ -64,6 +64,14 @@ When a user starts a conversation, introduce yourself naturally:
 "Hey, I’m Sasha, your personal immigration assistant for Germany. What do you need help with?"
 `;
 
+// Mapping of language codes to introductory messages
+const introMessages = {
+  en: "Hey, I’m Sasha, your personal immigration assistant for Germany. What do you need help with?",
+  de: "Hallo, ich bin Sasha, dein persönlicher Migrationsassistent für Deutschland. Wie kann ich dir helfen?",
+  tr: "Merhaba, ben Sasha, Almanya için kişisel göçmen asistanınız. Size nasıl yardımcı olabilirim?",
+  // add more languages as needed
+};
+
 // Helper function to strip formatting from AI responses
 function stripFormatting(text) {
   return text.replace(/\*\*|- |# /g, "").trim();
@@ -72,7 +80,11 @@ function stripFormatting(text) {
 // Create a new user profile
 app.post("/createProfile", async (req, res) => {
   try {
-    const newUser = new User({ subscriptionType: "free", freeUsageCount: 0, profileInfo: req.body.profileInfo || {} });
+    const newUser = new User({
+      subscriptionType: "free",
+      freeUsageCount: 0,
+      profileInfo: req.body.profileInfo || {}
+    });
     const savedUser = await newUser.save();
 
     const conversation = new Conversation({
@@ -118,14 +130,21 @@ app.post("/chat", async (req, res) => {
 
     if (!conversation) return res.status(404).json({ error: "Conversation not found." });
 
+    // Use classification to determine the type of request.
     const classification = await classifyQueryWithDeepSeek(openai, conversation.messages, message);
 
+    // If classification fails or is "other", return a default message.
     if (!classification || classification === "other") {
-      return res.status(200).json({ reply: "I’m only here to help with immigration and life in Germany. Let me know if you have a question about that." });
+      return res.status(200).json({
+        reply: "I’m only here to help with immigration and life in Germany. Let me know if you have a question about that."
+      });
+    } else if (classification === "politeness") {
+      return res.status(200).json({
+        reply: "Thank you for your message! If you have any questions about immigrating to or living in Germany, feel free to ask. Bye for now!"
+      });
     }
 
     conversation.messages.push({ role: "user", content: message, timestamp: new Date() });
-
     const promptMessages = conversation.messages.map(m => `${m.role}: ${m.content}`).join("\n");
 
     const result = await openai.chat.completions.create({
@@ -138,7 +157,6 @@ app.post("/chat", async (req, res) => {
     });
 
     let reply = result.choices[0].message.content;
-
     conversation.messages.push({ role: "assistant", content: reply, timestamp: new Date() });
     await conversation.save();
 
@@ -170,12 +188,12 @@ app.post("/clearHistory", async (req, res) => {
   }
 });
 
-// Introduction endpoint
+// Introduction endpoint with multilingual support.
 app.get("/intro", async (req, res) => {
   try {
-    const messages = [{ role: "system", content: systemPrompt }, { role: "user", content: "Introduce yourself." }];
-    const result = await openai.chat.completions.create({ model: "deepseek/deepseek-chat:free", messages, temperature: 0.7 });
-    res.status(200).json({ reply: stripFormatting(result.choices[0].message.content) });
+    const lang = req.query.lang || 'en';
+    const introMsg = introMessages[lang] || introMessages['en'];
+    res.status(200).json({ reply: introMsg });
   } catch (error) {
     console.error("Intro Error:", error);
     res.status(500).json({ error: "Unable to process introduction request." });

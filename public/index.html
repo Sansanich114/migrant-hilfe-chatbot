@@ -100,10 +100,7 @@
 
       <!-- Input Bar -->
       <div class="input-bar">
-        <textarea
-          id="chatInput"
-          placeholder="Type a message..."
-        ></textarea>
+        <textarea id="chatInput" placeholder="Type a message..."></textarea>
         <!-- Replaced icon-send.svg with send-accent.svg -->
         <button id="sendBtn" class="send-btn glow-effect">
           <img src="images/accent-icons/send-accent.svg" alt="Send" />
@@ -177,6 +174,10 @@
 
   <!-- Scripts -->
   <script>
+    // Detect browser language and store it
+    const userLanguage = navigator.language || 'en';
+    localStorage.setItem("userLanguage", userLanguage);
+
     /**************************************************************
      * GLOBAL SELECTORS / DOM ELEMENTS
      **************************************************************/
@@ -277,10 +278,11 @@
     }
 
     function createProfile() {
+      const language = localStorage.getItem("userLanguage") || "en";
       fetch("https://migrant-hilfe-chatbot.onrender.com/createProfile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ profileInfo: {} }),
+        body: JSON.stringify({ profileInfo: { language: language } }),
       })
         .then((res) => res.json())
         .then((data) => {
@@ -338,7 +340,7 @@
         .then(() => {
           hideLoading();
           chatContainer.innerHTML = "";
-          addMessage("bot", "New chat started. How can I help you?");
+          addMessage("bot", "Hey, I’m Sasha, your personal immigration assistant for Germany. What do you need help with?");
         })
         .catch((err) => {
           hideLoading();
@@ -378,12 +380,12 @@
     }
 
     function showLoading() {
-      loadingSpinner.classList.remove("hidden");
+      typingIndicator.classList.remove("hidden");
       chatInput.disabled = true;
       sendBtn.disabled = true;
     }
     function hideLoading() {
-      loadingSpinner.classList.add("hidden");
+      typingIndicator.classList.add("hidden");
       chatInput.disabled = false;
       sendBtn.disabled = false;
     }
@@ -405,33 +407,19 @@
     ];
     predictiveQuestions.forEach((question, index) => {
       const suggestionBtn = document.createElement("div");
-      suggestionBtn.className = "suggestion bubble-lift"; // bubble-lift for 3D effect
+      suggestionBtn.className = "suggestion bubble-lift";
       suggestionBtn.innerText = question;
       suggestionBtn.onclick = () => {
         chatInput.value = question;
         autoResize(chatInput);
       };
-      // Slight delayed fade-in
       suggestionBtn.style.animationDelay = `${0.1 * index}s`;
       suggestionsDiv.appendChild(suggestionBtn);
     });
 
     /**************************************************************
-     * CUSTOM CURSOR HALO (Large & Subtle)
+     * CUSTOM CURSOR HALO (Large & Subtle) removed for standard cursor.
      **************************************************************/
-    const customCursor = document.createElement("div");
-    customCursor.classList.add("custom-cursor");
-    document.body.appendChild(customCursor);
-
-    window.addEventListener("mousemove", (e) => {
-      if (document.body.classList.contains("dark-mode")) {
-        customCursor.style.display = "block";
-        // Move the center ~150px radius from pointer
-        customCursor.style.transform = `translate(${e.pageX - 150}px, ${e.pageY - 150}px)`;
-      } else {
-        customCursor.style.display = "none";
-      }
-    });
   </script>
 </body>
 </html>
