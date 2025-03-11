@@ -7,10 +7,12 @@
  *   1) The language of the user's newest message (e.g., "en", "de", "tr", etc.)
  *   2) The category of the user's newest message:
  *      - "germany": anything that moves the immigration consultation forward
- *        (questions, statements, follow-ups related to Germany or immigration).
+ *        (questions, statements, follow-ups related to Germany or immigration),
+ *        even if it also includes off-topic content like math or casual greetings.
  *      - "politeness": greetings, introductions, thank you, goodbye, or uncertain
  *        statements like "I don't know" that don't progress the immigration topic.
- *      - "other": purely off-topic or irrelevant content (math questions, random trivia).
+ *      - "other": purely off-topic or irrelevant content (math questions, random trivia)
+ *        with no mention of Germany or immigration.
  *
  * Returns: { language, category }
  */
@@ -23,11 +25,17 @@ async function classifyQueryWithDeepSeek(openai, entireConversation, currentUser
   const classificationPrompt = `
 You are a strict classifier that identifies two things about the user's newest message:
 
-1) The language of the user's newest message (e.g., "en" for English, "de" for German, "tr" for Turkish, etc.).
+1) The language of the user's newest message (e.g., "en", "de", "tr", etc.).
 2) The category of the user's newest message, which can be:
-   - "germany" if the message is about immigrating to or living in Germany, or it is a statement/question that moves the immigration consultation forward.
-   - "politeness" if the message is a greeting, introduction, thank you, goodbye, or an uncertain statement like "I don't know" that does not move the immigration consultation forward.
-   - "other" if it is none of the above (purely off-topic).
+   - "germany" if the message is about immigrating to or living in Germany,
+     or it is a statement/question that moves the immigration consultation forward,
+     even if part of the message is off-topic.
+   - "politeness" if the message is a greeting, introduction, thank you, goodbye,
+     or an uncertain statement like "I don't know" that does not move the immigration consultation forward.
+   - "other" if it is none of the above (purely off-topic with no mention of Germany or immigration).
+
+If the user's message includes both an off-topic request (e.g., math) and references to Germany,
+classify it as "germany".
 
 Below is the entire conversation so far, followed by the user's newest message:
 

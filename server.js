@@ -145,11 +145,26 @@ app.post("/chat", async (req, res) => {
       await user.save();
     }
 
-    // Step 3: Handle each category
-    if (category === "politeness") {
-      // Use the AI to generate a polite response in finalLanguage
-      conversation.messages.push({ role: "user", content: message, timestamp: new Date() });
+    // We'll push the user's message now
+    conversation.messages.push({ role: "user", content: message, timestamp: new Date() });
 
+    // Helper function to parse AI response and avoid empty content
+    const parseAiResponse = (raw) => {
+      let parsed;
+      try {
+        parsed = JSON.parse(raw);
+      } catch (e) {
+        parsed = { reply: stripFormatting(raw), suggestions: [] };
+      }
+      // If reply is empty, set a fallback to avoid Mongoose validation errors
+      if (!parsed.reply || !parsed.reply.trim()) {
+        parsed.reply = "Entschuldigung, ich habe gerade keine Antwort gefunden.";
+      }
+      return parsed;
+    };
+
+    if (category === "politeness") {
+      // Build a prompt for polite greetings
       const promptMessages = conversation.messages.map(m => `${m.role}: ${m.content}`).join("\n");
       const politenessPrompt = `
 ${systemPrompt}
@@ -177,23 +192,20 @@ then provide a JSON object:
         max_tokens: 500
       });
 
-      let apiResponse = result.choices[0].message.content;
-      let parsedResponse;
-      try {
-        parsedResponse = JSON.parse(apiResponse);
-      } catch (e) {
-        // If JSON parsing fails, fallback
-        parsedResponse = { reply: stripFormatting(apiResponse), suggestions: [] };
-      }
+      const apiResponse = result.choices[0].message.content;
+      const parsedResponse = parseAiResponse(apiResponse);
 
-      conversation.messages.push({ role: "assistant", content: parsedResponse.reply, timestamp: new Date() });
+      conversation.messages.push({
+        role: "assistant",
+        content: parsedResponse.reply,
+        timestamp: new Date()
+      });
       await conversation.save();
+
       return res.status(200).json(parsedResponse);
 
     } else if (category === "germany") {
       // Normal immigration-related response
-      conversation.messages.push({ role: "user", content: message, timestamp: new Date() });
-
       const promptMessages = conversation.messages.map(m => `${m.role}: ${m.content}`).join("\n");
       const fullPrompt = `
 ${systemPrompt}
@@ -219,24 +231,20 @@ Provide your answer and at the end, output JSON:
         max_tokens: 500
       });
 
-      let apiResponse = result.choices[0].message.content;
-      let parsedResponse;
-      try {
-        parsedResponse = JSON.parse(apiResponse);
-      } catch (e) {
-        // If JSON parsing fails, fallback
-        parsedResponse = { reply: stripFormatting(apiResponse), suggestions: [] };
-      }
+      const apiResponse = result.choices[0].message.content;
+      const parsedResponse = parseAiResponse(apiResponse);
 
-      conversation.messages.push({ role: "assistant", content: parsedResponse.reply, timestamp: new Date() });
+      conversation.messages.push({
+        role: "assistant",
+        content: parsedResponse.reply,
+        timestamp: new Date()
+      });
       await conversation.save();
+
       return res.status(200).json(parsedResponse);
 
     } else {
-      // category === "other"
-      // AI-generated polite decline
-      conversation.messages.push({ role: "user", content: message, timestamp: new Date() });
-
+      // category === "other" -> AI-generated polite decline
       const promptMessages = conversation.messages.map(m => `${m.role}: ${m.content}`).join("\n");
       const offTopicPrompt = `
 ${systemPrompt}
@@ -265,16 +273,14 @@ Then provide a JSON object:
         max_tokens: 500
       });
 
-      let apiResponse = result.choices[0].message.content;
-      let parsedResponse;
-      try {
-        parsedResponse = JSON.parse(apiResponse);
-      } catch (e) {
-        // If JSON parsing fails, fallback to entire response as 'reply'
-        parsedResponse = { reply: stripFormatting(apiResponse), suggestions: [] };
-      }
+      const apiResponse = result.choices[0].message.content;
+      const parsedResponse = parseAiResponse(apiResponse);
 
-      conversation.messages.push({ role: "assistant", content: parsedResponse.reply, timestamp: new Date() });
+      conversation.messages.push({
+        role: "assistant",
+        content: parsedResponse.reply,
+        timestamp: new Date()
+      });
       await conversation.save();
 
       return res.status(200).json(parsedResponse);
@@ -359,6 +365,11 @@ Output only valid JSON:
     } catch (e) {
       // fallback if JSON parse fails
       parsedResponse = { reply: apiResponse, suggestions: [] };
+    }
+
+    // If the AI gave no reply, fallback
+    if (!parsedResponse.reply || !parsedResponse.reply.trim()) {
+      parsedResponse.reply = "Hallo, ich bin Sasha, dein persönlicher Assistent für Migration nach Deutschland!";
     }
 
     return res.status(200).json(parsedResponse);

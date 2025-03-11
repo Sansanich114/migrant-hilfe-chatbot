@@ -250,15 +250,13 @@ body.dark-mode .message.bot .bubble {
   border-top: 1px solid #e5e5e5;
   gap: 8px;
   overflow-x: auto;
-
-  /* optional styling to highlight them more */
   background-color: #fafafa;
   box-shadow: inset 0 -1px 0 rgba(0,0,0,0.05);
 }
 body.dark-mode .suggestions {
   border-top-color: rgba(255,255,255,0.2);
   background-color: rgba(44,43,52,0.3);
-  box-shadow: none; /* or some subtle effect if you prefer */
+  box-shadow: none;
 }
 .suggestion {
   padding: 8px 16px;
