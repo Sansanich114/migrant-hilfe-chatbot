@@ -38,7 +38,12 @@ const openai = new OpenAI({
   defaultHeaders: { Authorization: `Bearer ${apiKey}` }
 });
 
-// Updated system prompt with JSON response instructions and language usage
+/**
+ * Updated system prompt with:
+ * 1. JSON-only output (no code fences).
+ * 2. Rule #9: If user has multiple questions, some about Germany and some off-topic (like math),
+ *    only address the Germany portion and politely decline the rest.
+ */
 const systemPrompt = `
 You are Sasha, a professional migration assistant helping people move to and integrate into life in Germany. You chat like a real person—short, natural, and direct.
 Rules:
@@ -48,24 +53,21 @@ Rules:
 4. Always clarify what the user needs before giving too much detail.
 5. No external links. Summarize external info instead.
 6. Stay Germany-focused. Politely decline unrelated questions.
-7. At the end of your response, output valid JSON with:
+7. At the end of your response, output **only** valid JSON of the form:
    {
      "reply": "...",
      "suggestions": ["...", "...", "..."]
    }
-   (3 follow-up suggestions about immigrating to or living in Germany).
+   with 3 follow-up suggestions about immigrating to or living in Germany.
+   (No code fences or triple backticks.)
 8. Respond in the language specified by the user (userLanguage).
-`;
+9. If the user's message has multiple requests, some about Germany and some off-topic (like math),
+   only address the Germany portion and politely decline the off-topic part.
+`.trim();
 
-// Mapping of language codes to introductory messages
-const introMessages = {
-  en: "Hey, I’m Sasha, your personal immigration assistant for Germany. What do you need help with?",
-  de: "Hallo, ich bin Sasha, dein persönlicher Migrationsassistent für Deutschland. Wie kann ich dir helfen?",
-  tr: "Merhaba, ben Sasha, Almanya için kişisel göçmen asistanınız. Size nasıl yardımcı olabilirim?",
-  // Add more languages if needed
-};
-
-// Helper function to remove markdown formatting from AI responses
+/**
+ * Helper function to strip stray markdown or bullet symbols
+ */
 function stripFormatting(text) {
   return text.replace(/\*\*|- |# /g, "").trim();
 }
@@ -108,7 +110,13 @@ app.get("/profile/:userId", async (req, res) => {
   }
 });
 
-// 3) Chat Endpoint
+/**
+ * 3) /chat endpoint
+ *    - Classifies the message (language + category)
+ *    - Updates user language if needed
+ *    - Builds AI prompt for "politeness", "germany", or "other"
+ *    - Returns JSON: { reply, suggestions }
+ */
 app.post("/chat", async (req, res) => {
   const { userId, conversationId, message } = req.body;
   if (!userId || !message) {
@@ -228,25 +236,25 @@ Provide your answer and at the end, output JSON:
       // category === "other"
       // AI-generated polite decline
       conversation.messages.push({ role: "user", content: message, timestamp: new Date() });
-    
+
       const promptMessages = conversation.messages.map(m => `${m.role}: ${m.content}`).join("\n");
       const offTopicPrompt = `
-    ${systemPrompt}
-    
-    User Profile: ${JSON.stringify(user.profileInfo)}
-    Conversation:
-    ${promptMessages}
-    
-    The user's last message is "other" (off-topic). 
-    Please respond in ${finalLanguage} with a short, polite refusal to off-topic questions, 
-    reminding them you can only help with immigration or life in Germany. 
-    Then provide a JSON object:
-    {
-      "reply": "...",
-      "suggestions": ["...", "...", "..."]
-    }
-    `.trim();
-    
+${systemPrompt}
+
+User Profile: ${JSON.stringify(user.profileInfo)}
+Conversation:
+${promptMessages}
+
+The user's last message is "other" (off-topic). 
+Please respond in ${finalLanguage} with a short, polite refusal to off-topic questions, 
+reminding them you can only help with immigration or life in Germany. 
+Then provide a JSON object:
+{
+  "reply": "...",
+  "suggestions": ["...", "...", "..."]
+}
+`.trim();
+
       const result = await openai.chat.completions.create({
         model: "deepseek/deepseek-chat:free",
         messages: [
@@ -256,7 +264,7 @@ Provide your answer and at the end, output JSON:
         temperature: 0.8,
         max_tokens: 500
       });
-    
+
       let apiResponse = result.choices[0].message.content;
       let parsedResponse;
       try {
@@ -265,13 +273,13 @@ Provide your answer and at the end, output JSON:
         // If JSON parsing fails, fallback to entire response as 'reply'
         parsedResponse = { reply: stripFormatting(apiResponse), suggestions: [] };
       }
-    
+
       conversation.messages.push({ role: "assistant", content: parsedResponse.reply, timestamp: new Date() });
       await conversation.save();
-    
+
       return res.status(200).json(parsedResponse);
     }
-    
+
   } catch (err) {
     console.error("Error in /chat:", err);
     return res.status(500).json({ error: "Unable to process request." });
@@ -301,25 +309,63 @@ app.post("/clearHistory", async (req, res) => {
   }
 });
 
-// 5) Introduction endpoint with multilingual support
+/**
+ * 5) Introduction endpoint with AI-based generation
+ *    Instead of static strings, we do an AI request to greet the user in their language
+ */
 app.get("/intro", async (req, res) => {
   try {
-    // If userId is provided, we can check the DB for the user's stored language
     const { userId, lang } = req.query;
-    let finalLang = lang || 'en';
-
-    if (userId) {
-      const user = await User.findById(userId).lean();
-      if (user && user.profileInfo && user.profileInfo.language) {
-        finalLang = user.profileInfo.language;
-      }
+    if (!userId) {
+      return res.status(400).json({ error: "No userId provided." });
     }
 
-    const introMsg = introMessages[finalLang] || introMessages['en'];
-    res.status(200).json({ reply: introMsg });
+    // Find user in DB
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    // Fallback to query param or 'en'
+    const finalLanguage = user.profileInfo.language || lang || 'en';
+
+    // Build an AI prompt for an introduction
+    const introPrompt = `
+${systemPrompt}
+
+The user's language is ${finalLanguage}.
+Please provide a short introduction as Sasha, a personal immigration assistant for Germany.
+Output only valid JSON:
+{
+  "reply": "...",
+  "suggestions": ["...", "...", "..."]
+}
+`.trim();
+
+    const result = await openai.chat.completions.create({
+      model: "deepseek/deepseek-chat:free",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: introPrompt }
+      ],
+      temperature: 0.8,
+      max_tokens: 500
+    });
+
+    let apiResponse = result.choices[0].message.content;
+    let parsedResponse;
+    try {
+      parsedResponse = JSON.parse(apiResponse);
+    } catch (e) {
+      // fallback if JSON parse fails
+      parsedResponse = { reply: apiResponse, suggestions: [] };
+    }
+
+    return res.status(200).json(parsedResponse);
+
   } catch (error) {
     console.error("Intro Error:", error);
-    res.status(500).json({ error: "Unable to process introduction request." });
+    return res.status(500).json({ error: "Unable to process introduction request." });
   }
 });
 

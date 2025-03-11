@@ -58,7 +58,7 @@
         + New Chat
       </button>
       <div id="chatList" class="chat-list">
-        <!-- Conversation items go here -->
+        <!-- Conversation items go here (optional future feature) -->
       </div>
     </aside>
 
@@ -68,10 +68,12 @@
       <div class="chat-container" id="chatContainer">
         <!-- Messages appended here dynamically -->
       </div>
-      <!-- Suggestions Row -->
+
+      <!-- Suggestions Row (Above Input) -->
       <div class="suggestions" id="suggestions">
         <!-- Dynamic suggestion pills will be rendered here -->
       </div>
+
       <!-- Input Bar -->
       <div class="input-bar">
         <textarea id="chatInput" placeholder="Type a message..."></textarea>
@@ -177,15 +179,18 @@
     /**************************************************************
      * EVENT LISTENERS
      **************************************************************/
+    // Settings dropdown
     settingsBtn.addEventListener("click", () => {
       settingsMenu.classList.toggle("hidden");
     });
 
+    // Theme toggle
     themeSwitcher.addEventListener("click", () => {
       body.classList.toggle("dark-mode");
       settingsMenu.classList.add("hidden");
     });
 
+    // About Us modal
     openAboutUs.addEventListener("click", () => {
       aboutModal.classList.remove("hidden");
       settingsMenu.classList.add("hidden");
@@ -194,6 +199,7 @@
       aboutModal.classList.add("hidden");
     });
 
+    // Chat settings modal
     openChatSettings.addEventListener("click", () => {
       chatSettingsModal.classList.remove("hidden");
       settingsMenu.classList.add("hidden");
@@ -202,6 +208,7 @@
       chatSettingsModal.classList.add("hidden");
     });
 
+    // Profile modal
     profileBtn.addEventListener("click", () => {
       profileModal.classList.remove("hidden");
     });
@@ -209,18 +216,21 @@
       profileModal.classList.add("hidden");
     });
 
+    // Close modals when clicking outside
     window.addEventListener("click", (e) => {
       if (e.target === aboutModal) aboutModal.classList.add("hidden");
       if (e.target === chatSettingsModal) chatSettingsModal.classList.add("hidden");
       if (e.target === profileModal) profileModal.classList.add("hidden");
     });
 
+    // New Chat
     newChatBtn.addEventListener("click", handleNewChat);
     resetChatBtn.addEventListener("click", () => {
       handleNewChat();
       chatSettingsModal.classList.add("hidden");
     });
 
+    // Send message on button or Enter
     sendBtn.addEventListener("click", sendMessage);
     chatInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !e.shiftKey) {
@@ -229,6 +239,7 @@
       }
     });
 
+    // Adjust textarea height as user types
     chatInput.addEventListener("input", () => autoResize(chatInput));
 
     /**************************************************************
@@ -237,7 +248,7 @@
     if (!localStorage.getItem("userId")) {
       createProfile();
     } else {
-      // Fetch and display introductory message based on language
+      // Fetch and display the AI-generated introduction
       fetchIntro();
     }
 
@@ -258,11 +269,18 @@
     }
 
     function fetchIntro() {
+      const userId = localStorage.getItem("userId");
       const language = localStorage.getItem("userLanguage") || "en";
-      fetch(`https://migrant-hilfe-chatbot.onrender.com/intro?lang=${language}`)
+      if (!userId) return;
+
+      // Ask the server for an AI-generated intro in the user's language
+      fetch(`https://migrant-hilfe-chatbot.onrender.com/intro?userId=${userId}&lang=${language}`)
         .then((res) => res.json())
         .then((data) => {
-          addMessage("bot", data.reply);
+          if (data.reply) {
+            addMessage("bot", data.reply);
+          }
+          updateSuggestions(data.suggestions || []);
         })
         .catch((err) => console.error("Error fetching intro message:", err));
     }
@@ -305,6 +323,7 @@
       const userId = localStorage.getItem("userId");
       const conversationId = localStorage.getItem("conversationId");
       if (!userId || !conversationId) return;
+
       fetch("https://migrant-hilfe-chatbot.onrender.com/clearHistory", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
