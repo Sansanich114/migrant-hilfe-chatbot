@@ -10,13 +10,11 @@ html, body {
   height: 100%;
   font-family: "Montserrat", -apple-system, BlinkMacSystemFont, "SF Pro Display",
     "Inter", Roboto, Arial, sans-serif;
-  background-color: #F9F9F9; /* Light default */
-  color: #2D2D2D; 
-  /* Unified transition for theme changes */
+  background-color: #F9F9F9;
+  color: #2D2D2D;
   transition: background-color 0.6s, color 0.6s;
 }
 body.dark-mode {
-  /* Apple-like radial gradient + subtle dark background */
   background: radial-gradient(
     circle at 50% 50%,
     #2c2b34 0%,
@@ -25,7 +23,7 @@ body.dark-mode {
   color: #f8f8f8;
 }
 .theme-transition * {
-  transition: all 0.4s ease; /* Blanket transitions on elements */
+  transition: all 0.4s ease;
 }
 .hidden {
   display: none !important;
@@ -94,7 +92,6 @@ body.dark-mode .top-nav {
   width: 20px;
   height: 20px;
 }
-/* Settings dropdown */
 .settings-menu {
   position: absolute;
   top: 60px;
@@ -130,7 +127,7 @@ body.dark-mode .settings-menu li:hover {
  ***************************************************/
 .main-container {
   display: flex;
-  margin-top: 64px; /* space for top nav */
+  margin-top: 64px;
   height: calc(100% - 64px);
 }
 .sidebar {
@@ -166,7 +163,7 @@ body.dark-mode .sidebar {
   transform: translateY(-2px);
 }
 body.dark-mode .new-chat-btn {
-  background-color: #5e5ce6; 
+  background-color: #5e5ce6;
 }
 .chat-list {
   display: flex;
@@ -199,7 +196,6 @@ body.dark-mode .new-chat-btn {
 .message.bot {
   justify-content: flex-start;
 }
-/* Avatars (both user & bot now use <img>, no .user-avatar background) */
 .avatar {
   width: 40px;
   height: 40px;
@@ -207,7 +203,6 @@ body.dark-mode .new-chat-btn {
   margin: 0 8px;
   object-fit: cover;
 }
-/* Bubbles */
 .bubble {
   max-width: 65%;
   border-radius: 16px;
@@ -233,7 +228,7 @@ body.dark-mode .new-chat-btn {
   border-top-right-radius: 0;
 }
 body.dark-mode .message.user .bubble {
-  background-color: #5e5ce6; 
+  background-color: #5e5ce6;
 }
 .message.bot .bubble {
   background-color: rgba(229,229,229,1);
@@ -336,15 +331,18 @@ body.dark-mode .input-bar textarea {
 }
 
 /***************************************************
- * 7) TYPING INDICATOR & LOADING
+ * 7) TYPING INDICATOR (Bot Message Style)
  ***************************************************/
-.typing-indicator {
-  position: absolute;
-  bottom: 80px; 
-  left: 50%;
-  transform: translateX(-50%);
+.typing-message .bubble {
+  background-color: rgba(229,229,229,1);
+  color: #2d2d2d;
+  border-top-left-radius: 0;
   display: flex;
-  gap: 6px;
+  align-items: center;
+}
+.typing-indicator {
+  display: flex;
+  gap: 4px;
 }
 .dot {
   width: 8px;
@@ -358,27 +356,6 @@ body.dark-mode .input-bar textarea {
 @keyframes bounce {
   0%, 80%, 100% { transform: scale(0); }
   40% { transform: scale(1); }
-}
-.loading-spinner {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-}
-.spinner-dots {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #ccc;
-  border-top: 4px solid #5e5ce6;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-@keyframes spin {
-  100% { transform: rotate(360deg); }
-}
-body.dark-mode .spinner-dots {
-  border-color: rgba(255,255,255,0.2);
-  border-top-color: #5e5ce6;
 }
 
 /***************************************************
@@ -451,17 +428,17 @@ body.dark-mode .modal-content {
   box-shadow: 0 0 8px rgba(94,92,230, 0.5);
 }
 .glow-effect:hover {
-  box-shadow: 0 0 14px rgba(94,92,230, 0.8);
+  box-shadow: 0 0 14px rgba(94,92,230,0.8);
 }
 .bubble-lift:hover {
   transform: translateY(-2px);
 }
 
 /***************************************************
- * 10) CUSTOM CURSOR (Large Halo)
+ * 10) CUSTOM CURSOR (Large Halo) removed for standard cursor.
  ***************************************************/
 body.dark-mode {
-  cursor: none; /* Hide default cursor in dark mode */
+  cursor: none;
 }
 .custom-cursor {
   display: none;

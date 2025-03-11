@@ -18,7 +18,6 @@
   <!-- Top Navigation Bar -->
   <nav class="top-nav">
     <div class="nav-left">
-      <!-- Updated to use migrant-logo-accent.svg -->
       <img
         src="images/accent-icons/migrant-logo-accent.svg"
         alt="Migrant Hilfe Logo"
@@ -27,25 +26,15 @@
       <span class="nav-title">Migrant Hilfe</span>
     </div>
     <div class="nav-right">
-      <!-- Theme Switcher Button -->
       <button id="themeSwitcher" class="nav-btn theme-btn" title="Toggle Theme">
-        <!-- Replaced icon-moon.svg with theme-accent.svg -->
         <img src="images/accent-icons/theme-accent.svg" alt="Theme Icon" class="theme-icon" />
       </button>
-
-      <!-- Settings Button -->
       <button id="settingsBtn" class="nav-btn settings-btn" title="Settings">
-        <!-- Replaced icon-dots.svg with settings-accent.svg -->
         <img src="images/accent-icons/settings-accent.svg" alt="Settings" />
       </button>
-
-      <!-- User Avatar for Profile -->
       <button id="profileBtn" class="nav-btn profile-btn" title="Profile">
-        <!-- Replaced icon-user.svg with profile-accent.svg -->
         <img src="images/accent-icons/profile-accent.svg" alt="User Avatar" class="profile-icon" />
       </button>
-
-      <!-- Settings Dropdown -->
       <div id="settingsMenu" class="settings-menu hidden">
         <ul>
           <li id="openChatSettings">Chat Settings</li>
@@ -60,7 +49,6 @@
   <div class="main-container">
     <!-- Sidebar -->
     <aside class="sidebar">
-      <!-- "New Chat" now includes optional icon + text -->
       <button id="newChatBtn" class="new-chat-btn glow-effect">
         <img
           src="images/accent-icons/new-chat-accent.svg"
@@ -70,7 +58,7 @@
         + New Chat
       </button>
       <div id="chatList" class="chat-list">
-        <!-- Example dynamic conversation items go here -->
+        <!-- Conversation items go here -->
       </div>
     </aside>
 
@@ -80,28 +68,13 @@
       <div class="chat-container" id="chatContainer">
         <!-- Messages appended here dynamically -->
       </div>
-
       <!-- Suggestions Row -->
       <div class="suggestions" id="suggestions">
-        <!-- Suggestion pills appended here -->
+        <!-- Dynamic suggestion pills will be rendered here -->
       </div>
-
-      <!-- Typing Indicator -->
-      <div id="typingIndicator" class="typing-indicator hidden">
-        <div class="dot"></div>
-        <div class="dot"></div>
-        <div class="dot"></div>
-      </div>
-
-      <!-- Loading Spinner -->
-      <div id="loadingSpinner" class="loading-spinner hidden">
-        <div class="spinner-dots"></div>
-      </div>
-
       <!-- Input Bar -->
       <div class="input-bar">
         <textarea id="chatInput" placeholder="Type a message..."></textarea>
-        <!-- Replaced icon-send.svg with send-accent.svg -->
         <button id="sendBtn" class="send-btn glow-effect">
           <img src="images/accent-icons/send-accent.svg" alt="Send" />
         </button>
@@ -152,7 +125,6 @@
     <div class="modal-content">
       <span id="closeProfile" class="modal-close">&times;</span>
       <h2>Your Profile</h2>
-      <!-- Example Fields: could load from user info -->
       <div class="profile-field">
         <label>Username:</label>
         <span id="profileUsername">Anonymous</span>
@@ -201,24 +173,19 @@
     const sendBtn = document.getElementById("sendBtn");
     const chatContainer = document.getElementById("chatContainer");
     const suggestionsDiv = document.getElementById("suggestions");
-    const typingIndicator = document.getElementById("typingIndicator");
-    const loadingSpinner = document.getElementById("loadingSpinner");
 
     /**************************************************************
      * EVENT LISTENERS
      **************************************************************/
-    // Settings dropdown
     settingsBtn.addEventListener("click", () => {
       settingsMenu.classList.toggle("hidden");
     });
 
-    // Theme toggle
     themeSwitcher.addEventListener("click", () => {
       body.classList.toggle("dark-mode");
-      settingsMenu.classList.add("hidden"); // close the menu
+      settingsMenu.classList.add("hidden");
     });
 
-    // About Us modal
     openAboutUs.addEventListener("click", () => {
       aboutModal.classList.remove("hidden");
       settingsMenu.classList.add("hidden");
@@ -227,7 +194,6 @@
       aboutModal.classList.add("hidden");
     });
 
-    // Chat settings modal
     openChatSettings.addEventListener("click", () => {
       chatSettingsModal.classList.remove("hidden");
       settingsMenu.classList.add("hidden");
@@ -236,7 +202,6 @@
       chatSettingsModal.classList.add("hidden");
     });
 
-    // Profile modal
     profileBtn.addEventListener("click", () => {
       profileModal.classList.remove("hidden");
     });
@@ -244,21 +209,18 @@
       profileModal.classList.add("hidden");
     });
 
-    // Clicking outside modals closes them
     window.addEventListener("click", (e) => {
       if (e.target === aboutModal) aboutModal.classList.add("hidden");
       if (e.target === chatSettingsModal) chatSettingsModal.classList.add("hidden");
       if (e.target === profileModal) profileModal.classList.add("hidden");
     });
 
-    // New Chat
     newChatBtn.addEventListener("click", handleNewChat);
     resetChatBtn.addEventListener("click", () => {
       handleNewChat();
       chatSettingsModal.classList.add("hidden");
     });
 
-    // Send message on button or Enter
     sendBtn.addEventListener("click", sendMessage);
     chatInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !e.shiftKey) {
@@ -267,7 +229,6 @@
       }
     });
 
-    // Adjust textarea height as user types
     chatInput.addEventListener("input", () => autoResize(chatInput));
 
     /**************************************************************
@@ -275,6 +236,9 @@
      **************************************************************/
     if (!localStorage.getItem("userId")) {
       createProfile();
+    } else {
+      // Fetch and display introductory message based on language
+      fetchIntro();
     }
 
     function createProfile() {
@@ -288,8 +252,19 @@
         .then((data) => {
           localStorage.setItem("userId", data.userId);
           localStorage.setItem("conversationId", data.conversationId);
+          fetchIntro();
         })
         .catch((err) => console.error("Error creating profile:", err));
+    }
+
+    function fetchIntro() {
+      const language = localStorage.getItem("userLanguage") || "en";
+      fetch(`https://migrant-hilfe-chatbot.onrender.com/intro?lang=${language}`)
+        .then((res) => res.json())
+        .then((data) => {
+          addMessage("bot", data.reply);
+        })
+        .catch((err) => console.error("Error fetching intro message:", err));
     }
 
     function sendMessage() {
@@ -298,8 +273,7 @@
       addMessage("user", userMessage);
       chatInput.value = "";
       autoResize(chatInput);
-
-      showLoading();
+      addBotTypingMessage();
 
       const userId = localStorage.getItem("userId");
       const conversationId = localStorage.getItem("conversationId");
@@ -312,15 +286,16 @@
       })
         .then((response) => response.json())
         .then((data) => {
-          hideLoading();
+          removeBotTypingMessage();
           if (data.reply) {
             addMessage("bot", data.reply);
           } else {
             addMessage("bot", "Sorry, I didn't get a response.");
           }
+          updateSuggestions(data.suggestions);
         })
         .catch((error) => {
-          hideLoading();
+          removeBotTypingMessage();
           console.error("Error in /chat:", error);
           addMessage("bot", "Error: Unable to process request.");
         });
@@ -330,7 +305,6 @@
       const userId = localStorage.getItem("userId");
       const conversationId = localStorage.getItem("conversationId");
       if (!userId || !conversationId) return;
-      showLoading();
       fetch("https://migrant-hilfe-chatbot.onrender.com/clearHistory", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -338,88 +312,88 @@
       })
         .then((res) => res.json())
         .then(() => {
-          hideLoading();
           chatContainer.innerHTML = "";
-          addMessage("bot", "Hey, I’m Sasha, your personal immigration assistant for Germany. What do you need help with?");
+          fetchIntro();
         })
-        .catch((err) => {
-          hideLoading();
-          console.error("Error clearing history:", err);
-        });
+        .catch((err) => console.error("Error clearing history:", err));
     }
 
-    /**************************************************************
-     * UI HELPERS: MESSAGES, LOADING, AUTO-RESIZE
-     **************************************************************/
     function addMessage(sender, text) {
       const messageDiv = document.createElement("div");
       messageDiv.classList.add("message", sender);
 
-      // Decide on user or bot avatar with <img> references
+      const bubbleDiv = document.createElement("div");
+      bubbleDiv.className = "bubble";
+      bubbleDiv.innerText = text;
+
       if (sender === "user") {
         const userAvatarImg = document.createElement("img");
         userAvatarImg.classList.add("avatar");
         userAvatarImg.src = "images/accent-icons/user-accent.svg";
         userAvatarImg.alt = "User Avatar";
         messageDiv.appendChild(userAvatarImg);
+        messageDiv.appendChild(bubbleDiv);
       } else {
         const botAvatar = document.createElement("img");
         botAvatar.className = "avatar";
         botAvatar.src = "images/accent-icons/bot-accent.svg";
         botAvatar.alt = "Bot Avatar";
         messageDiv.appendChild(botAvatar);
+        messageDiv.appendChild(bubbleDiv);
       }
-
-      const bubbleDiv = document.createElement("div");
-      bubbleDiv.className = "bubble";
-      bubbleDiv.innerText = text;
-      messageDiv.appendChild(bubbleDiv);
 
       chatContainer.appendChild(messageDiv);
       chatContainer.scrollTop = chatContainer.scrollHeight;
     }
 
-    function showLoading() {
-      typingIndicator.classList.remove("hidden");
-      chatInput.disabled = true;
-      sendBtn.disabled = true;
+    let typingIndicatorElement = null;
+
+    function addBotTypingMessage() {
+      typingIndicatorElement = document.createElement("div");
+      typingIndicatorElement.classList.add("message", "bot", "typing-message");
+
+      const botAvatar = document.createElement("img");
+      botAvatar.className = "avatar";
+      botAvatar.src = "images/accent-icons/bot-accent.svg";
+      botAvatar.alt = "Bot Avatar";
+      typingIndicatorElement.appendChild(botAvatar);
+
+      const bubbleDiv = document.createElement("div");
+      bubbleDiv.className = "bubble";
+      bubbleDiv.innerHTML = '<div class="typing-indicator"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
+      typingIndicatorElement.appendChild(bubbleDiv);
+
+      chatContainer.appendChild(typingIndicatorElement);
+      chatContainer.scrollTop = chatContainer.scrollHeight;
     }
-    function hideLoading() {
-      typingIndicator.classList.add("hidden");
-      chatInput.disabled = false;
-      sendBtn.disabled = false;
+
+    function removeBotTypingMessage() {
+      if (typingIndicatorElement) {
+        chatContainer.removeChild(typingIndicatorElement);
+        typingIndicatorElement = null;
+      }
+    }
+
+    function updateSuggestions(suggestions) {
+      suggestionsDiv.innerHTML = "";
+      if (suggestions && suggestions.length > 0) {
+        suggestions.forEach((suggestion) => {
+          const suggestionBtn = document.createElement("div");
+          suggestionBtn.className = "suggestion bubble-lift";
+          suggestionBtn.innerText = suggestion;
+          suggestionBtn.onclick = () => {
+            chatInput.value = suggestion;
+            autoResize(chatInput);
+          };
+          suggestionsDiv.appendChild(suggestionBtn);
+        });
+      }
     }
 
     function autoResize(textarea) {
       textarea.style.height = "auto";
       textarea.style.height = textarea.scrollHeight + "px";
     }
-
-    /**************************************************************
-     * SUGGESTIONS
-     **************************************************************/
-    const predictiveQuestions = [
-      "What documents do I need?",
-      "How do I apply for a visa?",
-      "What are the housing options?",
-      "How can I find a job?",
-      "What is the cost of living in Germany?"
-    ];
-    predictiveQuestions.forEach((question, index) => {
-      const suggestionBtn = document.createElement("div");
-      suggestionBtn.className = "suggestion bubble-lift";
-      suggestionBtn.innerText = question;
-      suggestionBtn.onclick = () => {
-        chatInput.value = question;
-        autoResize(chatInput);
-      };
-      suggestionBtn.style.animationDelay = `${0.1 * index}s`;
-      suggestionsDiv.appendChild(suggestionBtn);
-    });
-
-    /**************************************************************
-     * CUSTOM CURSOR HALO (Large & Subtle) removed for standard cursor.
-     **************************************************************/
   </script>
 </body>
 </html>

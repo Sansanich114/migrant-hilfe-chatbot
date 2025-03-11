@@ -34,10 +34,9 @@ const openai = new OpenAI({
   defaultHeaders: { Authorization: `Bearer ${apiKey}` }
 });
 
-// Updated system prompt
+// Updated system prompt with JSON response instructions and language flag
 const systemPrompt = `
 You are Sasha, a professional migration assistant helping people move to and integrate into life in Germany. You chat like a real person—short, natural, and direct.
-
 Rules:
 1. Keep responses short and simple, like a real conversation.
 2. Ask only one question at a time before moving forward.
@@ -45,23 +44,8 @@ Rules:
 4. Always clarify what the user needs before giving too much detail.
 5. No external links. Summarize external info instead.
 6. Stay Germany-focused. Politely decline unrelated questions.
-
-Example Chat:
-
-User: Hi, I want to move to Germany. Also, how much does rent cost in Berlin?  
-Sasha: Got it! Are you moving for work, study, or something else?  
-
-User: I want to find a job there.  
-Sasha: Makes sense. Do you already have a job offer, or are you planning to search after you arrive?  
-
-User: I don’t have an offer yet.  
-Sasha: Then you might need a Job Seeker Visa. It gives you six months to find work. Want to know how to apply?  
-
-User: Yes, and I also asked about rent.  
-Sasha: We’ll get to that soon. First, are you applying from your home country or somewhere else?  
-
-When a user starts a conversation, introduce yourself naturally:  
-"Hey, I’m Sasha, your personal immigration assistant for Germany. What do you need help with?"
+7. At the end of your response, output a JSON object with keys "reply" and "suggestions" (an array of 3 follow-up questions relevant to immigrating to or living in Germany).
+8. Respond in the language specified by the user.
 `;
 
 // Mapping of language codes to introductory messages
@@ -133,34 +117,63 @@ app.post("/chat", async (req, res) => {
     // Use classification to determine the type of request.
     const classification = await classifyQueryWithDeepSeek(openai, conversation.messages, message);
 
-    // If classification fails or is "other", return a default message.
+    // Enhanced politeness handling
     if (!classification || classification === "other") {
       return res.status(200).json({
-        reply: "I’m only here to help with immigration and life in Germany. Let me know if you have a question about that."
+        reply: "I’m only here to help with immigration and life in Germany. Let me know if you have a question about that.",
+        suggestions: []
       });
     } else if (classification === "politeness") {
+      const lowerMessage = message.toLowerCase();
+      let politeReply = "";
+      if (lowerMessage.includes("hello") || lowerMessage.includes("hi") || lowerMessage.includes("hey")) {
+        politeReply = "Hi there! How can I assist you with your immigration plans today?";
+      } else {
+        politeReply = "Thank you for your message! Remember, I'm here to help you with immigration and life in Germany. What else would you like to know?";
+      }
       return res.status(200).json({
-        reply: "Thank you for your message! If you have any questions about immigrating to or living in Germany, feel free to ask. Bye for now!"
+        reply: politeReply,
+        suggestions: []
       });
     }
 
     conversation.messages.push({ role: "user", content: message, timestamp: new Date() });
     const promptMessages = conversation.messages.map(m => `${m.role}: ${m.content}`).join("\n");
 
+    // Include user's language in the prompt for multilingual support
+    const userLanguage = user.profileInfo.language || "en";
+    const fullPrompt = `
+${systemPrompt}
+User Profile: ${JSON.stringify(user.profileInfo)}
+Conversation:
+${promptMessages}
+
+Please respond in ${userLanguage}. Provide your answer and at the end, output a JSON object with keys "reply" and "suggestions" (an array of 3 follow-up questions related to immigrating to or living in Germany).
+`;
+
     const result = await openai.chat.completions.create({
       model: "deepseek/deepseek-chat:free",
       messages: [
         { role: "system", content: systemPrompt },
-        { role: "user", content: `User Profile: ${JSON.stringify(user.profileInfo)}\nConversation:\n${promptMessages}` }
+        { role: "user", content: fullPrompt }
       ],
-      temperature: 0.8
+      temperature: 0.8,
+      max_tokens: 500
     });
 
-    let reply = result.choices[0].message.content;
-    conversation.messages.push({ role: "assistant", content: reply, timestamp: new Date() });
+    let apiResponse = result.choices[0].message.content;
+    let parsedResponse;
+    try {
+      parsedResponse = JSON.parse(apiResponse);
+    } catch (e) {
+      // If JSON parsing fails, fallback to treating entire response as reply
+      parsedResponse = { reply: stripFormatting(apiResponse), suggestions: [] };
+    }
+
+    conversation.messages.push({ role: "assistant", content: parsedResponse.reply, timestamp: new Date() });
     await conversation.save();
 
-    res.status(200).json({ reply: stripFormatting(reply) });
+    res.status(200).json(parsedResponse);
   } catch (err) {
     console.error("Error in /chat:", err);
     res.status(500).json({ error: "Unable to process request." });
