@@ -6,36 +6,34 @@
  * Identifies:
  *   1) The language of the user's newest message (e.g., "en", "de", "tr", etc.)
  *   2) The category of the user's newest message:
- *      - "germany": anything that moves the immigration consultation forward
- *        (questions, statements, follow-ups related to Germany or immigration),
- *        even if it also includes off-topic content like math or casual greetings.
- *      - "politeness": greetings, introductions, thank you, goodbye, or uncertain
- *        statements like "I don't know" that don't progress the immigration topic.
- *      - "other": purely off-topic or irrelevant content (math questions, random trivia)
- *        with no mention of Germany or immigration.
+ *      - "germany": if the message is about immigrating to or living in Germany,
+ *         or it advances the immigration consultation (even if it includes some off-topic parts).
+ *      - "politeness": if the message is a greeting, introduction, thank you, goodbye,
+ *         or an uncertain statement like "I don't know" that does not advance the consultation.
+ *      - "other": if it is purely off-topic with no mention of Germany or immigration.
+ *   3) If the category is "germany", determine whether external research (websearch) is required
+ *      to provide an accurate answer. Provide a brief explanation why websearch is needed.
+ *      For "politeness" or "other", automatically set "requiresWebsearch" to false and "websearchExplanation" to an empty string.
  *
- * Returns: { language, category }
+ * Returns: { language, category, requiresWebsearch, websearchExplanation }
  */
 
 async function classifyQueryWithDeepSeek(openai, entireConversation, currentUserMessage) {
   // Convert the conversation to a single string
   const conversationText = entireConversation.map(m => `${m.role}: ${m.content}`).join('\n');
 
-  // Updated classification prompt that requests both language and category in JSON
+  // Updated classification prompt with a websearch explanation for "germany" queries.
   const classificationPrompt = `
-You are a strict classifier that identifies two things about the user's newest message:
+You are a strict classifier that identifies three things about the user's newest message:
 
 1) The language of the user's newest message (e.g., "en", "de", "tr", etc.).
 2) The category of the user's newest message, which can be:
-   - "germany" if the message is about immigrating to or living in Germany,
-     or it is a statement/question that moves the immigration consultation forward,
-     even if part of the message is off-topic.
-   - "politeness" if the message is a greeting, introduction, thank you, goodbye,
-     or an uncertain statement like "I don't know" that does not move the immigration consultation forward.
-   - "other" if it is none of the above (purely off-topic with no mention of Germany or immigration).
-
-If the user's message includes both an off-topic request (e.g., math) and references to Germany,
-classify it as "germany".
+   - "germany" if the message is about immigrating to or living in Germany, or advances the immigration consultation.
+   - "politeness" if the message is a greeting, introduction, thank you, goodbye, or an uncertain statement like "I don't know" that does not advance the consultation.
+   - "other" if it is purely off-topic with no mention of Germany or immigration.
+3) If the category is "germany", determine whether external research (websearch) is required to provide an accurate and up-to-date response.
+   If required, set "requiresWebsearch" to true and provide a brief explanation in "websearchExplanation" (for example, if the query mentions official sources, government websites, forums, or asks for the latest updates).
+   For "politeness" or "other", automatically set "requiresWebsearch" to false and "websearchExplanation" to an empty string.
 
 Below is the entire conversation so far, followed by the user's newest message:
 
@@ -48,7 +46,9 @@ User's New Message:
 Return ONLY valid JSON of the form:
 {
   "language": "...",
-  "category": "..."
+  "category": "...",
+  "requiresWebsearch": true/false,
+  "websearchExplanation": "..."
 }
 `.trim();
 
@@ -57,8 +57,9 @@ Return ONLY valid JSON of the form:
       model: 'deepseek/deepseek-chat:free',
       messages: [{ role: 'system', content: classificationPrompt }],
       temperature: 0,
-      max_tokens: 100,
-      search: false
+      max_tokens: 150,
+      // Disable web search for classification
+      tools: []
     });
 
     const rawOutput = classificationRes.choices[0].message.content.trim();
@@ -70,21 +71,31 @@ Return ONLY valid JSON of the form:
       parsed = JSON.parse(rawOutput);
     } catch (err) {
       console.error('Failed to parse classification JSON:', err);
-      return { language: 'en', category: 'other' };
+      return { language: 'en', category: 'other', requiresWebsearch: false, websearchExplanation: "" };
     }
 
-    const { language, category } = parsed;
+    let { language, category, requiresWebsearch, websearchExplanation } = parsed;
     const validCategories = ['germany', 'politeness', 'other'];
 
-    // Validate the model's output
+    // Validate the output; for non-germany categories, force websearch to false and empty explanation.
     if (!language || !validCategories.includes(category)) {
-      return { language: 'en', category: 'other' };
+      return { language: 'en', category: 'other', requiresWebsearch: false, websearchExplanation: "" };
+    }
+    if (category !== "germany") {
+      requiresWebsearch = false;
+      websearchExplanation = "";
+    } else {
+      // For "germany", if requiresWebsearch is not explicitly true, default to false.
+      if (typeof requiresWebsearch !== "boolean") {
+        requiresWebsearch = false;
+        websearchExplanation = "";
+      }
     }
 
-    return { language, category };
+    return { language, category, requiresWebsearch, websearchExplanation };
   } catch (err) {
     console.error('Classification error:', err);
-    return { language: 'en', category: 'other' };
+    return { language: 'en', category: 'other', requiresWebsearch: false, websearchExplanation: "" };
   }
 }
 

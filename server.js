@@ -41,7 +41,7 @@ const openai = new OpenAI({
 /**
  * Updated system prompt with:
  * 1. JSON-only output (no code fences).
- * 2. Rule #9: If user has multiple questions, some about Germany and some off-topic (like math),
+ * 2. Rule #9: If user has multiple questions, some about Germany and some off-topic,
  *    only address the Germany portion and politely decline the rest.
  */
 const systemPrompt = `
@@ -59,7 +59,6 @@ Rules:
      "suggestions": ["...", "...", "..."]
    }
    with 3 follow-up suggestions about immigrating to or living in Germany.
-   (No code fences or triple backticks.)
 8. Respond in the language specified by the user (userLanguage).
 9. If the user's message has multiple requests, some about Germany and some off-topic (like math),
    only address the Germany portion and politely decline the off-topic part.
@@ -154,7 +153,7 @@ app.get("/profile/:userId", async (req, res) => {
 
 /**
  * 3) /chat endpoint
- *    - Classifies the message (language + category)
+ *    - Classifies the message (language + category + websearch flag)
  *    - Updates user language if needed
  *    - Builds AI prompt for "politeness", "germany", or "other"
  *    - Returns JSON: { reply, suggestions }
@@ -178,20 +177,21 @@ app.post("/chat", async (req, res) => {
     }
 
     // Step 1: Classify the new message
-    const { language, category } = await classifyQueryWithDeepSeek(openai, conversation.messages, message);
+    const classification = await classifyQueryWithDeepSeek(openai, conversation.messages, message);
+    const { language, category, requiresWebsearch, websearchExplanation } = classification;
 
-    // Step 2: If the detected language differs from what's in the DB, update it
+    // Step 2: Update user's language if needed
     const finalLanguage = language || user.profileInfo.language || 'en';
     if (user.profileInfo.language !== finalLanguage) {
       user.profileInfo.language = finalLanguage;
       await user.save();
     }
 
-    // We'll push the user's message now
+    // Push the user's message
     conversation.messages.push({ role: "user", content: message, timestamp: new Date() });
 
     if (category === "politeness") {
-      // Build a prompt for polite greetings
+      // Build prompt for polite greetings
       const promptMessages = conversation.messages.map(m => `${m.role}: ${m.content}`).join("\n");
       const politenessPrompt = `
 ${systemPrompt}
@@ -200,9 +200,9 @@ User Profile: ${JSON.stringify(user.profileInfo)}
 Conversation:
 ${promptMessages}
 
-The user's last message is "politeness". 
-Please respond in ${finalLanguage} with a short, friendly greeting or acknowledgement, 
-then provide a JSON object:
+The user's last message is classified as "politeness". 
+Please respond in ${finalLanguage} with a short, friendly greeting or acknowledgement.
+Then, provide a JSON object:
 {
   "reply": "...",
   "suggestions": ["...", "...", "..."]
@@ -232,23 +232,28 @@ then provide a JSON object:
       return res.status(200).json(parsedResponse);
 
     } else if (category === "germany") {
-      // Normal immigration-related response
+      // Build prompt for immigration-related queries
       const promptMessages = conversation.messages.map(m => `${m.role}: ${m.content}`).join("\n");
-      const fullPrompt = `
+      let fullPrompt = `
 ${systemPrompt}
 User Profile: ${JSON.stringify(user.profileInfo)}
 Conversation:
 ${promptMessages}
 
-Please respond in ${finalLanguage}. 
+Please respond in ${finalLanguage}.
 Provide your answer and at the end, output JSON:
 {
   "reply": "...",
   "suggestions": ["...", "...", "..."]
 }
-`.trim();
+      `.trim();
 
-      const result = await openai.chat.completions.create({
+      // Optionally, if websearch is required, add an extra note
+      if (requiresWebsearch) {
+        fullPrompt += `\n\nNote: The user's query requires external research because: ${websearchExplanation}`;
+      }
+
+      const requestOptions = {
         model: "deepseek/deepseek-chat:free",
         messages: [
           { role: "system", content: systemPrompt },
@@ -256,8 +261,13 @@ Provide your answer and at the end, output JSON:
         ],
         temperature: 0.8,
         max_tokens: 500
-      });
+      };
 
+      if (requiresWebsearch) {
+        requestOptions.tools = ["websearch"];
+      }
+
+      const result = await openai.chat.completions.create(requestOptions);
       const apiResponse = result.choices[0].message.content;
       const parsedResponse = parseAiResponse(apiResponse);
 
@@ -280,9 +290,8 @@ User Profile: ${JSON.stringify(user.profileInfo)}
 Conversation:
 ${promptMessages}
 
-The user's last message is "other" (off-topic). 
-Please respond in ${finalLanguage} with a short, polite refusal to off-topic questions, 
-reminding them you can only help with immigration or life in Germany. 
+The user's last message is classified as "other" (off-topic). 
+Please respond in ${finalLanguage} with a short, polite refusal to off-topic questions, reminding them you can only help with immigration or life in Germany.
 Then provide a JSON object:
 {
   "reply": "...",
