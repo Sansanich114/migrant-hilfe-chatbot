@@ -120,6 +120,24 @@ app.post("/createProfile", async (req, res) => {
   }
 });
 
+// New endpoint to create a new conversation (for multiple chat feature)
+app.post("/createConversation", async (req, res) => {
+  const { userId } = req.body;
+  if (!userId) return res.status(400).json({ error: "userId is required." });
+  try {
+    const conversation = new Conversation({
+      userId,
+      conversationName: "New Conversation",
+      messages: [{ role: "system", content: systemPrompt }]
+    });
+    await conversation.save();
+    res.status(201).json({ conversationId: conversation._id });
+  } catch(err) {
+    console.error("Error creating new conversation:", err);
+    res.status(500).json({ error: "Unable to create new conversation." });
+  }
+});
+
 // 2) Retrieve a user profile and list conversations
 app.get("/profile/:userId", async (req, res) => {
   try {
@@ -301,7 +319,7 @@ Then provide a JSON object:
   }
 });
 
-// 4) Clear conversation history
+// 4) Clear conversation history (no longer used for new chat creation)
 app.post("/clearHistory", async (req, res) => {
   const { userId, conversationId } = req.body;
   if (!userId || !conversationId) {

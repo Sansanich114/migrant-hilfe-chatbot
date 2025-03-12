@@ -22,12 +22,7 @@ body.dark-mode {
   ) no-repeat;
   color: #f8f8f8;
 }
-.theme-transition * {
-  transition: all 0.4s ease;
-}
-.hidden {
-  display: none !important;
-}
+/* Removed dark-mode cursor hiding */
 
 /***************************************************
  * 2) TOP NAV
@@ -315,23 +310,25 @@ body.dark-mode .input-bar {
 body.dark-mode .input-bar textarea {
   color: #f8f8f8;
 }
+/* Updated send button styling */
 .send-btn {
   width: 48px;
   height: 48px;
   border: none;
   outline: none;
-  background: none;
-  border-radius: 50%;
+  background-color: #5e5ce6;
+  border-radius: 8px;
   margin-left: 8px;
   cursor: pointer;
-  transition: transform 0.2s;
+  transition: background-color 0.2s, transform 0.2s;
 }
 .send-btn img {
   width: 24px;
   height: 24px;
 }
 .send-btn:hover {
-  transform: scale(1.1);
+  background-color: #4a4ab0;
+  transform: none;
 }
 
 /***************************************************
@@ -441,24 +438,4 @@ body.dark-mode .modal-content {
 /***************************************************
  * 10) CUSTOM CURSOR (Removed)
  ***************************************************/
-body.dark-mode {
-  cursor: none;
-}
-.custom-cursor {
-  display: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 300px;
-  height: 300px;
-  pointer-events: none;
-  border-radius: 50%;
-  background: radial-gradient(
-    circle,
-    rgba(255,255,255,0.15) 0%,
-    rgba(255,255,255,0) 60%
-  );
-  mix-blend-mode: screen;
-  transition: transform 0.1s ease-out;
-  z-index: 9999;
-}
+/* Removed custom cursor rules so that the pointer is visible */

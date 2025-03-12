@@ -151,7 +151,7 @@
     // Detect browser language and store it
     const userLanguage = navigator.language || 'en';
     localStorage.setItem("userLanguage", userLanguage);
-
+  
     /**************************************************************
      * GLOBAL SELECTORS / DOM ELEMENTS
      **************************************************************/
@@ -170,12 +170,15 @@
     const profileBtn = document.getElementById("profileBtn");
     const profileModal = document.getElementById("profileModal");
     const closeProfile = document.getElementById("closeProfile");
-
+  
     const chatInput = document.getElementById("chatInput");
     const sendBtn = document.getElementById("sendBtn");
     const chatContainer = document.getElementById("chatContainer");
     const suggestionsDiv = document.getElementById("suggestions");
-
+    const chatListDiv = document.getElementById("chatList");
+  
+    let isBotTyping = false; // flag to prevent sending new message while bot is processing
+  
     /**************************************************************
      * EVENT LISTENERS
      **************************************************************/
@@ -183,13 +186,13 @@
     settingsBtn.addEventListener("click", () => {
       settingsMenu.classList.toggle("hidden");
     });
-
+  
     // Theme toggle
     themeSwitcher.addEventListener("click", () => {
       body.classList.toggle("dark-mode");
       settingsMenu.classList.add("hidden");
     });
-
+  
     // About Us modal
     openAboutUs.addEventListener("click", () => {
       aboutModal.classList.remove("hidden");
@@ -198,7 +201,7 @@
     closeAbout.addEventListener("click", () => {
       aboutModal.classList.add("hidden");
     });
-
+  
     // Chat settings modal
     openChatSettings.addEventListener("click", () => {
       chatSettingsModal.classList.remove("hidden");
@@ -207,7 +210,7 @@
     closeChatSettings.addEventListener("click", () => {
       chatSettingsModal.classList.add("hidden");
     });
-
+  
     // Profile modal
     profileBtn.addEventListener("click", () => {
       profileModal.classList.remove("hidden");
@@ -215,21 +218,23 @@
     closeProfile.addEventListener("click", () => {
       profileModal.classList.add("hidden");
     });
-
+  
     // Close modals when clicking outside
     window.addEventListener("click", (e) => {
       if (e.target === aboutModal) aboutModal.classList.add("hidden");
       if (e.target === chatSettingsModal) chatSettingsModal.classList.add("hidden");
       if (e.target === profileModal) profileModal.classList.add("hidden");
     });
-
-    // New Chat
-    newChatBtn.addEventListener("click", handleNewChat);
+  
+    // New Chat - now creates a new conversation and updates chat list
+    newChatBtn.addEventListener("click", () => {
+      createNewConversation();
+    });
     resetChatBtn.addEventListener("click", () => {
-      handleNewChat();
+      createNewConversation();
       chatSettingsModal.classList.add("hidden");
     });
-
+  
     // Send message on button or Enter
     sendBtn.addEventListener("click", sendMessage);
     chatInput.addEventListener("keydown", (e) => {
@@ -238,20 +243,21 @@
         sendMessage();
       }
     });
-
+  
     // Adjust textarea height as user types
     chatInput.addEventListener("input", () => autoResize(chatInput));
-
+  
     /**************************************************************
-     * CHAT LOGIC: CREATE PROFILE, SEND MESSAGE, CLEAR HISTORY
+     * CHAT LOGIC: CREATE PROFILE, SEND MESSAGE, LOAD CONVERSATIONS
      **************************************************************/
     if (!localStorage.getItem("userId")) {
       createProfile();
     } else {
-      // Fetch and display the AI-generated introduction
+      // Fetch and display the AI-generated introduction and conversation list
       fetchIntro();
+      fetchConversations();
     }
-
+  
     function createProfile() {
       const language = localStorage.getItem("userLanguage") || "en";
       fetch("https://migrant-hilfe-chatbot.onrender.com/createProfile", {
@@ -264,16 +270,16 @@
           localStorage.setItem("userId", data.userId);
           localStorage.setItem("conversationId", data.conversationId);
           fetchIntro();
+          fetchConversations();
         })
         .catch((err) => console.error("Error creating profile:", err));
     }
-
+  
     function fetchIntro() {
       const userId = localStorage.getItem("userId");
       const language = localStorage.getItem("userLanguage") || "en";
       if (!userId) return;
-
-      // Ask the server for an AI-generated intro in the user's language
+  
       fetch(`https://migrant-hilfe-chatbot.onrender.com/intro?userId=${userId}&lang=${language}`)
         .then((res) => res.json())
         .then((data) => {
@@ -284,19 +290,21 @@
         })
         .catch((err) => console.error("Error fetching intro message:", err));
     }
-
+  
     function sendMessage() {
+      if (isBotTyping) return; // prevent sending if bot is processing
       const userMessage = chatInput.value.trim();
       if (!userMessage) return;
       addMessage("user", userMessage);
       chatInput.value = "";
       autoResize(chatInput);
+      disableInput(true);
       addBotTypingMessage();
-
+  
       const userId = localStorage.getItem("userId");
       const conversationId = localStorage.getItem("conversationId");
       const payload = { userId, conversationId, message: userMessage };
-
+  
       fetch("https://migrant-hilfe-chatbot.onrender.com/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -305,6 +313,7 @@
         .then((response) => response.json())
         .then((data) => {
           removeBotTypingMessage();
+          disableInput(false);
           if (data.reply) {
             addMessage("bot", data.reply);
           } else {
@@ -314,37 +323,83 @@
         })
         .catch((error) => {
           removeBotTypingMessage();
+          disableInput(false);
           console.error("Error in /chat:", error);
           addMessage("bot", "Error: Unable to process request.");
         });
     }
-
-    function handleNewChat() {
+  
+    function disableInput(disable) {
+      chatInput.disabled = disable;
+      sendBtn.disabled = disable;
+    }
+  
+    function createNewConversation() {
       const userId = localStorage.getItem("userId");
-      const conversationId = localStorage.getItem("conversationId");
-      if (!userId || !conversationId) return;
-
-      fetch("https://migrant-hilfe-chatbot.onrender.com/clearHistory", {
+      if (!userId) return;
+      fetch("https://migrant-hilfe-chatbot.onrender.com/createConversation", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, conversationId }),
+        body: JSON.stringify({ userId }),
       })
         .then((res) => res.json())
-        .then(() => {
-          chatContainer.innerHTML = "";
-          fetchIntro();
+        .then((data) => {
+          if (data.conversationId) {
+            localStorage.setItem("conversationId", data.conversationId);
+            chatContainer.innerHTML = "";
+            fetchIntro();
+            fetchConversations();
+          }
         })
-        .catch((err) => console.error("Error clearing history:", err));
+        .catch((err) => console.error("Error creating new conversation:", err));
     }
-
+  
+    function fetchConversations() {
+      const userId = localStorage.getItem("userId");
+      if (!userId) return;
+      fetch(`https://migrant-hilfe-chatbot.onrender.com/profile/${userId}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.conversations) {
+            chatListDiv.innerHTML = "";
+            data.conversations.forEach((conv) => {
+              const convItem = document.createElement("div");
+              convItem.className = "chat-item";
+              convItem.innerText = conv.conversationName || "Conversation " + conv._id.slice(-4);
+              convItem.onclick = () => loadConversation(conv._id);
+              chatListDiv.appendChild(convItem);
+            });
+          }
+        })
+        .catch((err) => console.error("Error fetching conversations:", err));
+    }
+  
+    function loadConversation(conversationId) {
+      const userId = localStorage.getItem("userId");
+      if (!userId) return;
+      fetch(`https://migrant-hilfe-chatbot.onrender.com/profile/${userId}`)
+        .then((res) => res.json())
+        .then((data) => {
+          const conv = data.conversations.find(c => c._id === conversationId);
+          if (conv) {
+            localStorage.setItem("conversationId", conversationId);
+            chatContainer.innerHTML = "";
+            conv.messages.forEach((msg) => {
+              addMessage(msg.role === "assistant" ? "bot" : "user", msg.content);
+            });
+          }
+        })
+        .catch((err) => console.error("Error loading conversation:", err));
+    }
+  
     function addMessage(sender, text) {
       const messageDiv = document.createElement("div");
       messageDiv.classList.add("message", sender);
-
+  
       const bubbleDiv = document.createElement("div");
       bubbleDiv.className = "bubble";
       bubbleDiv.innerText = text;
-
+  
       if (sender === "user") {
         const userAvatarImg = document.createElement("img");
         userAvatarImg.classList.add("avatar");
@@ -360,39 +415,41 @@
         messageDiv.appendChild(botAvatar);
         messageDiv.appendChild(bubbleDiv);
       }
-
+  
       chatContainer.appendChild(messageDiv);
       chatContainer.scrollTop = chatContainer.scrollHeight;
     }
-
+  
     let typingIndicatorElement = null;
-
+  
     function addBotTypingMessage() {
+      isBotTyping = true;
       typingIndicatorElement = document.createElement("div");
       typingIndicatorElement.classList.add("message", "bot", "typing-message");
-
+  
       const botAvatar = document.createElement("img");
       botAvatar.className = "avatar";
       botAvatar.src = "images/accent-icons/bot-accent.svg";
       botAvatar.alt = "Bot Avatar";
       typingIndicatorElement.appendChild(botAvatar);
-
+  
       const bubbleDiv = document.createElement("div");
       bubbleDiv.className = "bubble";
       bubbleDiv.innerHTML = '<div class="typing-indicator"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
       typingIndicatorElement.appendChild(bubbleDiv);
-
+  
       chatContainer.appendChild(typingIndicatorElement);
       chatContainer.scrollTop = chatContainer.scrollHeight;
     }
-
+  
     function removeBotTypingMessage() {
       if (typingIndicatorElement) {
         chatContainer.removeChild(typingIndicatorElement);
         typingIndicatorElement = null;
+        isBotTyping = false;
       }
     }
-
+  
     function updateSuggestions(suggestions) {
       suggestionsDiv.innerHTML = "";
       if (suggestions && suggestions.length > 0) {
@@ -408,11 +465,11 @@
         });
       }
     }
-
+  
     function autoResize(textarea) {
       textarea.style.height = "auto";
       textarea.style.height = textarea.scrollHeight + "px";
     }
-  </script>
+  </script>  
 </body>
 </html>
