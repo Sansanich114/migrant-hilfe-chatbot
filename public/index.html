@@ -76,7 +76,10 @@
 
       <!-- Input Bar -->
       <div class="input-bar">
-        <textarea id="chatInput" placeholder="Type a message..."></textarea>
+        <textarea
+          id="chatInput"
+          placeholder="Type a message..."
+        ></textarea>
         <button id="sendBtn" class="send-btn glow-effect">
           <img src="images/accent-icons/send-accent.svg" alt="Send" />
         </button>
@@ -139,9 +142,10 @@
         <label>Subscription:</label>
         <span id="profileSubscription">Free Plan</span>
       </div>
+      <!-- Removed the 'Update Profile' button -->
       <div class="profile-actions">
-        <button id="updateProfileBtn" class="glow-effect">Update Profile</button>
-        <button id="logoutProfileBtn" class="glow-effect danger">Logout</button>
+        <!-- Keep only the Logout button, styled as bold red text -->
+        <button id="logoutProfileBtn" class="glow-effect danger logout-btn">Logout</button>
       </div>
     </div>
   </div>
@@ -470,6 +474,6 @@
       textarea.style.height = "auto";
       textarea.style.height = textarea.scrollHeight + "px";
     }
-  </script>  
+  </script>
 </body>
 </html>

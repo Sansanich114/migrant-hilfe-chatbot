@@ -22,7 +22,6 @@ body.dark-mode {
   ) no-repeat;
   color: #f8f8f8;
 }
-/* Removed dark-mode cursor hiding */
 
 /***************************************************
  * 2) TOP NAV
@@ -306,11 +305,15 @@ body.dark-mode .input-bar {
   color: #2d2d2d;
   background-color: transparent;
   border-radius: 20px;
+  font-family: "Montserrat", sans-serif; /* Ensure user-typed text is Montserrat */
+}
+.input-bar textarea::placeholder {
+  font-family: "Montserrat", sans-serif; /* Placeholder also Montserrat */
+  color: #999;
 }
 body.dark-mode .input-bar textarea {
   color: #f8f8f8;
 }
-/* Updated send button styling */
 .send-btn {
   width: 48px;
   height: 48px;
@@ -398,6 +401,10 @@ body.dark-mode .modal-content {
   right: 16px;
   font-size: 24px;
   cursor: pointer;
+  color: #2D2D2D; /* Visible in light mode */
+}
+body.dark-mode .modal-close {
+  color: #fff; /* Visible in dark mode */
 }
 .modal-close:hover {
   opacity: 0.7;
@@ -414,12 +421,20 @@ body.dark-mode .modal-content {
   gap: 12px;
   margin-top: 16px;
 }
-.profile-actions .danger {
+/* Danger/Logout button styling */
+.logout-btn {
+  font-family: "Montserrat", sans-serif;
+  font-weight: 700;
+  color: #ff3b30;
+  background-color: transparent;
+  border: 1px solid #ff3b30;
+  border-radius: 8px;
+  padding: 8px 12px;
+  transition: background-color 0.2s, color 0.2s;
+}
+.logout-btn:hover {
   background-color: #ff3b30;
   color: #ffffff;
-}
-.profile-actions button:hover {
-  transform: scale(1.05);
 }
 
 /***************************************************
@@ -434,8 +449,6 @@ body.dark-mode .modal-content {
 .bubble-lift:hover {
   transform: translateY(-2px);
 }
-
-/***************************************************
- * 10) CUSTOM CURSOR (Removed)
- ***************************************************/
-/* Removed custom cursor rules so that the pointer is visible */
+.hidden {
+  display: none;
+}
