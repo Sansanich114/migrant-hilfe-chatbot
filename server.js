@@ -26,18 +26,21 @@ const GOOGLE_CSE_KEY = "AIzaSyClfHTLNCis9..."; // from your message
 // ---------------------------------------------------
 // 2) OpenRouter / DeepSeek API
 const apiKey = process.env.OPENROUTER_API_KEY;
-console.log("OpenRouter API Key Loaded:", apiKey ? "Yes ✅" : "No ❌");
+if (!apiKey) {
+  console.error("❌ OPENROUTER_API_KEY not set. Check your .env file or Render configuration.");
+} else {
+  console.log("✅ OpenRouter API Key Loaded Successfully.");
+}
 
 const openai = new OpenAI({
   apiKey: apiKey,
-  baseURL: "https://openrouter.ai/api/v1",
-  defaultHeaders: { Authorization: `Bearer ${apiKey}` }
+  baseURL: "https://openrouter.ai/api/v1"
 });
 
 // ---------------------------------------------------
 // 3) Connect to MongoDB
 const mongoURI = process.env.MONGODB_URI || "mongodb://localhost:27017/migrantHilfe";
-mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
+mongoose.connect(mongoURI)
   .then(() => console.log("✅ Connected to MongoDB"))
   .catch(err => console.error("MongoDB connection error:", err));
 
