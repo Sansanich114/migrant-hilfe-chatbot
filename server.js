@@ -72,6 +72,30 @@ function stripFormatting(text) {
   return text.replace(/\*\*|- |# /g, "").trim();
 }
 
+/**
+ * Updated helper function to parse the AI response.
+ * It extracts the JSON block between the first "{" and the last "}".
+ */
+const parseAiResponse = (raw) => {
+  let jsonString = raw.trim();
+  const firstBrace = jsonString.indexOf("{");
+  const lastBrace = jsonString.lastIndexOf("}");
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    jsonString = jsonString.substring(firstBrace, lastBrace + 1);
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(jsonString);
+  } catch (e) {
+    parsed = { reply: stripFormatting(raw), suggestions: [] };
+  }
+  // If reply is empty, set a fallback to avoid Mongoose validation errors
+  if (!parsed.reply || !parsed.reply.trim()) {
+    parsed.reply = "Entschuldigung, ich habe gerade keine Antwort gefunden.";
+  }
+  return parsed;
+};
+
 // 1) Create a new user profile
 app.post("/createProfile", async (req, res) => {
   try {
@@ -147,21 +171,6 @@ app.post("/chat", async (req, res) => {
 
     // We'll push the user's message now
     conversation.messages.push({ role: "user", content: message, timestamp: new Date() });
-
-    // Helper function to parse AI response and avoid empty content
-    const parseAiResponse = (raw) => {
-      let parsed;
-      try {
-        parsed = JSON.parse(raw);
-      } catch (e) {
-        parsed = { reply: stripFormatting(raw), suggestions: [] };
-      }
-      // If reply is empty, set a fallback to avoid Mongoose validation errors
-      if (!parsed.reply || !parsed.reply.trim()) {
-        parsed.reply = "Entschuldigung, ich habe gerade keine Antwort gefunden.";
-      }
-      return parsed;
-    };
 
     if (category === "politeness") {
       // Build a prompt for polite greetings
