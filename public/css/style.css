@@ -52,11 +52,11 @@ body.dark-mode .top-nav {
 .nav-left {
   display: flex;
   align-items: center;
+  gap: 16px;
 }
 .nav-logo {
   width: 32px;
   height: 32px;
-  margin-right: 8px;
 }
 .nav-title {
   font-size: 20px;
@@ -134,7 +134,8 @@ body.dark-mode .settings-menu li:hover {
   backdrop-filter: blur(8px);
   padding: 16px;
   overflow-y: auto;
-  transition: background-color 0.3s, width 0.3s;
+  transition: transform 0.3s ease;
+  transform: translateX(0);
 }
 body.dark-mode .sidebar {
   background-color: rgba(44,43,52,0.3);
@@ -351,8 +352,7 @@ body.dark-mode .input-bar textarea {
 .send-btn img {
   width: 24px;
   height: 24px;
-  /* Make arrow white by inverting or replace with white SVG */
-  filter: invert(1);
+  filter: invert(1); /* Make arrow white */
 }
 .send-btn:hover {
   background-color: #4a4ab0;
@@ -478,11 +478,31 @@ body.dark-mode .modal-close {
 }
 
 /***************************************************
- * 10) FULL IMMERSION (Hide Sidebar)
+ * 10) FULL IMMERSION (Hide Sidebar with Animation)
  ***************************************************/
 .sidebar-hidden .sidebar {
-  display: none;
+  transform: translateX(-280px); /* Slide out left smoothly */
 }
 .sidebar-hidden .chat-section {
   width: 100%;
+}
+
+/***************************************************
+ * 11) MOBILE OPTIMIZATION
+ ***************************************************/
+@media (max-width: 768px) {
+  .sidebar {
+    position: absolute;
+    left: 0;
+    top: 64px; /* below top nav */
+    bottom: 0;
+    z-index: 999;
+    transform: translateX(-280px); /* Hidden by default on small screens */
+  }
+  .sidebar-hidden .sidebar {
+    transform: translateX(0); /* Show sidebar when toggled */
+  }
+  .chat-section {
+    width: 100%;
+  }
 }

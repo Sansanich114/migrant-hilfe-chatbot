@@ -58,8 +58,7 @@ Return ONLY valid JSON of the form:
       messages: [{ role: 'system', content: classificationPrompt }],
       temperature: 0,
       max_tokens: 150,
-      // Disable web search for classification
-      tools: []
+      tools: [] // no web search for classification
     });
 
     const rawOutput = classificationRes.choices[0].message.content.trim();

@@ -55,14 +55,14 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
 // ---------------------------------------------------
-// 5) System Prompt (Simplified for a 13-year-old, with EXACTLY 2 suggestions)
+// 5) System Prompt (Simplified for a 13-year-old, EXACTLY 2 suggestions)
 const systemPrompt = `
 You are Sasha, a friendly migration assistant who explains things in simple language (easy enough for a 13-year-old, but still accurate).
 Rules:
 1. Your answers should be short and clear.
 2. No direct links. Summarize any info you find.
 3. If you have extra facts from web research, put them in your answer.
-4. Provide exactly 2 short suggestions that are relevant next questions the user might ask (for example: "Which documents do I need?" or "Where can I apply?").
+4. Provide exactly 2 short suggestions that are relevant next questions the user might ask.
 5. Return valid JSON:
    {
      "reply": "...",
@@ -97,7 +97,7 @@ function parseAiResponse(raw) {
   if (!parsed.reply || !parsed.reply.trim()) {
     parsed.reply = "Sorry, I don't have an answer right now.";
   }
-  // Ensure suggestions is an array of exactly 2 strings
+  // Ensure suggestions is an array
   if (!Array.isArray(parsed.suggestions)) {
     parsed.suggestions = [];
   }
@@ -426,7 +426,7 @@ Return valid JSON of the form:
       parsedResponse.reply = "Hi! I'm Sasha. How can I help you with moving to Germany?";
     }
 
-    // Ensure we have exactly 2 suggestions
+    // Ensure we have suggestions as an array
     if (!Array.isArray(parsedResponse.suggestions)) {
       parsedResponse.suggestions = [];
     }
@@ -462,6 +462,49 @@ app.patch("/renameConversation", async (req, res) => {
 });
 
 // ---------------------------------------------------
-// 13) Start the server
+// 13) Delete conversation
+app.delete("/deleteConversation", async (req, res) => {
+  const { conversationId } = req.body;
+  if (!conversationId) {
+    return res.status(400).json({ error: "conversationId is required." });
+  }
+  try {
+    const conversation = await Conversation.findById(conversationId);
+    if (!conversation) {
+      return res.status(404).json({ error: "Conversation not found." });
+    }
+    await conversation.deleteOne();
+    return res.status(200).json({ message: "Conversation deleted successfully." });
+  } catch (err) {
+    console.error("Error deleting conversation:", err);
+    res.status(500).json({ error: "Unable to delete conversation." });
+  }
+});
+
+// ---------------------------------------------------
+// 14) Delete ALL user data (except language in localStorage)
+app.delete("/deleteAllUserData", async (req, res) => {
+  const { userId } = req.body;
+  if (!userId) {
+    return res.status(400).json({ error: "userId is required." });
+  }
+  try {
+    // Remove all conversations for this user
+    await Conversation.deleteMany({ userId });
+
+    // Remove the user from the DB entirely
+    await User.findByIdAndDelete(userId);
+
+    // The user's language remains in localStorage on the client side
+    // (so next time they come, they won't lose the language setting).
+    return res.status(200).json({ message: "All user data deleted successfully." });
+  } catch (err) {
+    console.error("Error deleting all user data:", err);
+    res.status(500).json({ error: "Unable to delete all user data." });
+  }
+});
+
+// ---------------------------------------------------
+// 15) Start the server
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`✅ Server running on port ${port}`));
