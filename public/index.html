@@ -26,15 +26,26 @@
       <span class="nav-title">Migrant Hilfe</span>
     </div>
     <div class="nav-right">
+      <!-- Toggle Sidebar Button -->
+      <button id="toggleSidebarBtn" class="nav-btn" title="Toggle Sidebar">
+        <img src="images/icons/toggle-sidebar.svg" alt="Toggle Sidebar" class="icon" />
+      </button>
+
+      <!-- Theme Switch -->
       <button id="themeSwitcher" class="nav-btn theme-btn" title="Toggle Theme">
         <img src="images/accent-icons/theme-accent.svg" alt="Theme Icon" class="theme-icon" />
       </button>
+
+      <!-- Settings -->
       <button id="settingsBtn" class="nav-btn settings-btn" title="Settings">
-        <img src="images/accent-icons/settings-accent.svg" alt="Settings" />
+        <!-- Use a cleaner icon here -->
+        <img src="images/icons/settings-white.svg" alt="Settings" class="icon" />
       </button>
       <button id="profileBtn" class="nav-btn profile-btn" title="Profile">
-        <img src="images/accent-icons/profile-accent.svg" alt="User Avatar" class="profile-icon" />
+        <!-- Use a cleaner icon here -->
+        <img src="images/icons/profile-white.svg" alt="User Avatar" class="profile-icon" />
       </button>
+
       <div id="settingsMenu" class="settings-menu hidden">
         <ul>
           <li id="openChatSettings">Chat Settings</li>
@@ -58,7 +69,7 @@
         + New Chat
       </button>
       <div id="chatList" class="chat-list">
-        <!-- Future conversation items -->
+        <!-- Conversation items go here -->
       </div>
     </aside>
 
@@ -81,6 +92,7 @@
           placeholder="Type a message..."
         ></textarea>
         <button id="sendBtn" class="send-btn glow-effect">
+          <!-- Make arrow white via filter or use a white icon -->
           <img src="images/accent-icons/send-accent.svg" alt="Send" />
         </button>
       </div>
@@ -142,9 +154,7 @@
         <label>Subscription:</label>
         <span id="profileSubscription">Free Plan</span>
       </div>
-      <!-- Removed the 'Update Profile' button -->
       <div class="profile-actions">
-        <!-- Keep only the Logout button, styled as bold red text -->
         <button id="logoutProfileBtn" class="glow-effect danger logout-btn">Logout</button>
       </div>
     </div>
@@ -175,6 +185,8 @@
     const profileModal = document.getElementById("profileModal");
     const closeProfile = document.getElementById("closeProfile");
   
+    const toggleSidebarBtn = document.getElementById("toggleSidebarBtn");
+
     const chatInput = document.getElementById("chatInput");
     const sendBtn = document.getElementById("sendBtn");
     const chatContainer = document.getElementById("chatContainer");
@@ -186,6 +198,11 @@
     /**************************************************************
      * EVENT LISTENERS
      **************************************************************/
+    // Toggle sidebar
+    toggleSidebarBtn.addEventListener("click", () => {
+      body.classList.toggle("sidebar-hidden");
+    });
+
     // Settings dropdown
     settingsBtn.addEventListener("click", () => {
       settingsMenu.classList.toggle("hidden");
@@ -230,7 +247,7 @@
       if (e.target === profileModal) profileModal.classList.add("hidden");
     });
   
-    // New Chat - now creates a new conversation and updates chat list
+    // New Chat - creates a new conversation and updates chat list
     newChatBtn.addEventListener("click", () => {
       createNewConversation();
     });
@@ -264,7 +281,7 @@
   
     function createProfile() {
       const language = localStorage.getItem("userLanguage") || "en";
-      fetch("https://migrant-hilfe-chatbot.onrender.com/createProfile", {
+      fetch("/createProfile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ profileInfo: { language: language } }),
@@ -284,7 +301,7 @@
       const language = localStorage.getItem("userLanguage") || "en";
       if (!userId) return;
   
-      fetch(`https://migrant-hilfe-chatbot.onrender.com/intro?userId=${userId}&lang=${language}`)
+      fetch(`/intro?userId=${userId}&lang=${language}`)
         .then((res) => res.json())
         .then((data) => {
           if (data.reply) {
@@ -309,7 +326,7 @@
       const conversationId = localStorage.getItem("conversationId");
       const payload = { userId, conversationId, message: userMessage };
   
-      fetch("https://migrant-hilfe-chatbot.onrender.com/chat", {
+      fetch("/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -341,7 +358,7 @@
     function createNewConversation() {
       const userId = localStorage.getItem("userId");
       if (!userId) return;
-      fetch("https://migrant-hilfe-chatbot.onrender.com/createConversation", {
+      fetch("/createConversation", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId }),
@@ -361,7 +378,7 @@
     function fetchConversations() {
       const userId = localStorage.getItem("userId");
       if (!userId) return;
-      fetch(`https://migrant-hilfe-chatbot.onrender.com/profile/${userId}`)
+      fetch(`/profile/${userId}`)
         .then((res) => res.json())
         .then((data) => {
           if (data.conversations) {
@@ -370,7 +387,32 @@
               const convItem = document.createElement("div");
               convItem.className = "chat-item";
               convItem.innerText = conv.conversationName || "Conversation " + conv._id.slice(-4);
+  
+              // Edit button to rename
+              const editBtn = document.createElement("button");
+              editBtn.className = "edit-btn";
+              editBtn.innerText = "✏️";
+              editBtn.onclick = async (e) => {
+                e.stopPropagation(); // prevent loading conversation on click
+                const newName = prompt("Enter a new name for this conversation:", conv.conversationName);
+                if (!newName) return;
+                try {
+                  await fetch("/renameConversation", {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ conversationId: conv._id, newName })
+                  });
+                  fetchConversations(); // Refresh list
+                } catch (err) {
+                  console.error("Rename failed:", err);
+                }
+              };
+  
+              convItem.appendChild(editBtn);
+  
+              // Load conversation on click
               convItem.onclick = () => loadConversation(conv._id);
+  
               chatListDiv.appendChild(convItem);
             });
           }
@@ -381,7 +423,7 @@
     function loadConversation(conversationId) {
       const userId = localStorage.getItem("userId");
       if (!userId) return;
-      fetch(`https://migrant-hilfe-chatbot.onrender.com/profile/${userId}`)
+      fetch(`/profile/${userId}`)
         .then((res) => res.json())
         .then((data) => {
           const conv = data.conversations.find(c => c._id === conversationId);
@@ -389,7 +431,7 @@
             localStorage.setItem("conversationId", conversationId);
             chatContainer.innerHTML = "";
             conv.messages.forEach((msg) => {
-              addMessage(msg.role === "assistant" ? "bot" : "user", msg.content);
+              addMessage(msg.role === "assistant" ? "bot" : (msg.role === "system" ? "bot" : "user"), msg.content);
             });
           }
         })

@@ -13,7 +13,7 @@
  *      - "other": if it is purely off-topic with no mention of Germany or immigration.
  *   3) If the category is "germany", determine whether external research (websearch) is required
  *      to provide an accurate answer. Provide a brief explanation why websearch is needed.
- *      For "politeness" or "other", automatically set "requiresWebsearch" to false and "websearchExplanation" to an empty string.
+ *      For "politeness" or "other", automatically set "requiresWebsearch" to false and "websearchExplanation" to "".
  *
  * Returns: { language, category, requiresWebsearch, websearchExplanation }
  */

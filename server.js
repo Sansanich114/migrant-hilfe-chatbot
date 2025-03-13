@@ -19,9 +19,8 @@ const { classifyQueryWithDeepSeek } = require("./classification");
 
 // ---------------------------------------------------
 // 1) API Keys for Google Custom Search
-//    (Preferably store these in .env, not hard-coded)
-const GOOGLE_CSE_ID = "12a578c30ca6c42b3";  // from your message
-const GOOGLE_CSE_KEY = "AIzaSyClfHTLNCis9..."; // from your message
+const GOOGLE_CSE_ID = process.env.GOOGLE_CSE_ID || "";
+const GOOGLE_CSE_KEY = process.env.GOOGLE_CSE_KEY || "";
 
 // ---------------------------------------------------
 // 2) OpenRouter / DeepSeek API
@@ -56,17 +55,18 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
 // ---------------------------------------------------
-// 5) System Prompt (Simplified for a 13-year-old)
+// 5) System Prompt (Simplified for a 13-year-old, with EXACTLY 2 suggestions)
 const systemPrompt = `
 You are Sasha, a friendly migration assistant who explains things in simple language (easy enough for a 13-year-old, but still accurate).
 Rules:
 1. Your answers should be short and clear.
 2. No direct links. Summarize any info you find.
 3. If you have extra facts from web research, put them in your answer.
-4. At the end, return valid JSON:
+4. Provide exactly 2 short suggestions that are relevant next questions the user might ask (for example: "Which documents do I need?" or "Where can I apply?").
+5. Return valid JSON:
    {
      "reply": "...",
-     "suggestions": ["...", "...", "..."]
+     "suggestions": ["...", "..."]
    }
 `.trim();
 
@@ -96,6 +96,10 @@ function parseAiResponse(raw) {
   }
   if (!parsed.reply || !parsed.reply.trim()) {
     parsed.reply = "Sorry, I don't have an answer right now.";
+  }
+  // Ensure suggestions is an array of exactly 2 strings
+  if (!Array.isArray(parsed.suggestions)) {
+    parsed.suggestions = [];
   }
   return parsed;
 }
@@ -195,7 +199,7 @@ app.post("/chat", async (req, res) => {
     // 3) Add user's message to conversation
     conversation.messages.push({ role: "user", content: message, timestamp: new Date() });
 
-    // 4) Handle each category
+    // 4) Handle each category with separate prompts
     if (category === "politeness") {
       // Polite greeting or farewell
       const promptMessages = conversation.messages.map(m => `${m.role}: ${m.content}`).join("\n");
@@ -205,7 +209,13 @@ ${systemPrompt}
 Conversation so far:
 ${promptMessages}
 
-The user is just being polite. Respond in ${finalLanguage} with a short, friendly greeting. Return valid JSON.
+The user is just being polite. Respond in ${finalLanguage} with a short, friendly greeting.
+Provide exactly 2 short suggestions for what the user might ask about Germany or migration next.
+Return valid JSON of the form:
+{
+  "reply": "...",
+  "suggestions": ["...", "..."]
+}
 `.trim();
 
       const result = await openai.chat.completions.create({
@@ -253,9 +263,9 @@ The user is just being polite. Respond in ${finalLanguage} with a short, friendl
         }
       }
 
-      // Build final prompt for DeepSeek
+      // Build final prompt
       const promptMessages = conversation.messages.map(m => `${m.role}: ${m.content}`).join("\n");
-      const fullPrompt = `
+      const germanyPrompt = `
 ${systemPrompt}
 
 Conversation so far:
@@ -264,10 +274,11 @@ ${promptMessages}
 Additional info (no direct links):
 ${googleSummary}
 
-Answer in ${finalLanguage}. Return JSON like:
+Answer in ${finalLanguage}. Provide exactly 2 short suggestions for next questions the user might have.
+Return valid JSON of the form:
 {
   "reply": "...",
-  "suggestions": ["...", "...", "..."]
+  "suggestions": ["...", "..."]
 }
 `.trim();
 
@@ -275,7 +286,7 @@ Answer in ${finalLanguage}. Return JSON like:
         model: "deepseek/deepseek-chat:free",
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: fullPrompt }
+          { role: "user", content: germanyPrompt }
         ],
         temperature: 0.8,
         max_tokens: 500
@@ -303,7 +314,13 @@ ${systemPrompt}
 Conversation so far:
 ${promptMessages}
 
-The user asked something off-topic. Respond in ${finalLanguage} politely, saying you can only help with migration or Germany. Return valid JSON.
+The user asked something off-topic. Respond in ${finalLanguage} politely, saying you can only help with migration or Germany.
+Provide exactly 2 short suggestions for questions about Germany or migration.
+Return valid JSON of the form:
+{
+  "reply": "...",
+  "suggestions": ["...", "..."]
+}
 `.trim();
 
       const result = await openai.chat.completions.create({
@@ -379,10 +396,11 @@ app.get("/intro", async (req, res) => {
 ${systemPrompt}
 
 The user's language is ${finalLanguage}.
-Give a short greeting as Sasha. Return valid JSON:
+Give a short greeting as Sasha. Provide exactly 2 short suggestions for what the user might ask next about migration or Germany.
+Return valid JSON of the form:
 {
   "reply": "...",
-  "suggestions": ["...", "...", "..."]
+  "suggestions": ["...", "..."]
 }
 `.trim();
 
@@ -408,6 +426,11 @@ Give a short greeting as Sasha. Return valid JSON:
       parsedResponse.reply = "Hi! I'm Sasha. How can I help you with moving to Germany?";
     }
 
+    // Ensure we have exactly 2 suggestions
+    if (!Array.isArray(parsedResponse.suggestions)) {
+      parsedResponse.suggestions = [];
+    }
+
     return res.status(200).json(parsedResponse);
 
   } catch (error) {
@@ -417,5 +440,28 @@ Give a short greeting as Sasha. Return valid JSON:
 });
 
 // ---------------------------------------------------
-// 12) Start the server
-app.listen(3000, () => console.log("✅ Server running on port 3000"));
+// 12) Rename conversation
+app.patch("/renameConversation", async (req, res) => {
+  const { conversationId, newName } = req.body;
+  if (!conversationId || !newName) {
+    return res.status(400).json({ error: "conversationId and newName are required." });
+  }
+
+  try {
+    const conversation = await Conversation.findById(conversationId);
+    if (!conversation) {
+      return res.status(404).json({ error: "Conversation not found." });
+    }
+    conversation.conversationName = newName;
+    await conversation.save();
+    return res.status(200).json({ message: "Conversation renamed successfully." });
+  } catch (err) {
+    console.error("Error renaming conversation:", err);
+    res.status(500).json({ error: "Unable to rename conversation." });
+  }
+});
+
+// ---------------------------------------------------
+// 13) Start the server
+const port = process.env.PORT || 3000;
+app.listen(port, () => console.log(`✅ Server running on port ${port}`));
