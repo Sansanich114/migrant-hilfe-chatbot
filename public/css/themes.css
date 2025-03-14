@@ -1,0 +1,21 @@
+/* themes.css */
+/* Theme-specific styles (dark mode, light mode overrides) */
+
+/* Dark Mode Overrides */
+body.dark-mode {
+    background: radial-gradient(circle at 50% 50%, #2c2b34 0%, #1c1b1f 70%) no-repeat;
+    color: #f8f8f8;
+  }
+  
+  body.dark-mode .top-nav {
+    background-color: rgba(44, 43, 52, 0.6);
+  }
+  
+  body.dark-mode .sidebar {
+    background-color: rgba(44, 43, 52, 0.3);
+  }
+  
+  body.dark-mode .modal-content {
+    background-color: rgba(44, 43, 52, 0.8);
+  }
+  

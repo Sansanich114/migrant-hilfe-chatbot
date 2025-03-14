@@ -12,7 +12,6 @@ html, body {
     "Inter", Roboto, Arial, sans-serif;
   color: #2D2D2D;
   transition: background-color 0.6s, color 0.6s;
-  /* Prevent the page from scrolling behind the chat container */
   overflow: hidden;
   overscroll-behavior: none;
 }
@@ -125,7 +124,7 @@ body.dark-mode .settings-menu li:hover {
   display: flex;
   margin-top: 64px;
   height: calc(100% - 64px);
-  overflow: hidden; /* Restrict scrolling to chat container */
+  overflow: hidden;
 }
 .sidebar {
   width: 280px;
@@ -135,7 +134,7 @@ body.dark-mode .settings-menu li:hover {
   padding: 16px;
   overflow-y: auto;
   transition: transform 0.3s ease;
-  transform: translateX(0);
+  position: relative; /* for positioning the toggle button */
 }
 body.dark-mode .sidebar {
   background-color: rgba(44,43,52,0.3);
@@ -188,6 +187,37 @@ body.dark-mode .new-chat-btn {
   cursor: pointer;
 }
 
+/* Sidebar Toggle Button */
+.sidebar-toggle {
+  position: absolute;
+  top: 50%;
+  right: -20px;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 80px;
+  background-color: #5e5ce6;
+  border: none;
+  border-radius: 0 8px 8px 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  transition: background-color 0.3s;
+}
+.sidebar-toggle:hover {
+  background-color: #4a4ab0;
+}
+/* Sidebar content wrapper to slide in/out */
+.sidebar-content {
+  transition: transform 0.3s ease;
+  transform: translateX(0);
+}
+/* Slide out sidebar content when hidden while leaving the toggle visible */
+.sidebar-hidden .sidebar-content {
+  transform: translateX(-280px);
+}
+
 /***************************************************
  * 4) CHAT SECTION
  ***************************************************/
@@ -198,9 +228,9 @@ body.dark-mode .new-chat-btn {
 }
 .chat-container {
   flex: 1;
-  overflow-y: auto; /* Scrolling within chat container */
-  overscroll-behavior: contain; /* iOS Safari: contain the scroll inside the div */
-  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   padding: 24px;
 }
 .message {
@@ -352,7 +382,7 @@ body.dark-mode .input-bar textarea {
 .send-btn img {
   width: 24px;
   height: 24px;
-  filter: invert(1); /* Make arrow white */
+  /* Using the white arrow version for better contrast */
 }
 .send-btn:hover {
   background-color: #4a4ab0;
@@ -426,10 +456,10 @@ body.dark-mode .modal-content {
   right: 16px;
   font-size: 24px;
   cursor: pointer;
-  color: #2D2D2D; /* Visible in light mode */
+  color: #2D2D2D;
 }
 body.dark-mode .modal-close {
-  color: #fff; /* Visible in dark mode */
+  color: #fff;
 }
 .modal-close:hover {
   opacity: 0.7;
@@ -480,9 +510,6 @@ body.dark-mode .modal-close {
 /***************************************************
  * 10) FULL IMMERSION (Hide Sidebar with Animation)
  ***************************************************/
-.sidebar-hidden .sidebar {
-  transform: translateX(-280px); /* Slide out left smoothly */
-}
 .sidebar-hidden .chat-section {
   width: 100%;
 }
@@ -494,13 +521,13 @@ body.dark-mode .modal-close {
   .sidebar {
     position: absolute;
     left: 0;
-    top: 64px; /* below top nav */
+    top: 64px;
     bottom: 0;
     z-index: 999;
-    transform: translateX(-280px); /* Hidden by default on small screens */
+    transform: translateX(-280px);
   }
   .sidebar-hidden .sidebar {
-    transform: translateX(0); /* Show sidebar when toggled */
+    transform: translateX(0);
   }
   .chat-section {
     width: 100%;

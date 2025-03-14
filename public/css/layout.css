@@ -1,0 +1,66 @@
+/* layout.css */
+/* Styles for overall layout and positioning */
+
+/* Top Navigation */
+.top-nav {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    height: 64px;
+    background-color: #ffffff;
+    border-bottom: 1px solid #e5e5e5;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 16px;
+    z-index: 1000;
+    transition: background-color 0.3s, border-color 0.3s;
+  }
+  
+  body.dark-mode .top-nav {
+    background-color: rgba(44, 43, 52, 0.6);
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  /* Main Container */
+  .main-container {
+    display: flex;
+    margin-top: 64px;
+    height: calc(100% - 64px);
+    overflow: hidden;
+  }
+  
+  /* Sidebar */
+  .sidebar {
+    width: 280px;
+    background-color: rgba(255, 255, 255, 0.8);
+    border-right: 1px solid #e5e5e5;
+    backdrop-filter: blur(8px);
+    padding: 16px;
+    overflow-y: auto;
+    transition: transform 0.3s ease;
+    position: relative;
+  }
+  
+  body.dark-mode .sidebar {
+    background-color: rgba(44, 43, 52, 0.3);
+    border-right-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  /* Sidebar content wrapper for sliding */
+  .sidebar-content {
+    transition: transform 0.3s ease;
+    transform: translateX(0);
+  }
+  
+  .sidebar-hidden .sidebar-content {
+    transform: translateX(-280px);
+  }
+  
+  /* Chat Section */
+  .chat-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  
