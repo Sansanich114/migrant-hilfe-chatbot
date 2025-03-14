@@ -16,7 +16,8 @@ html, body {
   overscroll-behavior: none;
 }
 body.theme-transition {
-  background-color: #F9F9F9;
+  /* [UPDATED] Subtle gradient instead of plain white */
+  background: linear-gradient(to bottom, #fafafa, #f4f4f4);
 }
 body.dark-mode {
   background: radial-gradient(
@@ -187,7 +188,7 @@ body.dark-mode .new-chat-btn {
   cursor: pointer;
 }
 
-/* Sidebar Toggle Button */
+/* Sidebar Toggle Button (Removed in index.html, but left if you revert) */
 .sidebar-toggle {
   position: absolute;
   top: 50%;
@@ -208,12 +209,10 @@ body.dark-mode .new-chat-btn {
 .sidebar-toggle:hover {
   background-color: #4a4ab0;
 }
-/* Sidebar content wrapper to slide in/out */
 .sidebar-content {
   transition: transform 0.3s ease;
   transform: translateX(0);
 }
-/* Slide out sidebar content when hidden while leaving the toggle visible */
 .sidebar-hidden .sidebar-content {
   transform: translateX(-280px);
 }
@@ -392,144 +391,4 @@ body.dark-mode .input-bar textarea {
 /***************************************************
  * 7) TYPING INDICATOR (Bot Message Style)
  ***************************************************/
-.typing-message .bubble {
-  background-color: rgba(229,229,229,1);
-  color: #2d2d2d;
-  border-top-left-radius: 0;
-  display: flex;
-  align-items: center;
-}
-.typing-indicator {
-  display: flex;
-  gap: 4px;
-}
-.dot {
-  width: 8px;
-  height: 8px;
-  background-color: #5e5ce6;
-  border-radius: 50%;
-  animation: bounce 1s infinite ease-in-out;
-}
-.dot:nth-child(2) { animation-delay: 0.2s; }
-.dot:nth-child(3) { animation-delay: 0.4s; }
-@keyframes bounce {
-  0%, 80%, 100% { transform: scale(0); }
-  40% { transform: scale(1); }
-}
-
-/***************************************************
- * 8) MODALS (About, Settings, Profile)
- ***************************************************/
-.modal {
-  position: fixed;
-  z-index: 2000;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  overflow: auto;
-  backdrop-filter: blur(5px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.modal-content {
-  background-color: #ffffff;
-  padding: 24px;
-  border-radius: 16px;
-  width: 480px;
-  max-width: 90%;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-  position: relative;
-  animation: fadeInScale 0.3s ease forwards;
-}
-@keyframes fadeInScale {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
-}
-body.dark-mode .modal-content {
-  background-color: rgba(44,43,52,0.8);
-}
-.modal-close {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  font-size: 24px;
-  cursor: pointer;
-  color: #2D2D2D;
-}
-body.dark-mode .modal-close {
-  color: #fff;
-}
-.modal-close:hover {
-  opacity: 0.7;
-}
-.profile-field {
-  margin-bottom: 10px;
-}
-.profile-field label {
-  font-weight: 500;
-  margin-right: 5px;
-}
-.profile-actions {
-  display: flex;
-  gap: 12px;
-  margin-top: 16px;
-}
-.logout-btn {
-  font-family: "Montserrat", sans-serif;
-  font-weight: 700;
-  color: #ff3b30;
-  background-color: transparent;
-  border: 1px solid #ff3b30;
-  border-radius: 8px;
-  padding: 8px 12px;
-  transition: background-color 0.2s, color 0.2s;
-}
-.logout-btn:hover {
-  background-color: #ff3b30;
-  color: #ffffff;
-}
-
-/***************************************************
- * 9) GLOW & INTERACTIVE
- ***************************************************/
-.glow-effect {
-  box-shadow: 0 0 8px rgba(94,92,230, 0.5);
-}
-.glow-effect:hover {
-  box-shadow: 0 0 14px rgba(94,92,230,0.8);
-}
-.bubble-lift:hover {
-  transform: translateY(-2px);
-}
-.hidden {
-  display: none;
-}
-
-/***************************************************
- * 10) FULL IMMERSION (Hide Sidebar with Animation)
- ***************************************************/
-.sidebar-hidden .chat-section {
-  width: 100%;
-}
-
-/***************************************************
- * 11) MOBILE OPTIMIZATION
- ***************************************************/
-@media (max-width: 768px) {
-  .sidebar {
-    position: absolute;
-    left: 0;
-    top: 64px;
-    bottom: 0;
-    z-index: 999;
-    transform: translateX(-280px);
-  }
-  .sidebar-hidden .sidebar {
-    transform: translateX(0);
-  }
-  .chat-section {
-    width: 100%;
-  }
-}
+.typing-message .bu

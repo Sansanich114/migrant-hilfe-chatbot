@@ -5,126 +5,106 @@
  * TOP NAV
  ***************************************************/
  .top-nav {
-    position: fixed;
-    top: 0;
-    width: 100%;
-    height: 64px;
-    background-color: #ffffff;
-    border-bottom: 1px solid #E5E5E5;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0 16px;
-    z-index: 1000;
-    transition: background-color 0.3s, border-color 0.3s;
+  position: fixed;
+  top: 0;
+  width: 100%;
+  height: 64px;
+  background-color: #ffffff;
+  border-bottom: 1px solid #E5E5E5;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 16px;
+  z-index: 1000;
+  transition: background-color 0.3s, border-color 0.3s;
+}
+
+.nav-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.nav-logo {
+  width: 32px;
+  height: 32px;
+}
+
+.nav-title {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/***************************************************
+ * MAIN CONTAINER
+ ***************************************************/
+.main-container {
+  display: flex;
+  margin-top: 64px;
+  height: calc(100% - 64px);
+  overflow: hidden; /* Restrict scrolling to chat container */
+}
+
+/***************************************************
+ * SIDEBAR
+ ***************************************************/
+.sidebar {
+  width: 280px;
+
+  /* [NEW] Subtle background or border for visual separation */
+  background-color: rgba(255,255,255,0.8);
+  border-right: 1px solid #ddd; /* [ADDED] Thin vertical line */
+  transition: transform 0.3s ease;
+  transform: translateX(0);
+}
+
+/***************************************************
+ * CHAT SECTION
+ ***************************************************/
+.chat-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.chat-container {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 24px;
+}
+
+/***************************************************
+ * FULL IMMERSION
+ ***************************************************/
+.sidebar-hidden .sidebar {
+  transform: translateX(-280px);
+}
+.sidebar-hidden .chat-section {
+  width: 100%;
+}
+
+/***************************************************
+ * MOBILE
+ ***************************************************/
+@media (max-width: 768px) {
+  body {
+    font-size: 14px;
   }
-  
-  .nav-left {
-    display: flex;
-    align-items: center;
-    gap: 16px;
+  .bubble {
+    font-size: 14px;
+    line-height: 1.4;
+    /* Possibly reduce padding for narrower screens */
+    padding: 8px 12px;
   }
-  
-  .nav-logo {
-    width: 32px;
-    height: 32px;
+  .input-bar textarea {
+    font-size: 14px;
   }
-  
-  .nav-title {
-    font-size: 20px;
-    font-weight: 700;
-  }
-  
-  .nav-right {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-  }
-  
-  /***************************************************
-   * MAIN CONTAINER
-   ***************************************************/
-  .main-container {
-    display: flex;
-    margin-top: 64px;
-    height: calc(100% - 64px);
-    overflow: hidden; /* Restrict scrolling to chat container */
-  }
-  
-  /***************************************************
-   * SIDEBAR
-   ***************************************************/
-   .sidebar {
-    width: 280px;
-    background-color: rgba(255,255,255,0.8);
-    /* ...other styles... */
-    transition: transform 0.3s ease; /* NEW */
-    transform: translateX(0);       /* NEW */
-  }
-  
-  /* "Bookmark" toggle on the left edge */
-  .sidebar-toggle {
-    position: absolute;
-    top: 50%;
-    left: -20px;
-    transform: translateY(-50%);
-    width: 40px;
-    height: 80px;
-    background-color: #5e5ce6;
-    border: none;
-    border-radius: 8px 0 0 8px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #ffffff;
-    transition: background-color 0.3s;
-  }
-  .sidebar-toggle:hover {
-    background-color: #4a4ab0;
-  }
-  
-  /***************************************************
-   * CHAT SECTION
-   ***************************************************/
-  .chat-section {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-  }
-  .chat-container {
-    flex: 1;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    -webkit-overflow-scrolling: touch;
-    padding: 24px;
-  }
-  
-  /***************************************************
-   * FULL IMMERSION
-   ***************************************************/
-  .sidebar-hidden .sidebar {
-    transform: translateX(-280px);
-  }
-  .sidebar-hidden .chat-section {
-    width: 100%;
-  }
-  
-  /***************************************************
-   * MOBILE
-   ***************************************************/
-   @media (max-width: 768px) {
-    body {
-      font-size: 14px;
-    }
-    .bubble {
-      font-size: 14px;
-      line-height: 1.4;
-      /* Possibly reduce padding for narrower screens */
-      padding: 8px 12px;
-    }
-    .input-bar textarea {
-      font-size: 14px;
-    }
-    /* Adjust other elements if needed */
-  }
+  /* Adjust other elements if needed */
+}

@@ -2,54 +2,56 @@
 /* Dark-mode or other theme overrides */
 
 body.theme-transition {
-    background-color: #F9F9F9;
-  }
-  
-  body.dark-mode {
-    background: radial-gradient(
-      circle at 50% 50%,
-      #2c2b34 0%,
-      #1c1b1f 70%
-    ) no-repeat;
-    color: #f8f8f8;
-  }
-  
-  /* Dark mode overrides for top nav */
-  body.dark-mode .top-nav {
-    background-color: rgba(44, 43, 52, 0.6);
-    border-bottom-color: rgba(255,255,255,0.1);
-  }
-  
-  /* Dark mode overrides for sidebar */
-  body.dark-mode .sidebar {
-    background-color: rgba(44,43,52,0.3);
-    border-right-color: rgba(255,255,255,0.1);
-  }
-  
-  /* Dark mode overrides for messages */
-  body.dark-mode .message.bot .bubble {
-    background-color: rgba(255,255,255,0.1);
-    color: #fefefe;
-  }
-  
-  /* Dark mode overrides for modals */
-  body.dark-mode .modal-content {
-    background-color: rgba(44,43,52,0.8);
-  }
-  
-  /* Dark mode for input bar */
-  body.dark-mode .input-bar {
-    background-color: rgba(44,43,52,0.6);
-    border-top-color: rgba(255,255,255,0.2);
-  }
-  
-  /* Dark mode for settings menu, etc. */
-  body.dark-mode .settings-menu {
-    background-color: #2c2b34;
-    border-color: rgba(255,255,255,0.2);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.6);
-  }
-  body.dark-mode .settings-menu li:hover {
-    background-color: rgba(255,255,255,0.1);
-  }
-  
+  background-color: #F9F9F9; /* Overridden by style.css for gradient */
+}
+
+body.dark-mode {
+  background: radial-gradient(
+    circle at 50% 50%,
+    #2c2b34 0%,
+    #1c1b1f 70%
+  ) no-repeat;
+  color: #f8f8f8;
+}
+
+/* Dark mode overrides for top nav */
+body.dark-mode .top-nav {
+  background-color: rgba(44, 43, 52, 0.6);
+  border-bottom-color: rgba(255,255,255,0.1);
+}
+
+/* Dark mode overrides for sidebar */
+body.dark-mode .sidebar {
+  background-color: rgba(44,43,52,0.3);
+  border-right-color: rgba(255,255,255,0.1);
+}
+
+/* Dark mode overrides for messages (bot & user) */
+body.dark-mode .message.bot .bubble {
+  background-color: rgba(255,255,255,0.1);
+  color: #fefefe;
+}
+body.dark-mode .message.user .bubble {
+  background-color: #6b68ea; /* Slightly different purple for dark mode */
+}
+
+/* Dark mode overrides for modals */
+body.dark-mode .modal-content {
+  background-color: rgba(44,43,52,0.8);
+}
+
+/* Dark mode for input bar */
+body.dark-mode .input-bar {
+  background-color: rgba(44,43,52,0.6);
+  border-top-color: rgba(255,255,255,0.2);
+}
+
+/* Dark mode for settings menu, etc. */
+body.dark-mode .settings-menu {
+  background-color: #2c2b34;
+  border-color: rgba(255,255,255,0.2);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+}
+body.dark-mode .settings-menu li:hover {
+  background-color: rgba(255,255,255,0.1);
+}
