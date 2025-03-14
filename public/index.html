@@ -21,7 +21,9 @@
   <!-- Top Navigation Bar -->
   <nav class="top-nav">
     <div class="nav-left">
+      <!-- Migrant Hilfe Logo (Light by default, dark on toggle) -->
       <img
+        id="logoIcon"
         src="images/accent-icons/migrant-logo-accent.svg"
         alt="Migrant Hilfe Logo"
         class="nav-logo"
@@ -31,17 +33,32 @@
     <div class="nav-right">
       <!-- Theme Switch -->
       <button id="themeSwitcher" class="nav-btn theme-btn" title="Toggle Theme">
-        <img src="images/icons/theme.svg" alt="Theme Icon" class="theme-icon" />
+        <img
+          id="themeIcon"
+          src="images/accent-icons/theme-accent.svg"
+          alt="Theme Icon"
+          class="theme-icon"
+        />
       </button>
 
       <!-- Settings -->
       <button id="settingsBtn" class="nav-btn settings-btn" title="Settings">
-        <img src="images/icons/settings.svg" alt="Settings" class="icon" />
+        <img
+          id="settingsIcon"
+          src="images/accent-icons/settings-accent.svg"
+          alt="Settings"
+          class="icon"
+        />
       </button>
 
       <!-- Profile -->
       <button id="profileBtn" class="nav-btn profile-btn" title="Profile">
-        <img src="images/icons/user.svg" alt="User Avatar" class="profile-icon" />
+        <img
+          id="userIcon"
+          src="images/accent-icons/user-accent.svg"
+          alt="User Avatar"
+          class="profile-icon"
+        />
       </button>
 
       <div id="settingsMenu" class="settings-menu hidden">
@@ -58,13 +75,12 @@
   <div class="main-container">
     <!-- Sidebar -->
     <aside class="sidebar">
-      <!-- “Bookmark” toggle on the left edge -->
-      <button id="sidebarToggleBtn" class="sidebar-toggle" title="Toggle Sidebar">
-        <span id="sidebarToggleIcon">◄</span>
-      </button>
-
+      <!-- Removed the toggle button! -->
+      
+      <!-- New Chat Button -->
       <button id="newChatBtn" class="new-chat-btn glow-effect">
         <img
+          id="newChatIcon"
           src="images/accent-icons/new-chat-accent.svg"
           alt="New Chat"
           style="width: 20px; height: 20px; margin-right: 8px;"
@@ -95,8 +111,11 @@
           placeholder="Type a message..."
         ></textarea>
         <button id="sendBtn" class="send-btn glow-effect">
-          <!-- High-contrast arrow -->
-          <img src="images/accent-icons/send-dark.svg" alt="Send" />
+          <img
+            id="sendIcon"
+            src="images/accent-icons/send-accent.svg"
+            alt="Send"
+          />
         </button>
       </div>
     </section>
@@ -108,7 +127,7 @@
       <span id="closeAbout" class="modal-close">&times;</span>
       <h2>About Us</h2>
       <p>
-        Our mission is to help migrants integrate into Germany with ease. 
+        Our mission is to help migrants integrate into Germany with ease.
         We offer free guidance, resources, and personalized support.
       </p>
       <p><strong>Team Members:</strong> Coming soon...</p>
@@ -143,5 +162,34 @@
   <script src="js/modals.js"></script>
   <script src="js/chat.js"></script>
   <script src="js/main.js"></script>
+  <script src="js/swipe.js"></script>
+
+  <!-- OPTIONAL: Dark Mode Icon Swapping -->
+  <script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const body = document.body;
+    const themeSwitcher = document.getElementById("themeSwitcher");
+
+    // Grab references to each icon
+    const themeIcon = document.getElementById("themeIcon");
+    const settingsIcon = document.getElementById("settingsIcon");
+    const userIcon = document.getElementById("userIcon");
+    const logoIcon = document.getElementById("logoIcon");
+    const newChatIcon = document.getElementById("newChatIcon");
+    const sendIcon = document.getElementById("sendIcon");
+
+    themeSwitcher.addEventListener("click", () => {
+      body.classList.toggle("dark-mode");
+      const isDark = body.classList.contains("dark-mode");
+      // Swap icon src between accent and dark
+      themeIcon.src    = isDark ? "images/accent-icons/theme-dark.svg"    : "images/accent-icons/theme-accent.svg";
+      settingsIcon.src = isDark ? "images/accent-icons/settings-dark.svg" : "images/accent-icons/settings-accent.svg";
+      userIcon.src     = isDark ? "images/accent-icons/user-dark.svg"     : "images/accent-icons/user-accent.svg";
+      logoIcon.src     = isDark ? "images/accent-icons/migrant-logo-dark.svg" : "images/accent-icons/migrant-logo-accent.svg";
+      newChatIcon.src  = isDark ? "images/accent-icons/new-chat-dark.svg" : "images/accent-icons/new-chat-accent.svg";
+      sendIcon.src     = isDark ? "images/accent-icons/send-dark.svg"     : "images/accent-icons/send-accent.svg";
+    });
+  });
+  </script>
 </body>
 </html>

@@ -24,18 +24,14 @@ function handleTouchMove(evt) {
   const xDiff = xDown - xUp;
   const yDiff = yDown - yUp;
 
-  // Only do something if horizontal distance is greater than vertical
-  if (Math.abs(xDiff) > Math.abs(yDiff)) {
-    // xDiff > 0 => user swiped left
-    if (xDiff > 0) {
-      // Hide sidebar
-      document.body.classList.add("sidebar-hidden");
-    } else {
-      // Show sidebar
-      document.body.classList.remove("sidebar-hidden");
-    }
+  if (xDiff > 0) {
+    // user swiped left => hide sidebar
+    document.body.classList.add("sidebar-hidden");
+  } else {
+    // user swiped right => show sidebar
+    document.body.classList.remove("sidebar-hidden");
   }
-
+  
   // Reset for next swipe
   xDown = null;
   yDown = null;

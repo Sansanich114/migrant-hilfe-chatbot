@@ -27,16 +27,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const sendBtn = document.getElementById("sendBtn");
   
     // 3) Event Listeners
-    // Sidebar toggle
-    sidebarToggleBtn.addEventListener("click", () => {
-      body.classList.toggle("sidebar-hidden");
-      if (body.classList.contains("sidebar-hidden")) {
-        sidebarToggleIcon.textContent = "►";
-      } else {
-        sidebarToggleIcon.textContent = "◄";
-      }
-    });
-  
     // Theme toggle
     themeSwitcher.addEventListener("click", () => {
       body.classList.toggle("dark-mode");

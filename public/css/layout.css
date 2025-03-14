@@ -104,10 +104,6 @@
    * FULL IMMERSION
    ***************************************************/
   .sidebar-hidden .sidebar {
-    transform: translateX(-280px);  /* Slide out to the left */
-    /* no separate transform needed; we can handle it in .sidebar if desired */
-  }
-  .sidebar-hidden .sidebar {
     transform: translateX(-280px);
   }
   .sidebar-hidden .chat-section {
@@ -117,20 +113,18 @@
   /***************************************************
    * MOBILE
    ***************************************************/
-  @media (max-width: 768px) {
-    .sidebar {
-      position: absolute;
-      left: 0;
-      top: 64px;
-      bottom: 0;
-      z-index: 999;
-      transform: translateX(-280px);
+   @media (max-width: 768px) {
+    body {
+      font-size: 14px;
     }
-    .sidebar-hidden .sidebar {
-      transform: translateX(0);
+    .bubble {
+      font-size: 14px;
+      line-height: 1.4;
+      /* Possibly reduce padding for narrower screens */
+      padding: 8px 12px;
     }
-    .chat-section {
-      width: 100%;
+    .input-bar textarea {
+      font-size: 14px;
     }
+    /* Adjust other elements if needed */
   }
-  
