@@ -4,7 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Migrant Hilfe Chatbot</title>
-  <!-- Link to modular CSS files -->
+
+  <!-- Montserrat: multiple weights -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <!-- Modular CSS files -->
   <link rel="stylesheet" href="css/base.css" />
   <link rel="stylesheet" href="css/layout.css" />
   <link rel="stylesheet" href="css/components.css" />
@@ -14,14 +21,12 @@
   <!-- Top Navigation Bar -->
   <nav class="top-nav">
     <div class="nav-left">
-      <!-- Logo/Icon only header -->
       <img
         src="images/accent-icons/migrant-logo-accent.svg"
         alt="Migrant Hilfe Logo"
         class="nav-logo"
       />
-      <!-- Optionally, you can include a title if desired -->
-      <!-- <span class="nav-title">Migrant Hilfe</span> -->
+      <span class="nav-title">Migrant Hilfe</span>
     </div>
     <div class="nav-right">
       <!-- Theme Switch -->
@@ -53,23 +58,21 @@
   <div class="main-container">
     <!-- Sidebar -->
     <aside class="sidebar">
-      <!-- Sidebar Toggle as a vertical tab -->
+      <!-- “Bookmark” toggle on the left edge -->
       <button id="sidebarToggleBtn" class="sidebar-toggle" title="Toggle Sidebar">
         <span id="sidebarToggleIcon">◄</span>
       </button>
-      <!-- Sidebar content wrapper -->
-      <div class="sidebar-content">
-        <button id="newChatBtn" class="new-chat-btn glow-effect">
-          <img
-            src="images/accent-icons/new-chat-accent.svg"
-            alt="New Chat"
-            style="width: 20px; height: 20px; margin-right: 8px;"
-          />
-          + New Chat
-        </button>
-        <div id="chatList" class="chat-list">
-          <!-- Conversation items go here -->
-        </div>
+
+      <button id="newChatBtn" class="new-chat-btn glow-effect">
+        <img
+          src="images/accent-icons/new-chat-accent.svg"
+          alt="New Chat"
+          style="width: 20px; height: 20px; margin-right: 8px;"
+        />
+        + New Chat
+      </button>
+      <div id="chatList" class="chat-list">
+        <!-- Conversation items go here -->
       </div>
     </aside>
 
@@ -77,7 +80,7 @@
     <section class="chat-section">
       <!-- Chat Container -->
       <div class="chat-container" id="chatContainer">
-        <!-- Messages will be appended here dynamically -->
+        <!-- Messages appended here dynamically -->
       </div>
 
       <!-- Suggestions Row -->
@@ -87,9 +90,12 @@
 
       <!-- Input Bar -->
       <div class="input-bar">
-        <textarea id="chatInput" placeholder="Type a message..."></textarea>
+        <textarea
+          id="chatInput"
+          placeholder="Type a message..."
+        ></textarea>
         <button id="sendBtn" class="send-btn glow-effect">
-          <!-- Using a high-contrast send icon -->
+          <!-- High-contrast arrow -->
           <img src="images/accent-icons/send-dark.svg" alt="Send" />
         </button>
       </div>
@@ -101,8 +107,10 @@
     <div class="modal-content">
       <span id="closeAbout" class="modal-close">&times;</span>
       <h2>About Us</h2>
-      <p>Our mission is to help migrants integrate into Germany with ease. 
-         We offer free guidance, resources, and personalized support.</p>
+      <p>
+        Our mission is to help migrants integrate into Germany with ease. 
+        We offer free guidance, resources, and personalized support.
+      </p>
       <p><strong>Team Members:</strong> Coming soon...</p>
     </div>
   </div>
@@ -130,10 +138,10 @@
     </div>
   </div>
 
-  <!-- Include JavaScript files -->
-  <script src="js/main.js"></script>
-  <script src="js/chat.js"></script>
-  <script src="js/modals.js"></script>
+  <!-- JavaScript files -->
   <script src="js/utils.js"></script>
+  <script src="js/modals.js"></script>
+  <script src="js/chat.js"></script>
+  <script src="js/main.js"></script>
 </body>
 </html>

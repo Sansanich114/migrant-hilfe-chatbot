@@ -1,13 +1,18 @@
 // utils.js
-// Helper functions (e.g., auto-resizing textareas, smooth scrolling)
+// Helper functions (e.g., auto-resizing textareas)
 
 function autoResize(textarea) {
     textarea.style.height = "auto";
     textarea.style.height = textarea.scrollHeight + "px";
   }
   
-  // Additional utility functions can be added here
+  // Disables or enables the chat input and send button
+  function disableInput(chatInput, sendBtn, disable) {
+    chatInput.disabled = disable;
+    sendBtn.disabled = disable;
+  }
   
-  // Example: Export functions if using modules (or attach to window)
+  // Export to global scope so other files can use them
   window.autoResize = autoResize;
+  window.disableInput = disableInput;
   

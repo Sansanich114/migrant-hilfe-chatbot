@@ -1,14 +1,16 @@
 /* layout.css */
-/* Styles for overall layout and positioning */
+/* Overall layout: top nav, sidebar, chat section */
 
-/* Top Navigation */
-.top-nav {
+/***************************************************
+ * TOP NAV
+ ***************************************************/
+ .top-nav {
     position: fixed;
     top: 0;
     width: 100%;
     height: 64px;
     background-color: #ffffff;
-    border-bottom: 1px solid #e5e5e5;
+    border-bottom: 1px solid #E5E5E5;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -17,50 +19,118 @@
     transition: background-color 0.3s, border-color 0.3s;
   }
   
-  body.dark-mode .top-nav {
-    background-color: rgba(44, 43, 52, 0.6);
-    border-bottom-color: rgba(255, 255, 255, 0.1);
+  .nav-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
   }
   
-  /* Main Container */
+  .nav-logo {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .nav-title {
+    font-size: 20px;
+    font-weight: 700;
+  }
+  
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  
+  /***************************************************
+   * MAIN CONTAINER
+   ***************************************************/
   .main-container {
     display: flex;
     margin-top: 64px;
     height: calc(100% - 64px);
-    overflow: hidden;
+    overflow: hidden; /* Restrict scrolling to chat container */
   }
   
-  /* Sidebar */
-  .sidebar {
+  /***************************************************
+   * SIDEBAR
+   ***************************************************/
+   .sidebar {
     width: 280px;
-    background-color: rgba(255, 255, 255, 0.8);
-    border-right: 1px solid #e5e5e5;
-    backdrop-filter: blur(8px);
-    padding: 16px;
-    overflow-y: auto;
-    transition: transform 0.3s ease;
-    position: relative;
+    background-color: rgba(255,255,255,0.8);
+    /* ...other styles... */
+    transition: transform 0.3s ease; /* NEW */
+    transform: translateX(0);       /* NEW */
   }
   
-  body.dark-mode .sidebar {
-    background-color: rgba(44, 43, 52, 0.3);
-    border-right-color: rgba(255, 255, 255, 0.1);
+  /* "Bookmark" toggle on the left edge */
+  .sidebar-toggle {
+    position: absolute;
+    top: 50%;
+    left: -20px;
+    transform: translateY(-50%);
+    width: 40px;
+    height: 80px;
+    background-color: #5e5ce6;
+    border: none;
+    border-radius: 8px 0 0 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    transition: background-color 0.3s;
+  }
+  .sidebar-toggle:hover {
+    background-color: #4a4ab0;
   }
   
-  /* Sidebar content wrapper for sliding */
-  .sidebar-content {
-    transition: transform 0.3s ease;
-    transform: translateX(0);
-  }
-  
-  .sidebar-hidden .sidebar-content {
-    transform: translateX(-280px);
-  }
-  
-  /* Chat Section */
+  /***************************************************
+   * CHAT SECTION
+   ***************************************************/
   .chat-section {
     flex: 1;
     display: flex;
     flex-direction: column;
+  }
+  .chat-container {
+    flex: 1;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    padding: 24px;
+  }
+  
+  /***************************************************
+   * FULL IMMERSION
+   ***************************************************/
+  .sidebar-hidden .sidebar {
+    transform: translateX(-280px);  /* Slide out to the left */
+    /* no separate transform needed; we can handle it in .sidebar if desired */
+  }
+  .sidebar-hidden .sidebar {
+    transform: translateX(-280px);
+  }
+  .sidebar-hidden .chat-section {
+    width: 100%;
+  }
+  
+  /***************************************************
+   * MOBILE
+   ***************************************************/
+  @media (max-width: 768px) {
+    .sidebar {
+      position: absolute;
+      left: 0;
+      top: 64px;
+      bottom: 0;
+      z-index: 999;
+      transform: translateX(-280px);
+    }
+    .sidebar-hidden .sidebar {
+      transform: translateX(0);
+    }
+    .chat-section {
+      width: 100%;
+    }
   }
   

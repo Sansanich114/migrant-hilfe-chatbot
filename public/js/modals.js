@@ -1,13 +1,15 @@
 // modals.js
-// Code to handle modal open/close behaviors and settings menus
+// Handles About Us and Profile modals, plus any others
 
-function openModal(modalId) {
-    document.getElementById(modalId).classList.remove('hidden');
+function openModal(modal) {
+    modal.classList.remove('hidden');
   }
   
-  function closeModal(modalId) {
-    document.getElementById(modalId).classList.add('hidden');
+  function closeModal(modal) {
+    modal.classList.add('hidden');
   }
   
-  // Example: Attaching event listeners for modal triggers could go here
+  // Export to global scope
+  window.openModal = openModal;
+  window.closeModal = closeModal;
   
