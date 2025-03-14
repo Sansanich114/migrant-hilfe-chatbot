@@ -57,31 +57,28 @@
 /***************************************************
  * NEW CHAT BUTTON, CHAT LIST
  ***************************************************/
-.new-chat-btn {
-  display: inline-flex;
+ .new-chat-btn {
+  display: flex; /* so we can left-align text */
+  justify-content: flex-start;
   align-items: center;
-  justify-content: center;
   width: 100%;
-  padding: 12px 0;
+  padding: 12px;
   font-size: 16px;
   font-weight: 600;
   color: #ffffff;
   background-color: #5e5ce6;
   border: none;
-  border-radius: 10px;
+  border-radius: 20px; /* more rounded corners */
   margin-bottom: 16px;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
-
-  /* [NEW] Slight shadow to highlight CTA */
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 .new-chat-btn:hover {
   transform: translateY(-2px);
-
-  /* [NEW] Stronger shadow on hover */
   box-shadow: 0 4px 8px rgba(0,0,0,0.15);
 }
+
 .chat-list {
   display: flex;
   flex-direction: column;

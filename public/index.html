@@ -75,8 +75,6 @@
   <div class="main-container">
     <!-- Sidebar -->
     <aside class="sidebar">
-      <!-- Removed the toggle button! -->
-      
       <!-- New Chat Button -->
       <button id="newChatBtn" class="new-chat-btn glow-effect">
         <img
@@ -106,7 +104,6 @@
 
       <!-- Input Bar -->
       <div class="input-bar">
-        <!-- [UPDATED] Changed placeholder text -->
         <textarea
           id="chatInput"
           placeholder="Ask me anything…"
@@ -158,39 +155,53 @@
     </div>
   </div>
 
+  <!-- [NEW] Rename Conversation Modal -->
+  <div id="renameModal" class="modal hidden">
+    <div class="modal-content">
+      <span id="closeRename" class="modal-close">&times;</span>
+      <h2>Rename Conversation</h2>
+      <div class="profile-field">
+        <label for="renameInput">New Name:</label>
+        <input id="renameInput" type="text" />
+      </div>
+      <div class="profile-actions">
+        <button id="saveRenameBtn" class="glow-effect">Save</button>
+        <button id="cancelRenameBtn" class="glow-effect">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- [NEW] Confirm Conversation Delete Modal -->
+  <div id="deleteConvModal" class="modal hidden">
+    <div class="modal-content">
+      <span id="closeDeleteConv" class="modal-close">&times;</span>
+      <h2>Delete Conversation?</h2>
+      <p>This action cannot be undone.</p>
+      <div class="profile-actions">
+        <button id="confirmDeleteConvBtn" class="glow-effect danger">Delete</button>
+        <button id="cancelDeleteConvBtn" class="glow-effect">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- [NEW] Confirm Delete All Data Modal -->
+  <div id="deleteAllModal" class="modal hidden">
+    <div class="modal-content">
+      <span id="closeDeleteAll" class="modal-close">&times;</span>
+      <h2>Delete All Data?</h2>
+      <p>This action cannot be undone.</p>
+      <div class="profile-actions">
+        <button id="confirmDeleteAllBtn" class="glow-effect danger">Delete All</button>
+        <button id="cancelDeleteAllBtn" class="glow-effect">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <!-- JavaScript files -->
   <script src="js/utils.js"></script>
   <script src="js/modals.js"></script>
   <script src="js/chat.js"></script>
   <script src="js/main.js"></script>
   <script src="js/swipe.js"></script>
-
-  <!-- OPTIONAL: Dark Mode Icon Swapping -->
-  <script>
-  document.addEventListener("DOMContentLoaded", () => {
-    const body = document.body;
-    const themeSwitcher = document.getElementById("themeSwitcher");
-
-    // Grab references to each icon
-    const themeIcon = document.getElementById("themeIcon");
-    const settingsIcon = document.getElementById("settingsIcon");
-    const userIcon = document.getElementById("userIcon");
-    const logoIcon = document.getElementById("logoIcon");
-    const newChatIcon = document.getElementById("newChatIcon");
-    const sendIcon = document.getElementById("sendIcon");
-
-    themeSwitcher.addEventListener("click", () => {
-      body.classList.toggle("dark-mode");
-      const isDark = body.classList.contains("dark-mode");
-      // Swap icon src between accent and dark
-      themeIcon.src    = isDark ? "images/accent-icons/theme-dark.svg"    : "images/accent-icons/theme-accent.svg";
-      settingsIcon.src = isDark ? "images/accent-icons/settings-dark.svg" : "images/accent-icons/settings-accent.svg";
-      userIcon.src     = isDark ? "images/accent-icons/user-dark.svg"     : "images/accent-icons/user-accent.svg";
-      logoIcon.src     = isDark ? "images/accent-icons/migrant-logo-dark.svg" : "images/accent-icons/migrant-logo-accent.svg";
-      newChatIcon.src  = isDark ? "images/accent-icons/new-chat-dark.svg" : "images/accent-icons/new-chat-accent.svg";
-      sendIcon.src     = isDark ? "images/accent-icons/send-dark.svg"     : "images/accent-icons/send-accent.svg";
-    });
-  });
-  </script>
 </body>
 </html>

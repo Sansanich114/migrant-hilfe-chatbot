@@ -56,10 +56,8 @@
  ***************************************************/
 .sidebar {
   width: 280px;
-
-  /* [NEW] Subtle background or border for visual separation */
   background-color: rgba(255,255,255,0.8);
-  border-right: 1px solid #ddd; /* [ADDED] Thin vertical line */
+  border-right: 1px solid #ddd;
   transition: transform 0.3s ease;
   transform: translateX(0);
 }
@@ -83,10 +81,11 @@
 /***************************************************
  * FULL IMMERSION
  ***************************************************/
-.sidebar-hidden .sidebar {
+/* [UPDATED] Use body.sidebar-hidden so that swipe.js toggles the class on <body> */
+body.sidebar-hidden .sidebar {
   transform: translateX(-280px);
 }
-.sidebar-hidden .chat-section {
+body.sidebar-hidden .chat-section {
   width: 100%;
 }
 
@@ -106,5 +105,4 @@
   .input-bar textarea {
     font-size: 14px;
   }
-  /* Adjust other elements if needed */
 }
