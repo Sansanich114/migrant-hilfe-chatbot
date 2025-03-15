@@ -1,13 +1,43 @@
 ﻿// chat.js
-// Main chat-related logic: creating profile, fetching convos, sending messages
 
-let isBotTyping = false;
-let typingIndicatorElement = null;
+export function initChat() {
+  // 1) Grab relevant DOM elements
+  const newChatBtn = document.getElementById("newChatBtn");
+  const sendBtn = document.getElementById("sendBtn");
+  const chatInput = document.getElementById("chatInput");
 
-// Creates a new user profile if none exists
+  // 2) Hook up event listeners
+  if (newChatBtn) {
+    newChatBtn.addEventListener("click", createNewConversation);
+  }
+  if (sendBtn) {
+    sendBtn.addEventListener("click", sendMessage);
+  }
+  if (chatInput) {
+    chatInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+  }
+
+  // 3) If user has no userId in localStorage, create profile
+  if (!localStorage.getItem("userId")) {
+    createProfile();
+  } else {
+    fetchIntro();
+    fetchConversations();
+  }
+}
+
+// CREATE PROFILE
 function createProfile() {
-  const language = localStorage.getItem("userLanguage") || "en";
-  fetch("/createProfile", {
+  const language = navigator.language || "en";
+  localStorage.setItem("userLanguage", language);
+
+  // NOTE the /user prefix
+  fetch("/user/createProfile", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ profileInfo: { language } }),
@@ -22,12 +52,13 @@ function createProfile() {
     .catch((err) => console.error("Error creating profile:", err));
 }
 
-// Fetches an intro message from the server
+// INTRO
 function fetchIntro() {
   const userId = localStorage.getItem("userId");
   const language = localStorage.getItem("userLanguage") || "en";
   if (!userId) return;
 
+  // If your backend expects /intro?userId=..., leave it as is:
   fetch(`/intro?userId=${userId}&lang=${language}`)
     .then((res) => res.json())
     .then((data) => {
@@ -36,17 +67,20 @@ function fetchIntro() {
       }
       updateSuggestions(data.suggestions || []);
     })
-    .catch((err) => console.error("Error fetching intro message:", err));
+    .catch((err) => console.error("Error fetching intro:", err));
 }
 
-// Fetches all conversations for the current user
+// FETCH CONVERSATIONS
 function fetchConversations() {
   const userId = localStorage.getItem("userId");
   if (!userId) return;
-  fetch(`/profile/${userId}`)
+
+  // NOTE the /user prefix
+  fetch(`/user/profile/${userId}`)
     .then((res) => res.json())
     .then((data) => {
       const chatListDiv = document.getElementById("chatList");
+      if (!chatListDiv) return;
       chatListDiv.innerHTML = "";
 
       if (data.conversations) {
@@ -55,7 +89,8 @@ function fetchConversations() {
           convItem.className = "chat-item";
 
           const convName = document.createElement("span");
-          convName.innerText = conv.conversationName || "Conversation " + conv._id.slice(-4);
+          convName.innerText =
+            conv.conversationName || "Conversation " + conv._id.slice(-4);
           convItem.appendChild(convName);
 
           // Buttons container
@@ -67,25 +102,45 @@ function fetchConversations() {
           const editBtn = document.createElement("button");
           editBtn.className = "edit-btn";
           editBtn.innerText = "✏️";
-          editBtn.onclick = (e) => {
+          editBtn.onclick = async (e) => {
             e.stopPropagation();
-            // [NEW] Use the custom rename modal
-            window.openRenameModal(conv._id, conv.conversationName);
+            const newName = prompt("Enter a new name:", conv.conversationName);
+            if (!newName) return;
+            try {
+              await fetch("/user/renameConversation", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ conversationId: conv._id, newName }),
+              });
+              fetchConversations();
+            } catch (err) {
+              console.error("Rename failed:", err);
+            }
           };
 
           // Delete button
           const deleteBtn = document.createElement("button");
           deleteBtn.innerText = "🗑️";
-          deleteBtn.onclick = (e) => {
+          deleteBtn.onclick = async (e) => {
             e.stopPropagation();
-            // [NEW] Use the custom delete modal
-            window.openDeleteConvModal(conv._id);
+            if (!confirm("Delete this conversation?")) return;
+            try {
+              await fetch("/user/deleteConversation", {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ conversationId: conv._id }),
+              });
+              fetchConversations();
+            } catch (err) {
+              console.error("Delete failed:", err);
+            }
           };
 
           btnContainer.appendChild(editBtn);
           btnContainer.appendChild(deleteBtn);
           convItem.appendChild(btnContainer);
 
+          // Clicking on the conversation loads it
           convItem.onclick = () => loadConversation(conv._id);
           chatListDiv.appendChild(convItem);
         });
@@ -94,58 +149,63 @@ function fetchConversations() {
     .catch((err) => console.error("Error fetching conversations:", err));
 }
 
-// Loads a specific conversation by ID
+// LOAD A SPECIFIC CONVERSATION
 function loadConversation(conversationId) {
   const userId = localStorage.getItem("userId");
   if (!userId) return;
-  fetch(`/profile/${userId}`)
+
+  fetch(`/user/profile/${userId}`)
     .then((res) => res.json())
     .then((data) => {
-      const conv = data.conversations.find(c => c._id === conversationId);
-      if (conv) {
-        localStorage.setItem("conversationId", conversationId);
-        const chatContainer = document.getElementById("chatContainer");
-        chatContainer.innerHTML = "";
+      const conv = data.conversations.find((c) => c._id === conversationId);
+      if (!conv) return;
 
-        conv.messages.forEach((msg) => {
-          if (msg.role === "assistant" || msg.role === "system") {
-            addMessage("bot", msg.content);
-          } else {
-            addMessage("user", msg.content);
-          }
-        });
-      }
+      localStorage.setItem("conversationId", conversationId);
+
+      const chatContainer = document.getElementById("chatContainer");
+      if (!chatContainer) return;
+      chatContainer.innerHTML = "";
+
+      conv.messages.forEach((msg) => {
+        if (msg.role === "assistant" || msg.role === "system") {
+          addMessage("bot", msg.content);
+        } else {
+          addMessage("user", msg.content);
+        }
+      });
     })
     .catch((err) => console.error("Error loading conversation:", err));
 }
 
-// Deletes all user data
-async function deleteAllUserData() {
+// CREATE NEW CONVERSATION
+function createNewConversation() {
   const userId = localStorage.getItem("userId");
   if (!userId) return;
 
-  try {
-    await fetch("/deleteAllUserData", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId })
-    });
-    // Clear localStorage except for language
-    const lang = localStorage.getItem("userLanguage");
-    localStorage.clear();
-    localStorage.setItem("userLanguage", lang);
-    window.location.reload();
-  } catch (err) {
-    console.error("Error deleting all user data:", err);
-    alert("Unable to delete data.");
-  }
+  // NOTE the /user prefix
+  fetch("/user/createConversation", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ userId }),
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      if (!data.conversationId) {
+        console.error("No conversationId returned:", data);
+        return;
+      }
+      localStorage.setItem("conversationId", data.conversationId);
+      fetchConversations();
+    })
+    .catch((err) => console.error("Error creating conversation:", err));
 }
 
-// Sends a message to the server
+// SEND MESSAGE
 function sendMessage() {
-  if (isBotTyping) return;
   const chatInput = document.getElementById("chatInput");
   const sendBtn = document.getElementById("sendBtn");
+  if (!chatInput || !sendBtn) return;
+
   const userMessage = chatInput.value.trim();
   if (!userMessage) return;
 
@@ -159,12 +219,13 @@ function sendMessage() {
   const conversationId = localStorage.getItem("conversationId");
   const payload = { userId, conversationId, message: userMessage };
 
+  // /chat is correct (since app.js has app.use('/chat', chatRoutes))
   fetch("/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   })
-    .then((response) => response.json())
+    .then((res) => res.json())
     .then((data) => {
       removeBotTypingMessage();
       disableInput(chatInput, sendBtn, false);
@@ -173,19 +234,44 @@ function sendMessage() {
       } else {
         addMessage("bot", "Sorry, I didn't get a response.");
       }
-      updateSuggestions(data.suggestions);
+      updateSuggestions(data.suggestions || []);
     })
-    .catch((error) => {
+    .catch((err) => {
       removeBotTypingMessage();
       disableInput(chatInput, sendBtn, false);
-      console.error("Error in /chat:", error);
+      console.error("Error in /chat:", err);
       addMessage("bot", "Error: Unable to process request.");
     });
 }
 
-// Adds a message (user or bot) to the chat container
+// DELETE ALL USER DATA
+export function deleteAllUserData() {
+  const userId = localStorage.getItem("userId");
+  if (!userId) return;
+  if (!confirm("Delete ALL data? This cannot be undone.")) return;
+
+  fetch("/user/deleteAllUserData", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ userId }),
+  })
+    .then(() => {
+      const lang = localStorage.getItem("userLanguage");
+      localStorage.clear();
+      localStorage.setItem("userLanguage", lang);
+      window.location.reload();
+    })
+    .catch((err) => {
+      console.error("Error deleting all user data:", err);
+      alert("Unable to delete data.");
+    });
+}
+
+// HELPER: addMessage
 function addMessage(sender, text) {
   const chatContainer = document.getElementById("chatContainer");
+  if (!chatContainer) return;
+
   const messageDiv = document.createElement("div");
   messageDiv.classList.add("message", sender);
 
@@ -194,11 +280,11 @@ function addMessage(sender, text) {
   bubbleDiv.innerText = text;
 
   if (sender === "user") {
-    const userAvatarImg = document.createElement("img");
-    userAvatarImg.classList.add("avatar");
-    userAvatarImg.src = "images/accent-icons/user-accent.svg";
-    userAvatarImg.alt = "User Avatar";
-    messageDiv.appendChild(userAvatarImg);
+    const userAvatar = document.createElement("img");
+    userAvatar.className = "avatar";
+    userAvatar.src = "images/accent-icons/user-accent.svg";
+    userAvatar.alt = "User Avatar";
+    messageDiv.appendChild(userAvatar);
     messageDiv.appendChild(bubbleDiv);
   } else {
     const botAvatar = document.createElement("img");
@@ -213,11 +299,12 @@ function addMessage(sender, text) {
   chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
-// Shows bot typing indicator
+// HELPER: addBotTypingMessage
 function addBotTypingMessage() {
-  isBotTyping = true;
   const chatContainer = document.getElementById("chatContainer");
-  typingIndicatorElement = document.createElement("div");
+  if (!chatContainer) return;
+
+  const typingIndicatorElement = document.createElement("div");
   typingIndicatorElement.classList.add("message", "bot", "typing-message");
 
   const botAvatar = document.createElement("img");
@@ -238,30 +325,34 @@ function addBotTypingMessage() {
 
   chatContainer.appendChild(typingIndicatorElement);
   chatContainer.scrollTop = chatContainer.scrollHeight;
+
+  // We can track it globally if we want, or remove it right after the next response
+  window._typingIndicatorElement = typingIndicatorElement;
 }
 
-// Removes the bot typing indicator
+// HELPER: removeBotTypingMessage
 function removeBotTypingMessage() {
-  if (typingIndicatorElement) {
-    const chatContainer = document.getElementById("chatContainer");
-    chatContainer.removeChild(typingIndicatorElement);
-    typingIndicatorElement = null;
-    isBotTyping = false;
-  }
+  const chatContainer = document.getElementById("chatContainer");
+  if (!chatContainer || !window._typingIndicatorElement) return;
+
+  chatContainer.removeChild(window._typingIndicatorElement);
+  window._typingIndicatorElement = null;
 }
 
-// Updates suggestion buttons
+// HELPER: updateSuggestions
 function updateSuggestions(suggestions) {
   const suggestionsDiv = document.getElementById("suggestions");
+  if (!suggestionsDiv) return;
   suggestionsDiv.innerHTML = "";
 
-  if (suggestions && suggestions.length > 0) {
+  if (Array.isArray(suggestions) && suggestions.length > 0) {
     suggestions.forEach((suggestion) => {
       const suggestionBtn = document.createElement("div");
       suggestionBtn.className = "suggestion bubble-lift";
       suggestionBtn.innerText = suggestion;
       suggestionBtn.onclick = () => {
         const chatInput = document.getElementById("chatInput");
+        if (!chatInput) return;
         chatInput.value = suggestion;
         autoResize(chatInput);
       };
@@ -270,14 +361,14 @@ function updateSuggestions(suggestions) {
   }
 }
 
-// Export all chat functions to the global scope so main.js can use them
-window.createProfile = createProfile;
-window.fetchIntro = fetchIntro;
-window.fetchConversations = fetchConversations;
-window.loadConversation = loadConversation;
-window.deleteAllUserData = deleteAllUserData;
-window.sendMessage = sendMessage;
-window.addMessage = addMessage;
-window.addBotTypingMessage = addBotTypingMessage;
-window.removeBotTypingMessage = removeBotTypingMessage;
-window.updateSuggestions = updateSuggestions;
+// HELPER: autoResize
+function autoResize(textarea) {
+  textarea.style.height = "auto";
+  textarea.style.height = textarea.scrollHeight + "px";
+}
+
+// HELPER: disableInput
+function disableInput(chatInput, sendBtn, disable) {
+  chatInput.disabled = disable;
+  sendBtn.disabled = disable;
+}
