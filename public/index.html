@@ -6,10 +6,7 @@
   <title>Migrant Hilfe Chatbot</title>
 
   <!-- Montserrat: multiple weights -->
-  <link
-    href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap"
-    rel="stylesheet"
-  />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
 
   <!-- Modular CSS files -->
   <link rel="stylesheet" href="css/base.css" />
@@ -22,50 +19,30 @@
   <nav class="top-nav">
     <div class="nav-left">
       <!-- Migrant Hilfe Logo -->
-      <img
-        id="logoIcon"
-        src="images/accent-icons/migrant-logo-accent.svg"
-        alt="Migrant Hilfe Logo"
-        class="nav-logo"
-      />
+      <img id="logoIcon" src="images/accent-icons/migrant-logo-accent.svg" alt="Migrant Hilfe Logo" class="nav-logo" />
       <!-- Remove any animation from nav-title by CSS -->
       <span class="nav-title">Migrant Hilfe</span>
     </div>
     <div class="nav-right">
       <!-- Theme Switch -->
       <button id="themeSwitcher" class="nav-btn theme-btn" title="Toggle Theme">
-        <img
-          id="themeIcon"
-          src="images/accent-icons/theme-accent.svg"
-          alt="Theme Icon"
-          class="theme-icon"
-        />
+        <img id="themeIcon" src="images/accent-icons/theme-accent.svg" alt="Theme Icon" class="theme-icon" />
       </button>
 
       <!-- Settings -->
       <button id="settingsBtn" class="nav-btn settings-btn" title="Settings">
-        <img
-          id="settingsIcon"
-          src="images/accent-icons/settings-accent.svg"
-          alt="Settings"
-          class="icon"
-        />
+        <img id="settingsIcon" src="images/accent-icons/settings-accent.svg" alt="Settings" class="icon" />
       </button>
 
       <!-- Profile -->
       <button id="profileBtn" class="nav-btn profile-btn" title="Profile">
-        <img
-          id="userIcon"
-          src="images/accent-icons/user-accent.svg"
-          alt="User Avatar"
-          class="profile-icon"
-        />
+        <img id="userIcon" src="images/accent-icons/user-accent.svg" alt="User Avatar" class="profile-icon" />
       </button>
 
       <div id="settingsMenu" class="settings-menu hidden">
         <ul>
           <li id="openAboutUs">About Us</li>
-          <li id="deleteAllDataBtn">Delete All Data</li>
+          <li id="deleteAllDataBtn">Delete All Chat History</li>
           <li id="logoutBtn">Logout</li>
         </ul>
       </div>
@@ -100,19 +77,42 @@
 
       <!-- Input Bar -->
       <div class="input-bar">
-        <textarea
-          id="chatInput"
-          placeholder="Ask me anything…"
-        ></textarea>
+        <textarea id="chatInput" placeholder="Ask me anything…"></textarea>
         <button id="sendBtn" class="send-btn glow-effect">
-          <img
-            id="sendIcon"
-            src="images/accent-icons/send-accent.svg"
-            alt="Send"
-          />
+          <img id="sendIcon" src="images/accent-icons/send-accent.svg" alt="Send" />
         </button>
       </div>
     </section>
+  </div>
+
+  <!-- Authentication Modal (Sign Up / Login) -->
+  <div id="authModal" class="modal hidden">
+    <div class="modal-content">
+      <span id="closeAuth" class="modal-close">&times;</span>
+      <div id="authContent">
+        <!-- Tabs for Sign Up / Login -->
+        <div class="auth-tabs">
+          <button id="showSignup">Sign Up</button>
+          <button id="showLogin">Log In</button>
+        </div>
+        <!-- Sign Up Form -->
+        <div id="signupForm" class="auth-form">
+          <h2>Sign Up</h2>
+          <input id="signupEmail" type="email" placeholder="Email" required />
+          <input id="signupUsername" type="text" placeholder="Username" required />
+          <input id="signupPassword" type="password" placeholder="Password" required />
+          <input id="signupPasswordConfirm" type="password" placeholder="Confirm Password" required />
+          <button id="signupBtn" class="glow-effect">Register</button>
+        </div>
+        <!-- Login Form -->
+        <div id="loginForm" class="auth-form hidden">
+          <h2>Log In</h2>
+          <input id="loginUsername" type="text" placeholder="Username" required />
+          <input id="loginPassword" type="password" placeholder="Password" required />
+          <button id="loginBtn" class="glow-effect">Login</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- About Us Modal -->
@@ -167,7 +167,7 @@
     </div>
   </div>
 
-  <!-- Confirm Conversation Delete Modal -->
+  <!-- Delete Conversation Modal -->
   <div id="deleteConvModal" class="modal hidden">
     <div class="modal-content">
       <span id="closeDeleteConv" class="modal-close">&times;</span>
@@ -180,23 +180,14 @@
     </div>
   </div>
 
-  <!-- Confirm Delete All Data Modal -->
-  <div id="deleteAllModal" class="modal hidden">
-    <div class="modal-content">
-      <span id="closeDeleteAll" class="modal-close">&times;</span>
-      <h2>Delete All Data?</h2>
-      <p>This action cannot be undone.</p>
-      <div class="profile-actions">
-        <button id="confirmDeleteAllBtn" class="glow-effect danger">Delete All</button>
-        <button id="cancelDeleteAllBtn" class="glow-effect">Cancel</button>
-      </div>
-    </div>
-  </div>
-
+  <!-- (Optional) Delete All Chat History Confirmation Modal -->
+  <!-- If you want a separate modal for delete all chat history, create it similarly to the above -->
+  
   <!-- JavaScript files -->
   <script src="js/utils.js"></script>
   <script src="js/modals.js"></script>
   <script src="js/chat.js"></script>
+  <script src="js/auth.js"></script>
   <script src="js/main.js"></script>
   <script src="js/swipe.js"></script>
 </body>
