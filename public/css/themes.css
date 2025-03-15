@@ -1,13 +1,13 @@
 /* themes.css */
 /* Dark-mode or other theme overrides */
 
-/* Smooth transition helper */
+/* Quicker theme transition (0.3s) for background/color/border */
 .theme-transition, .theme-transition * {
-  transition: background-color 0.6s ease, color 0.6s ease, border-color 0.6s ease;
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
 body.theme-transition {
-  background-color: #F9F9F9; /* Overridden by style.css for gradient */
+  background-color: #F9F9F9;
 }
 
 body.dark-mode {
@@ -31,13 +31,13 @@ body.dark-mode .sidebar {
   border-right-color: rgba(255,255,255,0.1);
 }
 
-/* Dark mode overrides for messages: darken bubbles */
+/* Darken the user/bot bubbles in dark mode */
 body.dark-mode .message.bot .bubble {
-  background-color: #333; /* darker background for bot bubble */
+  background-color: #333;
   color: #f8f8f8;
 }
 body.dark-mode .message.user .bubble {
-  background-color: #444; /* dark background for user bubble */
+  background-color: #444;
   color: #ffffff;
 }
 
@@ -56,13 +56,13 @@ body.dark-mode .suggestion:hover {
   background-color: #555;
 }
 
-/* Dark mode for input bar */
+/* Input bar in dark mode */
 body.dark-mode .input-bar {
   background-color: #333; 
   border-top-color: rgba(255,255,255,0.2);
 }
 body.dark-mode .input-bar textarea {
-  background-color: transparent; /* or use #444 for a filled look */
+  background-color: transparent;
   color: #fff;
   border: 1px solid #555;
 }

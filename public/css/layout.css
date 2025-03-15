@@ -58,8 +58,10 @@
   width: 280px;
   background-color: rgba(255,255,255,0.8);
   border-right: 1px solid #ddd;
-  transition: transform 0.3s ease;
   transform: translateX(0);
+  /* Animate open/close */
+  transition: transform 0.3s ease-in-out;
+  z-index: 999; /* ensure on top in mobile */
 }
 
 /***************************************************
@@ -69,6 +71,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
+  width: 100%;
 }
 .chat-container {
   flex: 1;
@@ -82,23 +85,24 @@
  * MOBILE & SIDEBAR-HIDDEN OVERRIDES
  ***************************************************/
 @media (max-width: 768px) {
-  /* Sidebar: position absolutely and slide in/out */
+  /* Start with sidebar hidden to the left */
   .sidebar {
     position: absolute;
     left: 0;
     top: 64px;
     bottom: 0;
-    z-index: 999;
     transform: translateX(-280px);
   }
+  /* If .sidebar-hidden NOT present, we show it by reversing the transform in JS */
   .sidebar-hidden .sidebar {
     transform: translateX(0);
   }
-  /* Force chat section to fill entire width when sidebar is hidden */
+
+  /* Force chat section to fill entire width if sidebar is hidden */
   .sidebar-hidden .chat-section {
     width: 100% !important;
   }
-  
+
   body {
     font-size: 14px;
   }

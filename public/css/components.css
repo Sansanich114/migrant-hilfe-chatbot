@@ -57,7 +57,7 @@
 /***************************************************
  * NEW CHAT BUTTON, CHAT LIST
  ***************************************************/
- .new-chat-btn {
+.new-chat-btn {
   display: flex; /* so we can left-align text */
   justify-content: flex-start;
   align-items: center;
@@ -68,7 +68,8 @@
   color: #ffffff;
   background-color: #5e5ce6;
   border: none;
-  border-radius: 20px; /* more rounded corners */
+  /* NO rounded corners */
+  border-radius: 0;
   margin-bottom: 16px;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
@@ -109,8 +110,6 @@
  ***************************************************/
 .message {
   display: flex;
-
-  /* [MODIFIED] Increase space between messages */
   margin-bottom: 24px;
   align-items: flex-end;
 }
@@ -128,7 +127,7 @@
   object-fit: cover;
 }
 
-/* [NEW/UPDATED] Increase padding, border radius, subtle shadow for bubbles */
+/* Increase padding, subtle shadow for bubbles */
 .bubble {
   max-width: 65%;
   border-radius: 20px;
@@ -151,20 +150,15 @@
   }
 }
 
-/* [UPDATED] Slightly different color for user bubble; keep border-top-right corner less rounded */
 .message.user .bubble {
-  background-color: #6865EA; /* was #5e5ce6, lightened slightly */
+  background-color: #6865EA;
   color: #ffffff;
   border-top-right-radius: 0;
 }
-
-/* [UPDATED] Subtle gray for bot bubble, smaller font size for differentiation */
 .message.bot .bubble {
-  background-color: #f0f0f0; /* was #e5e5e5 */
+  background-color: #f0f0f0;
   color: #2d2d2d;
   border-top-left-radius: 0;
-
-  /* [NEW] Slightly smaller font for bot messages */
   font-size: 15px;
 }
 
@@ -173,8 +167,6 @@
  ***************************************************/
 .suggestions {
   display: flex;
-
-  /* [MODIFIED] Increase gap for readability */
   gap: 12px;
   flex-wrap: wrap;
   padding: 8px 24px;
@@ -198,7 +190,6 @@
   from { opacity: 0; }
   to { opacity: 1; }
 }
-/* [UPDATED] Subtle highlight + shadow on hover */
 .suggestion:hover {
   background-color: #f0f0f0;
   transform: translateY(-2px);
@@ -215,15 +206,13 @@
   border-top: 1px solid #e5e5e5;
   background-color: #ffffff;
   transition: background-color 0.3s;
-
-  /* [NEW] Subtle shadow to separate from chat content */
   box-shadow: 0 -2px 4px rgba(0,0,0,0.03);
 }
 .input-bar textarea {
   flex: 1;
   resize: none;
   font-size: 16px;
-  border: 1px solid #ddd; /* [NEW] gentle border */
+  border: 1px solid #ddd;
   outline: none;
   padding: 8px 12px;
   color: #2d2d2d;
@@ -232,9 +221,6 @@
   font-family: "Montserrat", sans-serif;
 }
 .input-bar textarea::placeholder {
-  font-family: "Montserrat", sans-serif;
-
-  /* [NEW] Lighter, more suggestive placeholder */
   color: #aaa;
   font-style: italic;
 }
@@ -262,7 +248,7 @@
  * TYPING INDICATOR
  ***************************************************/
 .typing-message .bubble {
-  background-color: #f0f0f0; /* match bot bubble color */
+  background-color: #f0f0f0;
   color: #2d2d2d;
   border-top-left-radius: 0;
   display: flex;

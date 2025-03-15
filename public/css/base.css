@@ -1,22 +1,26 @@
 /* base.css */
 /* Global resets, typography, basic element styles */
 
-/* [NEW] Provide a consistent baseline font size and line-height */
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
+/* Ensure no extra white space, full height */
 html, body {
   height: 100%;
   font-family: "Montserrat", -apple-system, BlinkMacSystemFont, "SF Pro Display",
     "Inter", Roboto, Arial, sans-serif;
   color: #2D2D2D;
-  transition: background-color 0.6s, color 0.6s;
   overscroll-behavior: none;
-
-  /* [ADDED] Baseline typography for entire app */
+  /* Remove default margins/padding fully */
+  margin: 0;
+  padding: 0;
+  /* Prevent scroll bounce on iOS */
+  overflow: hidden;
+  /* Base font size and line-height */
   font-size: 16px;
   line-height: 1.5;
+  transition: background-color 0.3s, color 0.3s;
 }

@@ -13,7 +13,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const settingsIcon = document.getElementById("settingsIcon");
   const userIcon = document.getElementById("userIcon");
   const logoIcon = document.getElementById("logoIcon");
-  const newChatIcon = document.getElementById("newChatIcon");
+  // Note: newChatIcon might be null now since we removed <img> from +New Chat
   const sendIcon = document.getElementById("sendIcon");
 
   const settingsBtn = document.getElementById("settingsBtn");
@@ -37,7 +37,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const chatInput = document.getElementById("chatInput");
   const sendBtn = document.getElementById("sendBtn");
 
-  // [NEW] Rename + Delete Conversation Modals
+  // Rename + Delete Conversation Modals
   const renameModal = document.getElementById("renameModal");
   const closeRename = document.getElementById("closeRename");
   const renameInput = document.getElementById("renameInput");
@@ -54,24 +54,23 @@ document.addEventListener("DOMContentLoaded", () => {
   let deleteConvId = null;
 
   // 3) Event Listeners
-  // (A) Theme toggle + icon swap with smooth transition
+  // (A) Theme toggle + icon swap with a quick transition
   themeSwitcher.addEventListener("click", () => {
     body.classList.add("theme-transition");
     body.classList.toggle("dark-mode");
     settingsMenu.classList.add("hidden");
 
-    // If dark-mode is active, swap icons to dark version
     const isDark = body.classList.contains("dark-mode");
     themeIcon.src    = isDark ? "images/accent-icons/theme-dark.svg"    : "images/accent-icons/theme-accent.svg";
     settingsIcon.src = isDark ? "images/accent-icons/settings-dark.svg" : "images/accent-icons/settings-accent.svg";
     userIcon.src     = isDark ? "images/accent-icons/user-dark.svg"     : "images/accent-icons/user-accent.svg";
     logoIcon.src     = isDark ? "images/accent-icons/migrant-logo-dark.svg" : "images/accent-icons/migrant-logo-accent.svg";
-    newChatIcon.src  = isDark ? "images/accent-icons/new-chat-dark.svg" : "images/accent-icons/new-chat-accent.svg";
     sendIcon.src     = isDark ? "images/accent-icons/send-dark.svg"     : "images/accent-icons/send-accent.svg";
-    
+
+    // Remove the transition class after 300ms
     setTimeout(() => {
       body.classList.remove("theme-transition");
-    }, 600);
+    }, 300);
   });
 
   // (B) Settings dropdown
@@ -146,7 +145,7 @@ document.addEventListener("DOMContentLoaded", () => {
     fetchConversations();
   }
 
-  // [NEW] WIRE UP RENAME & DELETE CONVERSATION MODALS
+  // Wire up rename & delete conversation modals
   closeRename.addEventListener("click", () => {
     renameModal.classList.add("hidden");
   });
@@ -191,7 +190,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Expose functions so chat.js can open the rename or delete modals
+  // Expose functions so chat.js can open the rename/delete modals
   window.openRenameModal = (convId, oldName) => {
     renameConvId = convId;
     renameInput.value = oldName || "";
@@ -207,6 +206,7 @@ document.addEventListener("DOMContentLoaded", () => {
 function createNewConversation() {
   const userId = localStorage.getItem("userId");
   if (!userId) return;
+
   fetch("/createConversation", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -214,6 +214,12 @@ function createNewConversation() {
   })
     .then((res) => res.json())
     .then((data) => {
+      // If server doesn't return conversationId, log error
+      if (!data.conversationId) {
+        console.error("No conversationId returned:", data);
+        alert("Error creating new conversation. Check server logs or your /createConversation route.");
+        return;
+      }
       localStorage.setItem("conversationId", data.conversationId);
       fetchConversations();
     })
