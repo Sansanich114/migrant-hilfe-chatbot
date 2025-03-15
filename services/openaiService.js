@@ -7,6 +7,8 @@ const openai = new OpenAI({
   baseURL: 'https://openrouter.ai/api/v1'
 });
 
+// This is the default system prompt that shapes the bot's behavior.
+// It references some instructions about how to respond, e.g. no direct links.
 const systemPrompt = process.env.SYSTEM_PROMPT || `
 You are Sasha, a friendly migration assistant who explains things in simple language (easy enough for a 13-year-old, but still accurate).
 Rules:
@@ -31,27 +33,38 @@ async function generateReply(prompt) {
     temperature: 0.8,
     max_tokens: 500
   });
+
+  // parseAiResponse is presumably a helper that ensures valid JSON is returned
   return parseAiResponse(result.choices[0].message.content);
 }
 
 async function generateGermanyReply(conversation, message, language, requiresWebsearch) {
   let googleSummary = "";
+
+  // If classification indicated we need a web search, run it
   if (requiresWebsearch) {
     const googleSearchService = require('./googleSearchService');
     googleSummary = await googleSearchService.getGoogleSummary(message);
   }
+
+  // Build a prompt that includes the conversation, any web results, etc.
   const promptMessages = conversation.messages.map(m => `${m.role}: ${m.content}`).join("\n");
+
+  // We specifically instruct the model to use the googleSummary in the final answer
   const germanyPrompt = `
 ${systemPrompt}
 
 Conversation so far:
 ${promptMessages}
 
-Additional info:
+Additional info from web search (if any):
 ${googleSummary}
 
-Answer in ${language}. Provide exactly 2 short suggestions for next questions.
+Now, please provide a concise, up-to-date answer in ${language}, summarizing key points
+like current rules, addresses, phone numbers, or anything relevant found above.
+Then provide exactly 2 short suggestions for next questions the user might ask.
 `.trim();
+
   return await generateReply(germanyPrompt);
 }
 

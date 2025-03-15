@@ -11,23 +11,27 @@ const chat = async (req, res) => {
   }
 
   try {
+    // Find the user
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ error: "User not found" });
 
+    // Retrieve the conversation by ID or by userId
     let conversation = conversationId
       ? await Conversation.findById(conversationId)
       : await Conversation.findOne({ userId });
 
-    if (!conversation)
+    if (!conversation) {
       return res.status(404).json({ error: "Conversation not found." });
+    }
 
-    // Classify message using our integrated classification service
+    // Classify the user's new message
     const classification = await classificationService.classifyMessage(
       conversation.messages,
       message
     );
     const { language, category, requiresWebsearch } = classification;
 
+    // If user has a default language set, we can override if classification finds a different one
     const finalLanguage = language || user.profileInfo.language || "en";
     if (user.profileInfo.language !== finalLanguage) {
       user.profileInfo.language = finalLanguage;
@@ -42,6 +46,7 @@ const chat = async (req, res) => {
     });
 
     let replyData;
+    // Route the request based on the category
     if (category === "politeness") {
       replyData = await openaiService.generatePolitenessReply(conversation, finalLanguage);
     } else if (category === "germany") {
@@ -55,14 +60,16 @@ const chat = async (req, res) => {
       replyData = await openaiService.generateOffTopicReply(conversation, finalLanguage);
     }
 
-    // Save assistant reply
+    // Save assistant reply in the conversation
     conversation.messages.push({
       role: "assistant",
       content: replyData.reply,
       timestamp: new Date(),
     });
+
     await conversation.save();
 
+    // Send the final JSON back
     return res.status(200).json(replyData);
   } catch (err) {
     console.error("Error in /chat:", err);

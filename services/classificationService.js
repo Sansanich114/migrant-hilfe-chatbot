@@ -8,6 +8,10 @@ const openai = new OpenAI({
 
 async function classifyMessage(conversationMessages, currentUserMessage) {
   const conversationText = conversationMessages.map(m => `${m.role}: ${m.content}`).join('\n');
+
+  // We add extra guidance in the prompt so that if the user mentions time-sensitive topics
+  // (like COVID restrictions, new laws, or official guidelines),
+  // "requiresWebsearch" should be set to true.
   const classificationPrompt = `
 You are a strict classifier that identifies three things about the user's newest message:
 
@@ -17,8 +21,8 @@ You are a strict classifier that identifies three things about the user's newest
    - "politeness" if the message is a greeting, introduction, thank you, goodbye, or an uncertain statement like "I don't know" that does not advance the consultation.
    - "other" if it is purely off-topic with no mention of Germany or immigration.
 3) If the category is "germany", determine whether external research (websearch) is required to provide an accurate and up-to-date response.
-   If required, set "requiresWebsearch" to true and provide a brief explanation in "websearchExplanation".
-   For "politeness" or "other", automatically set "requiresWebsearch" to false and "websearchExplanation" to an empty string.
+   For example, if the user mentions time-sensitive or current-event topics like "COVID-19", "Corona", "entry rules", "visa requirements", or "recent changes in the law", set "requiresWebsearch" to true. Otherwise, set it to false.
+   Provide a brief explanation in "websearchExplanation" if requiresWebsearch is true.
 
 Below is the entire conversation so far, followed by the user's newest message:
 
@@ -43,7 +47,7 @@ Return ONLY valid JSON of the form:
       messages: [{ role: 'system', content: classificationPrompt }],
       temperature: 0,
       max_tokens: 150,
-      tools: [] 
+      tools: []
     });
 
     const rawOutput = classificationRes.choices[0].message.content.trim();
@@ -60,13 +64,17 @@ Return ONLY valid JSON of the form:
     let { language, category, requiresWebsearch, websearchExplanation } = parsed;
     const validCategories = ['germany', 'politeness', 'other'];
 
+    // Basic validation
     if (!language || !validCategories.includes(category)) {
       return { language: 'en', category: 'other', requiresWebsearch: false, websearchExplanation: "" };
     }
-    if (category !== "germany") {
+
+    // If not 'germany', force no websearch
+    if (category !== 'germany') {
       requiresWebsearch = false;
       websearchExplanation = "";
     } else {
+      // If 'germany' but missing or invalid requiresWebsearch, set defaults
       if (typeof requiresWebsearch !== "boolean") {
         requiresWebsearch = false;
         websearchExplanation = "";
