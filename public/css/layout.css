@@ -79,20 +79,26 @@
 }
 
 /***************************************************
- * FULL IMMERSION
- ***************************************************/
-/* [UPDATED] Use body.sidebar-hidden so that swipe.js toggles the class on <body> */
-body.sidebar-hidden .sidebar {
-  transform: translateX(-280px);
-}
-body.sidebar-hidden .chat-section {
-  width: 100%;
-}
-
-/***************************************************
- * MOBILE
+ * MOBILE & SIDEBAR-HIDDEN OVERRIDES
  ***************************************************/
 @media (max-width: 768px) {
+  /* Sidebar: position absolutely and slide in/out */
+  .sidebar {
+    position: absolute;
+    left: 0;
+    top: 64px;
+    bottom: 0;
+    z-index: 999;
+    transform: translateX(-280px);
+  }
+  .sidebar-hidden .sidebar {
+    transform: translateX(0);
+  }
+  /* Force chat section to fill entire width when sidebar is hidden */
+  .sidebar-hidden .chat-section {
+    width: 100% !important;
+  }
+  
   body {
     font-size: 14px;
   }

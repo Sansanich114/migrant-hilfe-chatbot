@@ -54,8 +54,9 @@ document.addEventListener("DOMContentLoaded", () => {
   let deleteConvId = null;
 
   // 3) Event Listeners
-  // (A) Theme toggle + icon swap
+  // (A) Theme toggle + icon swap with smooth transition
   themeSwitcher.addEventListener("click", () => {
+    body.classList.add("theme-transition");
     body.classList.toggle("dark-mode");
     settingsMenu.classList.add("hidden");
 
@@ -67,6 +68,10 @@ document.addEventListener("DOMContentLoaded", () => {
     logoIcon.src     = isDark ? "images/accent-icons/migrant-logo-dark.svg" : "images/accent-icons/migrant-logo-accent.svg";
     newChatIcon.src  = isDark ? "images/accent-icons/new-chat-dark.svg" : "images/accent-icons/new-chat-accent.svg";
     sendIcon.src     = isDark ? "images/accent-icons/send-dark.svg"     : "images/accent-icons/send-accent.svg";
+    
+    setTimeout(() => {
+      body.classList.remove("theme-transition");
+    }, 600);
   });
 
   // (B) Settings dropdown
@@ -186,7 +191,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Expose a function so chat.js can open the rename or delete modals
+  // Expose functions so chat.js can open the rename or delete modals
   window.openRenameModal = (convId, oldName) => {
     renameConvId = convId;
     renameInput.value = oldName || "";
