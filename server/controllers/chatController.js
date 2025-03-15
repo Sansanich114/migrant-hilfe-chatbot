@@ -1,9 +1,11 @@
+// server/controllers/chatController.js
 const User = require('../models/User');
 const Conversation = require('../models/Conversation');
 const classificationService = require('../services/classificationService');
 const openaiService = require('../services/openaiService');
-const { parseAiResponse, stripFormatting } = require('../utils/helpers');
 
+// Chat controller logic
+// Called by your /chat endpoint (see chatRoutes.js)
 const chat = async (req, res) => {
   const { userId, conversationId, message } = req.body;
   if (!userId || !message) {
@@ -11,11 +13,11 @@ const chat = async (req, res) => {
   }
 
   try {
-    // Find the user
+    // 1) Find the user
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    // Retrieve the conversation by ID or by userId
+    // 2) Retrieve the conversation
     let conversation = conversationId
       ? await Conversation.findById(conversationId)
       : await Conversation.findOne({ userId });
@@ -24,29 +26,29 @@ const chat = async (req, res) => {
       return res.status(404).json({ error: "Conversation not found." });
     }
 
-    // Classify the user's new message
+    // 3) Classify the user's new message
     const classification = await classificationService.classifyMessage(
       conversation.messages,
       message
     );
     const { language, category, requiresWebsearch } = classification;
 
-    // If user has a default language set, we can override if classification finds a different one
+    // 4) Update the user's language if it changed
     const finalLanguage = language || user.profileInfo.language || "en";
     if (user.profileInfo.language !== finalLanguage) {
       user.profileInfo.language = finalLanguage;
       await user.save();
     }
 
-    // Add user's message to conversation history
+    // 5) Add user's message to conversation
     conversation.messages.push({
       role: "user",
       content: message,
       timestamp: new Date(),
     });
 
+    // 6) Generate a reply based on the category
     let replyData;
-    // Route the request based on the category
     if (category === "politeness") {
       replyData = await openaiService.generatePolitenessReply(conversation, finalLanguage);
     } else if (category === "germany") {
@@ -57,10 +59,11 @@ const chat = async (req, res) => {
         requiresWebsearch
       );
     } else {
+      // category === "other"
       replyData = await openaiService.generateOffTopicReply(conversation, finalLanguage);
     }
 
-    // Save assistant reply in the conversation
+    // 7) Save assistant's reply
     conversation.messages.push({
       role: "assistant",
       content: replyData.reply,
@@ -69,8 +72,9 @@ const chat = async (req, res) => {
 
     await conversation.save();
 
-    // Send the final JSON back
+    // 8) Return the final JSON
     return res.status(200).json(replyData);
+
   } catch (err) {
     console.error("Error in /chat:", err);
     return res.status(500).json({ error: "Unable to process request." });

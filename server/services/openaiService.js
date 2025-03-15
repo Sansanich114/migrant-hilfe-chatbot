@@ -1,14 +1,15 @@
+// server/services/openaiService.js
 const OpenAI = require('openai');
 const { parseAiResponse } = require('../utils/helpers');
 require('dotenv').config();
 
+// Create an OpenAI client using your OPENROUTER_API_KEY
 const openai = new OpenAI({
   apiKey: process.env.OPENROUTER_API_KEY,
   baseURL: 'https://openrouter.ai/api/v1'
 });
 
-// This is the default system prompt that shapes the bot's behavior.
-// Modify as needed to match your old server.js
+// This is the same system prompt from your old server.js
 const systemPrompt = process.env.SYSTEM_PROMPT || `
 You are Sasha, a friendly migration assistant who explains things in simple language (easy enough for a 13-year-old, but still accurate).
 Rules:
@@ -24,33 +25,22 @@ Rules:
 `.trim();
 
 /**
- * Helper that sends a chat prompt to OpenAI with systemPrompt + user content,
- * then calls parseAiResponse on the result.
+ * Generate a short, friendly greeting when user is just being polite.
+ * (Politeness logic from your old server.js)
  */
-async function generateReply(userPrompt) {
-  const result = await openai.chat.completions.create({
-    model: 'deepseek/deepseek-chat:free',
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userPrompt }
-    ],
-    temperature: 0.8,
-    max_tokens: 500
-  });
-  return parseAiResponse(result.choices[0].message.content);
-}
+async function generatePolitenessReply(conversation, language) {
+  // Rebuild conversation text
+  const promptMessages = conversation.messages.map(m => `${m.role}: ${m.content}`).join("\n");
 
-/**
- * NEW: Generate an intro greeting for the user in the specified language.
- * This replicates the "intro" logic from your old server.js
- */
-async function generateIntroReply(language) {
-  // We'll embed the language in the prompt
-  const introPrompt = `
+  // Politeness prompt from old server.js
+  const politenessPrompt = `
 ${systemPrompt}
 
-The user's language is ${language}.
-Give a short greeting as Sasha. Provide exactly 2 short suggestions for what the user might ask next about migration or Germany.
+Conversation so far:
+${promptMessages}
+
+The user is just being polite. Respond in ${language} with a short, friendly greeting.
+Provide exactly 2 short suggestions for what the user might ask about Germany or migration next.
 Return valid JSON of the form:
 {
   "reply": "...",
@@ -58,35 +48,59 @@ Return valid JSON of the form:
 }
 `.trim();
 
-  // Use generateReply to call OpenAI
-  const parsedResponse = await generateReply(introPrompt);
+  // Call OpenAI (DeepSeek)
+  const result = await openai.chat.completions.create({
+    model: 'deepseek/deepseek-chat:free',
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: politenessPrompt }
+    ],
+    temperature: 0.8,
+    max_tokens: 500
+  });
 
-  // If no reply or suggestions, add fallback
-  if (!parsedResponse.reply) {
-    parsedResponse.reply = "Hi! I'm Sasha. How can I help you today?";
-  }
-  if (!Array.isArray(parsedResponse.suggestions)) {
-    parsedResponse.suggestions = [];
-  }
+  const rawOutput = result.choices[0].message.content;
+  // parseAiResponse is from ../utils/helpers
+  const parsedResponse = parseAiResponse(rawOutput);
 
   return parsedResponse;
 }
 
-// Existing functions (if you have them) for "generateGermanyReply", "generatePolitenessReply", etc.
-// Example:
+/**
+ * Generate a Germany-related reply (placeholder).
+ * Replace or expand with your existing logic from old server.js
+ */
 async function generateGermanyReply(conversation, message, language, requiresWebsearch) {
-  // ...
+  // For example, you might do your google search here, build a final prompt, etc.
+  // Return the final { reply, suggestions } object
+  return {
+    reply: "Here's some info about Germany (placeholder).",
+    suggestions: ["Ask about visas", "Ask about housing"]
+  };
 }
 
-async function generatePolitenessReply(conversation, language) {
-  // ...
-}
-
+/**
+ * Generate an off-topic reply (placeholder).
+ * Replace or expand with your existing logic from old server.js
+ */
 async function generateOffTopicReply(conversation, language) {
-  // ...
+  return {
+    reply: "It seems your question isn't about Germany. I can help with immigration or living in Germany.",
+    suggestions: ["Visa requirements", "Housing in Germany"]
+  };
 }
 
-// Export everything
+/**
+ * Intro function (placeholder).
+ * If you have an existing generateIntroReply, you can keep or modify it.
+ */
+async function generateIntroReply(language) {
+  return {
+    reply: `Hello! I'm Sasha. How can I help you today? (Intro in ${language})`,
+    suggestions: ["Ask about German visas", "Ask about housing"]
+  };
+}
+
 module.exports = {
   generateIntroReply,
   generateGermanyReply,
