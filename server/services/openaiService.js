@@ -9,7 +9,7 @@ const openai = new OpenAI({
   baseURL: 'https://openrouter.ai/api/v1'
 });
 
-// This is the same system prompt from your old server.js
+// System prompt remains as your guiding instructions.
 const systemPrompt = process.env.SYSTEM_PROMPT || `
 You are Sasha, a friendly migration assistant who explains things in simple language (easy enough for a 13-year-old, but still accurate).
 Rules:
@@ -25,14 +25,11 @@ Rules:
 `.trim();
 
 /**
- * Generate a short, friendly greeting when user is just being polite.
- * (Politeness logic from your old server.js)
+ * Generate a short, friendly greeting when the user is just being polite.
  */
 async function generatePolitenessReply(conversation, language) {
-  // Rebuild conversation text
   const promptMessages = conversation.messages.map(m => `${m.role}: ${m.content}`).join("\n");
 
-  // Politeness prompt from old server.js
   const politenessPrompt = `
 ${systemPrompt}
 
@@ -46,9 +43,8 @@ Return valid JSON of the form:
   "reply": "...",
   "suggestions": ["...", "..."]
 }
-`.trim();
+  `.trim();
 
-  // Call OpenAI (DeepSeek)
   const result = await openai.chat.completions.create({
     model: 'deepseek/deepseek-chat:free',
     messages: [
@@ -60,45 +56,112 @@ Return valid JSON of the form:
   });
 
   const rawOutput = result.choices[0].message.content;
-  // parseAiResponse is from ../utils/helpers
   const parsedResponse = parseAiResponse(rawOutput);
-
   return parsedResponse;
 }
 
 /**
- * Generate a Germany-related reply (placeholder).
- * Replace or expand with your existing logic from old server.js
+ * Generate a Germany-related reply.
+ * This prompt uses the conversation context and, if needed, instructs the model
+ * to incorporate up-to-date facts from external research.
  */
 async function generateGermanyReply(conversation, message, language, requiresWebsearch) {
-  // For example, you might do your google search here, build a final prompt, etc.
-  // Return the final { reply, suggestions } object
-  return {
-    reply: "Here's some info about Germany (placeholder).",
-    suggestions: ["Ask about visas", "Ask about housing"]
-  };
+  const promptMessages = conversation.messages.map(m => `${m.role}: ${m.content}`).join("\n");
+  const webInfoInstruction = requiresWebsearch ? "Incorporate up-to-date facts from recent data if available." : "";
+  const germanyPrompt = `
+${systemPrompt}
+
+Conversation so far:
+${promptMessages}
+
+User's latest query: "${message}"
+${webInfoInstruction}
+Respond in ${language} with clear, concise information about migrating to or living in Germany.
+Return valid JSON of the form:
+{
+  "reply": "...",
+  "suggestions": ["...", "..."]
+}
+  `.trim();
+
+  const result = await openai.chat.completions.create({
+    model: 'deepseek/deepseek-chat:free',
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: germanyPrompt }
+    ],
+    temperature: 0.8,
+    max_tokens: 500
+  });
+
+  const rawOutput = result.choices[0].message.content;
+  const parsedResponse = parseAiResponse(rawOutput);
+  return parsedResponse;
 }
 
 /**
- * Generate an off-topic reply (placeholder).
- * Replace or expand with your existing logic from old server.js
+ * Generate an off-topic reply.
+ * Remind the user to return to questions about Germany or migration.
  */
 async function generateOffTopicReply(conversation, language) {
-  return {
-    reply: "It seems your question isn't about Germany. I can help with immigration or living in Germany.",
-    suggestions: ["Visa requirements", "Housing in Germany"]
-  };
+  const promptMessages = conversation.messages.map(m => `${m.role}: ${m.content}`).join("\n");
+  const offTopicPrompt = `
+${systemPrompt}
+
+Conversation so far:
+${promptMessages}
+
+The user's latest message is off-topic. Remind the user to return to questions about Germany or migration in ${language}.
+Return valid JSON of the form:
+{
+  "reply": "...",
+  "suggestions": ["...", "..."]
+}
+  `.trim();
+
+  const result = await openai.chat.completions.create({
+    model: 'deepseek/deepseek-chat:free',
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: offTopicPrompt }
+    ],
+    temperature: 0.8,
+    max_tokens: 500
+  });
+
+  const rawOutput = result.choices[0].message.content;
+  const parsedResponse = parseAiResponse(rawOutput);
+  return parsedResponse;
 }
 
 /**
- * Intro function (placeholder).
- * If you have an existing generateIntroReply, you can keep or modify it.
+ * Generate an introductory reply.
  */
 async function generateIntroReply(language) {
-  return {
-    reply: `Hello! I'm Sasha. How can I help you today? (Intro in ${language})`,
-    suggestions: ["Ask about German visas", "Ask about housing"]
-  };
+  const introPrompt = `
+${systemPrompt}
+
+Respond in ${language} with a friendly introduction greeting the user.
+Return valid JSON of the form:
+{
+  "reply": "...",
+  "suggestions": ["...", "..."]
+}
+  `.trim();
+
+  const result = await openai.chat.completions.create({
+    model: 'deepseek/deepseek-chat:free',
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: introPrompt }
+    ],
+    temperature: 0.8,
+    max_tokens: 500
+  });
+
+  const rawOutput = result.choices[0].message.content;
+  const parsedResponse = parseAiResponse(rawOutput);
+  return parsedResponse;
 }
 
 module.exports = {

@@ -9,20 +9,15 @@ const openai = new OpenAI({
 async function classifyMessage(conversationMessages, currentUserMessage) {
   const conversationText = conversationMessages.map(m => `${m.role}: ${m.content}`).join('\n');
 
-  // We add extra guidance in the prompt so that if the user mentions time-sensitive topics
-  // (like COVID restrictions, new laws, or official guidelines),
-  // "requiresWebsearch" should be set to true.
   const classificationPrompt = `
 You are a strict classifier that identifies three things about the user's newest message:
 
-1) The language of the user's newest message (e.g., "en", "de", "tr", etc.).
-2) The category of the user's newest message, which can be:
+1) Determine the language of the user's newest message (e.g., "en", "de", "tr", etc.).
+2) Identify the category of the user's newest message. The category can be:
    - "germany" if the message is about immigrating to or living in Germany, or advances the immigration consultation.
-   - "politeness" if the message is a greeting, introduction, thank you, goodbye, or an uncertain statement like "I don't know" that does not advance the consultation.
-   - "other" if it is purely off-topic with no mention of Germany or immigration.
-3) If the category is "germany", determine whether external research (websearch) is required to provide an accurate and up-to-date response.
-   For example, if the user mentions time-sensitive or current-event topics like "COVID-19", "Corona", "entry rules", "visa requirements", or "recent changes in the law", set "requiresWebsearch" to true. Otherwise, set it to false.
-   Provide a brief explanation in "websearchExplanation" if requiresWebsearch is true.
+   - "politeness" if the message is a greeting, introduction, thank you, farewell, or a neutral statement that does not advance the consultation.
+   - "other" if it is off-topic with no mention of Germany or immigration.
+3) If the category is "germany", decide whether external research (websearch) is required to provide an accurate and up-to-date response. For example, if the query mentions time-sensitive topics like "COVID-19", "Corona", "entry rules", "visa requirements", or "recent changes in the law", then set "requiresWebsearch" to true and provide a brief explanation in "websearchExplanation". Otherwise, set it to false.
 
 Below is the entire conversation so far, followed by the user's newest message:
 
@@ -32,7 +27,7 @@ ${conversationText}
 User's New Message:
 "${currentUserMessage}"
 
-Return ONLY valid JSON of the form:
+Please return ONLY raw JSON (do not include any markdown formatting) of the form:
 {
   "language": "...",
   "category": "...",
@@ -74,7 +69,6 @@ Return ONLY valid JSON of the form:
       requiresWebsearch = false;
       websearchExplanation = "";
     } else {
-      // If 'germany' but missing or invalid requiresWebsearch, set defaults
       if (typeof requiresWebsearch !== "boolean") {
         requiresWebsearch = false;
         websearchExplanation = "";
