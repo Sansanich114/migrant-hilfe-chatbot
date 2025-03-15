@@ -7,7 +7,7 @@ let typingIndicatorElement = null;
 // Creates a new user profile if none exists
 function createProfile() {
   const language = localStorage.getItem("userLanguage") || navigator.language || "en";
-  fetch("/createProfile", {
+  fetch("/user/createProfile", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ profileInfo: { language } }),
@@ -28,7 +28,7 @@ function fetchIntro() {
   const language = localStorage.getItem("userLanguage") || "en";
   if (!userId) return;
 
-  fetch(`/intro?userId=${userId}&lang=${language}`)
+  fetch(`/user/intro?userId=${userId}&lang=${language}`)
     .then((res) => res.json())
     .then((data) => {
       if (data.reply) {
@@ -43,7 +43,7 @@ function fetchIntro() {
 function fetchConversations() {
   const userId = localStorage.getItem("userId");
   if (!userId) return;
-  fetch(`/profile/${userId}`)
+  fetch(`/user/profile/${userId}`)
     .then((res) => res.json())
     .then((data) => {
       const chatListDiv = document.getElementById("chatList");
@@ -72,7 +72,7 @@ function fetchConversations() {
             const newName = prompt("Enter a new name for this conversation:", conv.conversationName);
             if (!newName) return;
             try {
-              await fetch("/renameConversation", {
+              await fetch("/user/renameConversation", {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ conversationId: conv._id, newName })
@@ -90,7 +90,7 @@ function fetchConversations() {
             e.stopPropagation();
             if (!confirm("Are you sure you want to delete this conversation?")) return;
             try {
-              await fetch("/deleteConversation", {
+              await fetch("/user/deleteConversation", {
                 method: "DELETE",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ conversationId: conv._id })
@@ -117,7 +117,7 @@ function fetchConversations() {
 function loadConversation(conversationId) {
   const userId = localStorage.getItem("userId");
   if (!userId) return;
-  fetch(`/profile/${userId}`)
+  fetch(`/user/profile/${userId}`)
     .then((res) => res.json())
     .then((data) => {
       const conv = data.conversations.find(c => c._id === conversationId);
@@ -142,9 +142,8 @@ function loadConversation(conversationId) {
 async function deleteAllUserData() {
   const userId = localStorage.getItem("userId");
   if (!userId) return;
-  // If your route is "/deleteAllUserData" (no /user prefix), this is correct:
   try {
-    await fetch("/deleteAllUserData", {
+    await fetch("/user/deleteAllUserData", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userId })

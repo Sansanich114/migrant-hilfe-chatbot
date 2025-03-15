@@ -1,6 +1,8 @@
 const User = require('../models/User');
 const Conversation = require('../models/Conversation');
+const openaiService = require('../services/openaiService');
 
+// Create a new user profile
 const createProfile = async (req, res) => {
   try {
     const newUser = new User({
@@ -26,6 +28,7 @@ const createProfile = async (req, res) => {
   }
 };
 
+// Create a new conversation
 const createConversation = async (req, res) => {
   const { userId } = req.body;
   if (!userId) return res.status(400).json({ error: "userId is required." });
@@ -45,6 +48,7 @@ const createConversation = async (req, res) => {
   }
 };
 
+// Retrieve a user profile and list of conversations
 const getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.params.userId).lean();
@@ -58,6 +62,7 @@ const getProfile = async (req, res) => {
   }
 };
 
+// Rename a conversation
 const renameConversation = async (req, res) => {
   const { conversationId, newName } = req.body;
   if (!conversationId || !newName) {
@@ -77,6 +82,7 @@ const renameConversation = async (req, res) => {
   }
 };
 
+// Delete a conversation
 const deleteConversation = async (req, res) => {
   const { conversationId } = req.body;
   if (!conversationId) {
@@ -95,6 +101,7 @@ const deleteConversation = async (req, res) => {
   }
 };
 
+// Delete ALL user data
 const deleteAllUserData = async (req, res) => {
   const { userId } = req.body;
   if (!userId) {
@@ -110,6 +117,34 @@ const deleteAllUserData = async (req, res) => {
   }
 };
 
+// NEW: Intro route controller
+// Replicates the logic from your old server.js for an AI-generated greeting
+const intro = async (req, res) => {
+  try {
+    const { userId, lang } = req.query;
+    if (!userId) {
+      return res.status(400).json({ error: "No userId provided." });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    // Decide which language to use
+    const finalLanguage = user.profileInfo.language || lang || "en";
+
+    // Generate the intro message using openaiService
+    const responseData = await openaiService.generateIntroReply(finalLanguage);
+
+    return res.status(200).json(responseData);
+  } catch (err) {
+    console.error("Intro Error:", err);
+    return res.status(500).json({ error: "Unable to process introduction request." });
+  }
+};
+
+// Export all
 module.exports = {
   createProfile,
   createConversation,
@@ -117,4 +152,6 @@ module.exports = {
   renameConversation,
   deleteConversation,
   deleteAllUserData,
+  // NEW
+  intro,
 };
