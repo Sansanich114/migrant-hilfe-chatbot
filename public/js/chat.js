@@ -6,7 +6,7 @@ let typingIndicatorElement = null;
 
 // Creates a new user profile if none exists
 function createProfile() {
-  const language = localStorage.getItem("userLanguage") || "en";
+  const language = localStorage.getItem("userLanguage") || navigator.language || "en";
   fetch("/createProfile", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -142,8 +142,7 @@ function loadConversation(conversationId) {
 async function deleteAllUserData() {
   const userId = localStorage.getItem("userId");
   if (!userId) return;
-  if (!confirm("Are you sure you want to delete ALL data? This cannot be undone.")) return;
-
+  // If your route is "/deleteAllUserData" (no /user prefix), this is correct:
   try {
     await fetch("/deleteAllUserData", {
       method: "DELETE",
@@ -214,13 +213,15 @@ function addMessage(sender, text) {
   bubbleDiv.innerText = text;
 
   if (sender === "user") {
+    // Put bubble first, then user icon on the right
+    messageDiv.appendChild(bubbleDiv);
     const userAvatarImg = document.createElement("img");
     userAvatarImg.classList.add("avatar");
     userAvatarImg.src = "images/accent-icons/user-accent.svg";
     userAvatarImg.alt = "User Avatar";
     messageDiv.appendChild(userAvatarImg);
-    messageDiv.appendChild(bubbleDiv);
   } else {
+    // Bot on the left
     const botAvatar = document.createElement("img");
     botAvatar.className = "avatar";
     botAvatar.src = "images/accent-icons/bot-accent.svg";

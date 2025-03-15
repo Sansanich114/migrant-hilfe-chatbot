@@ -14,7 +14,6 @@ html, body {
     "Inter", Roboto, Arial, sans-serif;
   color: #2D2D2D;
   overscroll-behavior: none;
-  /* Remove default margins/padding fully */
   margin: 0;
   padding: 0;
   /* Prevent scroll bounce on iOS */

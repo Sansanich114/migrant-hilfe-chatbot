@@ -2,18 +2,13 @@
 // Global initialization: sets up event listeners, orchestrates the chat logic
 
 document.addEventListener("DOMContentLoaded", () => {
-  // 1) Language detection
-  const userLanguage = navigator.language || 'en';
-  localStorage.setItem("userLanguage", userLanguage);
-
-  // 2) Grab references to DOM elements
   const body = document.body;
+
   const themeSwitcher = document.getElementById("themeSwitcher");
   const themeIcon = document.getElementById("themeIcon");
   const settingsIcon = document.getElementById("settingsIcon");
   const userIcon = document.getElementById("userIcon");
   const logoIcon = document.getElementById("logoIcon");
-  // Note: newChatIcon might be null now since we removed <img> from +New Chat
   const sendIcon = document.getElementById("sendIcon");
 
   const settingsBtn = document.getElementById("settingsBtn");
@@ -49,12 +44,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const confirmDeleteConvBtn = document.getElementById("confirmDeleteConvBtn");
   const cancelDeleteConvBtn = document.getElementById("cancelDeleteConvBtn");
 
-  // We’ll store the "current conversation ID" that we want to rename or delete
   let renameConvId = null;
   let deleteConvId = null;
 
-  // 3) Event Listeners
-  // (A) Theme toggle + icon swap with a quick transition
+  // THEME TOGGLE
   themeSwitcher.addEventListener("click", () => {
     body.classList.add("theme-transition");
     body.classList.toggle("dark-mode");
@@ -73,12 +66,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 300);
   });
 
-  // (B) Settings dropdown
+  // SETTINGS MENU
   settingsBtn.addEventListener("click", () => {
     settingsMenu.classList.toggle("hidden");
   });
 
-  // (C) About Us modal
+  // ABOUT US MODAL
   openAboutUs.addEventListener("click", () => {
     aboutModal.classList.remove("hidden");
     settingsMenu.classList.add("hidden");
@@ -87,7 +80,7 @@ document.addEventListener("DOMContentLoaded", () => {
     aboutModal.classList.add("hidden");
   });
 
-  // (D) Profile modal
+  // PROFILE MODAL
   profileBtn.addEventListener("click", () => {
     profileModal.classList.remove("hidden");
   });
@@ -95,7 +88,7 @@ document.addEventListener("DOMContentLoaded", () => {
     profileModal.classList.add("hidden");
   });
 
-  // (E) Delete All Data
+  // DELETE ALL DATA
   deleteAllDataBtn.addEventListener("click", () => {
     settingsMenu.classList.add("hidden");
     deleteAllModal.classList.remove("hidden");
@@ -111,12 +104,12 @@ document.addEventListener("DOMContentLoaded", () => {
     deleteAllModal.classList.add("hidden");
   });
 
-  // (F) New Chat
+  // NEW CHAT
   newChatBtn.addEventListener("click", () => {
     createNewConversation();
   });
 
-  // (G) Send message on button or Enter
+  // SEND MESSAGE
   sendBtn.addEventListener("click", sendMessage);
   chatInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -125,10 +118,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Auto-resize for chat input
+  // AUTO-RESIZE
   chatInput.addEventListener("input", () => autoResize(chatInput));
 
-  // (H) Close modals if user clicks outside them
+  // CLOSE MODALS IF CLICK OUTSIDE
   window.addEventListener("click", (e) => {
     if (e.target === aboutModal) aboutModal.classList.add("hidden");
     if (e.target === profileModal) profileModal.classList.add("hidden");
@@ -137,7 +130,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.target === deleteAllModal) deleteAllModal.classList.add("hidden");
   });
 
-  // 4) On Page Load: create profile if needed, or load existing data
+  // CREATE PROFILE IF NEEDED
   if (!localStorage.getItem("userId")) {
     createProfile();
   } else {
@@ -145,7 +138,7 @@ document.addEventListener("DOMContentLoaded", () => {
     fetchConversations();
   }
 
-  // Wire up rename & delete conversation modals
+  // RENAME CONVERSATION
   closeRename.addEventListener("click", () => {
     renameModal.classList.add("hidden");
   });
@@ -157,7 +150,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!newName) return;
     renameModal.classList.add("hidden");
 
-    // Actually rename conversation
     try {
       await fetch("/renameConversation", {
         method: "PATCH",
@@ -170,6 +162,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  // DELETE CONVERSATION
   closeDeleteConv.addEventListener("click", () => {
     deleteConvModal.classList.add("hidden");
   });
@@ -190,7 +183,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Expose functions so chat.js can open the rename/delete modals
   window.openRenameModal = (convId, oldName) => {
     renameConvId = convId;
     renameInput.value = oldName || "";
@@ -214,10 +206,9 @@ function createNewConversation() {
   })
     .then((res) => res.json())
     .then((data) => {
-      // If server doesn't return conversationId, log error
       if (!data.conversationId) {
         console.error("No conversationId returned:", data);
-        alert("Error creating new conversation. Check server logs or your /createConversation route.");
+        alert("Error creating new conversation.");
         return;
       }
       localStorage.setItem("conversationId", data.conversationId);

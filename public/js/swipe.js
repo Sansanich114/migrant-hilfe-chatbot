@@ -1,7 +1,7 @@
 // swipe.js
 // Basic swipe detection to toggle .sidebar-hidden on <body>
 
-// We'll interpret a "right-swipe" as "hide sidebar" 
+// We'll interpret a "right-swipe" as "hide sidebar"
 // and a "left-swipe" as "show sidebar."
 
 let xDown = null;
@@ -18,7 +18,6 @@ function handleTouchStart(evt) {
 }
 
 function handleTouchMove(evt) {
-  // If no initial X/Y, we can't compare
   if (!xDown || !yDown) return;
 
   const xUp = evt.touches[0].clientX;
@@ -38,7 +37,6 @@ function handleTouchMove(evt) {
     }
   }
 
-  // Reset for next swipe
   xDown = null;
   yDown = null;
 }

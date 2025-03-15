@@ -19,6 +19,13 @@
   transition: background-color 0.3s, border-color 0.3s;
 }
 
+/* Remove any animation from nav-title */
+.nav-title {
+  font-size: 20px;
+  font-weight: 700;
+  animation: none !important; /* No animation */
+}
+
 .nav-left {
   display: flex;
   align-items: center;
@@ -28,11 +35,6 @@
 .nav-logo {
   width: 32px;
   height: 32px;
-}
-
-.nav-title {
-  font-size: 20px;
-  font-weight: 700;
 }
 
 .nav-right {
@@ -59,9 +61,8 @@
   background-color: rgba(255,255,255,0.8);
   border-right: 1px solid #ddd;
   transform: translateX(0);
-  /* Animate open/close */
   transition: transform 0.3s ease-in-out;
-  z-index: 999; /* ensure on top in mobile */
+  z-index: 999;
 }
 
 /***************************************************
@@ -85,7 +86,6 @@
  * MOBILE & SIDEBAR-HIDDEN OVERRIDES
  ***************************************************/
 @media (max-width: 768px) {
-  /* Start with sidebar hidden to the left */
   .sidebar {
     position: absolute;
     left: 0;
@@ -93,14 +93,8 @@
     bottom: 0;
     transform: translateX(-280px);
   }
-  /* If .sidebar-hidden NOT present, we show it by reversing the transform in JS */
   .sidebar-hidden .sidebar {
     transform: translateX(0);
-  }
-
-  /* Force chat section to fill entire width if sidebar is hidden */
-  .sidebar-hidden .chat-section {
-    width: 100% !important;
   }
 
   body {
@@ -109,7 +103,6 @@
   .bubble {
     font-size: 14px;
     line-height: 1.4;
-    /* Possibly reduce padding for narrower screens */
     padding: 8px 12px;
   }
   .input-bar textarea {

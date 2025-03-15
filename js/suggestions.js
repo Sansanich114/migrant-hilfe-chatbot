@@ -1,4 +1,5 @@
-﻿function initSuggestions() {
+﻿// suggestions.js
+function initSuggestions() {
   const predictiveQuestions = [
     "What documents do I need?",
     "How do I apply for a visa?",
@@ -8,6 +9,8 @@
   ];
 
   const suggestionsDiv = document.getElementById("suggestions");
+  if (!suggestionsDiv) return;
+
   predictiveQuestions.forEach(question => {
     const suggestionBtn = document.createElement("div");
     suggestionBtn.className = "suggestion";
@@ -19,11 +22,6 @@
     };
     suggestionsDiv.appendChild(suggestionBtn);
   });
-}
-
-function autoResize(textarea) {
-  textarea.style.height = "auto";
-  textarea.style.height = textarea.scrollHeight + "px";
 }
 
 export { initSuggestions };

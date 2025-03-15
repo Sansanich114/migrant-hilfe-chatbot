@@ -58,7 +58,7 @@
  * NEW CHAT BUTTON, CHAT LIST
  ***************************************************/
 .new-chat-btn {
-  display: flex; /* so we can left-align text */
+  display: flex;
   justify-content: flex-start;
   align-items: center;
   width: 100%;
@@ -68,7 +68,6 @@
   color: #ffffff;
   background-color: #5e5ce6;
   border: none;
-  /* NO rounded corners */
   border-radius: 0;
   margin-bottom: 16px;
   cursor: pointer;
@@ -113,12 +112,17 @@
   margin-bottom: 24px;
   align-items: flex-end;
 }
-.message.user {
-  justify-content: flex-end;
-}
+/* Bot messages are left, user messages are right */
 .message.bot {
   justify-content: flex-start;
+  margin-left: 8px; /* Move bot bubble a bit to the left */
 }
+.message.user {
+  justify-content: flex-end;
+  margin-right: 8px;
+}
+
+/* Avatars smaller on mobile */
 .avatar {
   width: 40px;
   height: 40px;
@@ -126,8 +130,14 @@
   margin: 0 8px;
   object-fit: cover;
 }
+@media (max-width: 768px) {
+  .avatar {
+    width: 24px;
+    height: 24px;
+    margin: 0 4px;
+  }
+}
 
-/* Increase padding, subtle shadow for bubbles */
 .bubble {
   max-width: 65%;
   border-radius: 20px;
@@ -150,11 +160,13 @@
   }
 }
 
+/* If user message, bubble is purple with white text. Icon on right side. */
 .message.user .bubble {
   background-color: #6865EA;
   color: #ffffff;
   border-top-right-radius: 0;
 }
+/* If bot message, bubble is light gray. Icon on left side. */
 .message.bot .bubble {
   background-color: #f0f0f0;
   color: #2d2d2d;
@@ -238,6 +250,8 @@
 .send-btn img {
   width: 24px;
   height: 24px;
+  /* Force it to be white in light mode for visibility */
+  filter: brightness(0) invert(1);
 }
 .send-btn:hover {
   background-color: #4a4ab0;
@@ -308,10 +322,13 @@
   right: 16px;
   font-size: 24px;
   cursor: pointer;
-  color: #2D2D2D;
+  color: #2D2D2D; /* Dark text in light mode */
 }
 .modal-close:hover {
   opacity: 0.7;
+}
+body.dark-mode .modal-close {
+  color: #fff; /* White in dark mode */
 }
 .profile-field {
   margin-bottom: 10px;

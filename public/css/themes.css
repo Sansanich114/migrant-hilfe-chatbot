@@ -1,7 +1,6 @@
 /* themes.css */
 /* Dark-mode or other theme overrides */
 
-/* Quicker theme transition (0.3s) for background/color/border */
 .theme-transition, .theme-transition * {
   transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
@@ -44,7 +43,7 @@ body.dark-mode .message.user .bubble {
 /* Dark mode for suggestions row */
 body.dark-mode .suggestions {
   background-color: #2c2b34;
-  border-top-color: rgba(255,255,255,0.1);
+  border-top-color: rgba(255,255,255,0.2);
   box-shadow: none;
 }
 body.dark-mode .suggestion {
