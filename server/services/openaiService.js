@@ -1,13 +1,11 @@
-// server/services/openaiService.js
-const OpenAI = require('openai');
+const { Configuration, OpenAIApi } = require("openai");
 const { parseAiResponse } = require('../utils/helpers');
 require('dotenv').config();
 
-// Create an OpenAI client using your API key.
-const openai = new OpenAI({
+const configuration = new Configuration({
   apiKey: process.env.OPENROUTER_API_KEY,
-  baseURL: 'https://openrouter.ai/api/v1'
 });
+const openai = new OpenAIApi(configuration);
 
 const systemPrompt = process.env.SYSTEM_PROMPT || `
 You are Sasha, a friendly migration assistant who explains things in simple language (easy enough for a 13-year-old, but still accurate).
@@ -39,18 +37,16 @@ Return valid JSON of the form:
   "suggestions": ["...", "..."]
 }
   `.trim();
-
-  const result = await openai.chat.completions.create({
-    model: 'deepseek/deepseek-chat:free',
+  const response = await openai.createChatCompletion({
+    model: 'text-davinci-003',
     messages: [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: politenessPrompt }
     ],
     temperature: 0.8,
-    max_tokens: 500
+    max_tokens: 500,
   });
-
-  const rawOutput = result.choices[0].message.content;
+  const rawOutput = response.data.choices[0].message.content;
   return parseAiResponse(rawOutput);
 }
 
@@ -72,18 +68,16 @@ Return valid JSON of the form:
   "suggestions": ["...", "..."]
 }
   `.trim();
-
-  const result = await openai.chat.completions.create({
-    model: 'deepseek/deepseek-chat:free',
+  const response = await openai.createChatCompletion({
+    model: 'text-davinci-003',
     messages: [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: germanyPrompt }
     ],
     temperature: 0.8,
-    max_tokens: 500
+    max_tokens: 500,
   });
-
-  const rawOutput = result.choices[0].message.content;
+  const rawOutput = response.data.choices[0].message.content;
   return parseAiResponse(rawOutput);
 }
 
@@ -102,18 +96,16 @@ Return valid JSON of the form:
   "suggestions": ["...", "..."]
 }
   `.trim();
-
-  const result = await openai.chat.completions.create({
-    model: 'deepseek/deepseek-chat:free',
+  const response = await openai.createChatCompletion({
+    model: 'text-davinci-003',
     messages: [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: offTopicPrompt }
     ],
     temperature: 0.8,
-    max_tokens: 500
+    max_tokens: 500,
   });
-
-  const rawOutput = result.choices[0].message.content;
+  const rawOutput = response.data.choices[0].message.content;
   return parseAiResponse(rawOutput);
 }
 
@@ -128,22 +120,19 @@ Return valid JSON of the form:
   "suggestions": ["...", "..."]
 }
   `.trim();
-
-  const result = await openai.chat.completions.create({
-    model: 'deepseek/deepseek-chat:free',
+  const response = await openai.createChatCompletion({
+    model: 'text-davinci-003',
     messages: [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: introPrompt }
     ],
     temperature: 0.8,
-    max_tokens: 500
+    max_tokens: 500,
   });
-
-  const rawOutput = result.choices[0].message.content;
+  const rawOutput = response.data.choices[0].message.content;
   return parseAiResponse(rawOutput);
 }
 
-// NEW: Generate a summary for the conversation so far.
 async function generateConversationSummary(conversation, language) {
   const conversationText = conversation.messages.map(m => `${m.role}: ${m.content}`).join("\n");
   const summaryPrompt = `
@@ -151,15 +140,14 @@ Please provide a brief summary in ${language} of the conversation so far. Includ
 Conversation:
 ${conversationText}
   `.trim();
-
   try {
-    const result = await openai.chat.completions.create({
-      model: 'deepseek/deepseek-chat:free',
+    const response = await openai.createChatCompletion({
+      model: 'text-davinci-003',
       messages: [{ role: 'system', content: summaryPrompt }],
       temperature: 0.5,
-      max_tokens: 150
+      max_tokens: 150,
     });
-    const summary = result.choices[0].message.content.trim();
+    const summary = response.data.choices[0].message.content.trim();
     return summary;
   } catch (err) {
     console.error("Error generating conversation summary:", err);

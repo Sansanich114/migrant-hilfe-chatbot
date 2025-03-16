@@ -1,10 +1,10 @@
-const OpenAI = require('openai');
+const { Configuration, OpenAIApi } = require("openai");
 require('dotenv').config();
 
-const openai = new OpenAI({
+const configuration = new Configuration({
   apiKey: process.env.OPENROUTER_API_KEY,
-  baseURL: 'https://openrouter.ai/api/v1'
 });
+const openai = new OpenAIApi(configuration);
 
 async function classifyMessage(conversationMessages, currentUserMessage) {
   const conversationText = conversationMessages.map(m => `${m.role}: ${m.content}`).join('\n');
@@ -37,15 +37,14 @@ Please return ONLY raw JSON (do not include any markdown formatting) of the form
   `.trim();
 
   try {
-    const classificationRes = await openai.chat.completions.create({
-      model: 'deepseek/deepseek-chat:free',
+    const response = await openai.createChatCompletion({
+      model: 'text-davinci-003',
       messages: [{ role: 'system', content: classificationPrompt }],
       temperature: 0,
       max_tokens: 150,
-      tools: []
     });
 
-    const rawOutput = classificationRes.choices[0].message.content.trim();
+    const rawOutput = response.data.choices[0].message.content.trim();
     console.log('Raw classification output:', rawOutput);
 
     let parsed;
@@ -59,12 +58,9 @@ Please return ONLY raw JSON (do not include any markdown formatting) of the form
     let { language, category, requiresWebsearch, websearchExplanation } = parsed;
     const validCategories = ['germany', 'politeness', 'other'];
 
-    // Basic validation
     if (!language || !validCategories.includes(category)) {
       return { language: 'en', category: 'other', requiresWebsearch: false, websearchExplanation: "" };
     }
-
-    // If not 'germany', force no websearch
     if (category !== 'germany') {
       requiresWebsearch = false;
       websearchExplanation = "";
