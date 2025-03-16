@@ -368,3 +368,101 @@ body.dark-mode .modal-close {
 .hidden {
   display: none;
 }
+
+/***************************************************
+ * 3-DOTS BUTTON & DROPDOWN
+ ***************************************************/
+.dots-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  position: relative;
+  margin-left: 8px;
+  color: #333;
+}
+.dots-btn:hover {
+  background-color: rgba(0,0,0,0.05);
+  border-radius: 50%;
+}
+
+.dots-dropdown {
+  position: absolute;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  top: 36px; /* adjust if needed */
+  right: 0;
+  z-index: 999;
+  min-width: 80px;
+}
+.dots-dropdown.hidden {
+  display: none;
+}
+.dots-dropdown div {
+  padding: 8px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.dots-dropdown div:hover {
+  background-color: rgba(0,0,0,0.05);
+}
+
+/***************************************************
+ * RENAME MODAL ENHANCEMENTS
+ ***************************************************/
+#renameModal .profile-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 12px 0;
+}
+#renameModal input {
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+/***************************************************
+ * LOGIN / SIGNUP FORMS
+ ***************************************************/
+.auth-tabs button {
+  font-size: 16px;
+  padding: 8px 12px;
+  margin: 0 4px;
+  cursor: pointer;
+  background: #5e5ce6;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  transition: background-color 0.2s;
+}
+.auth-tabs button:hover {
+  background-color: #4a4ab0;
+}
+
+.auth-form input {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 8px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.auth-form button.glow-effect {
+  font-size: 16px;
+  padding: 10px 16px;
+  background: #5e5ce6;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+.auth-form button.glow-effect:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}

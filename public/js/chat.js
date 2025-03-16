@@ -7,7 +7,7 @@ let typingIndicatorElement = null;
 function createNewConversation() {
   const userId = localStorage.getItem("userId");
   if (!userId) return;
-  fetch("/user/createConversation", {  // Updated endpoint
+  fetch("/user/createConversation", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ userId }),
@@ -19,9 +19,10 @@ function createNewConversation() {
         alert("Error creating new conversation.");
         return;
       }
+      // Store the new conversation and open it immediately
       localStorage.setItem("conversationId", data.conversationId);
       fetchConversations();
-      loadConversation(data.conversationId); // Open new conversation immediately
+      loadConversation(data.conversationId);
     })
     .catch((err) => console.error("Error creating new conversation:", err));
 }
@@ -64,26 +65,38 @@ function fetchIntro() {
 function fetchConversations() {
   const userId = localStorage.getItem("userId");
   if (!userId) return;
+
   fetch(`/user/profile/${userId}`)
     .then((res) => res.json())
     .then((data) => {
       const chatListDiv = document.getElementById("chatList");
       chatListDiv.innerHTML = "";
+
       if (data.conversations) {
         data.conversations.forEach((conv) => {
           const convItem = document.createElement("div");
           convItem.className = "chat-item";
+
+          // Conversation name
           const convName = document.createElement("span");
           convName.innerText = conv.conversationName || "Conversation " + conv._id.slice(-4);
           convItem.appendChild(convName);
-          const btnContainer = document.createElement("div");
-          btnContainer.style.display = "flex";
-          btnContainer.style.gap = "8px";
-          const editBtn = document.createElement("button");
-          editBtn.className = "edit-btn";
-          editBtn.innerText = "✏️";
-          editBtn.onclick = async (e) => {
+
+          // Three-dots button
+          const dotsBtn = document.createElement("button");
+          dotsBtn.className = "dots-btn";
+          dotsBtn.innerText = "⋮"; // Alternatively, use an icon or SVG
+
+          // Dropdown for rename/delete
+          const dropdown = document.createElement("div");
+          dropdown.className = "dots-dropdown hidden";
+
+          // RENAME option
+          const renameOption = document.createElement("div");
+          renameOption.innerText = "Rename";
+          renameOption.onclick = async (e) => {
             e.stopPropagation();
+            dropdown.classList.add("hidden");
             const newName = prompt("Enter a new name for this conversation:", conv.conversationName);
             if (!newName) return;
             try {
@@ -97,10 +110,13 @@ function fetchConversations() {
               console.error("Rename failed:", err);
             }
           };
-          const deleteBtn = document.createElement("button");
-          deleteBtn.innerText = "🗑️";
-          deleteBtn.onclick = async (e) => {
+
+          // DELETE option
+          const deleteOption = document.createElement("div");
+          deleteOption.innerText = "Delete";
+          deleteOption.onclick = async (e) => {
             e.stopPropagation();
+            dropdown.classList.add("hidden");
             if (!confirm("Are you sure you want to delete this conversation?")) return;
             try {
               await fetch("/user/deleteConversation", {
@@ -113,9 +129,26 @@ function fetchConversations() {
               console.error("Delete failed:", err);
             }
           };
-          btnContainer.appendChild(editBtn);
-          btnContainer.appendChild(deleteBtn);
-          convItem.appendChild(btnContainer);
+
+          dropdown.appendChild(renameOption);
+          dropdown.appendChild(deleteOption);
+
+          dotsBtn.onclick = (e) => {
+            e.stopPropagation();
+            dropdown.classList.toggle("hidden");
+          };
+
+          // Close dropdown if user clicks outside
+          document.addEventListener("click", (evt) => {
+            if (evt.target !== dotsBtn && !dropdown.contains(evt.target)) {
+              dropdown.classList.add("hidden");
+            }
+          });
+
+          convItem.appendChild(dotsBtn);
+          convItem.appendChild(dropdown);
+
+          // Clicking the item loads that conversation
           convItem.onclick = () => loadConversation(conv._id);
           chatListDiv.appendChild(convItem);
         });
@@ -136,6 +169,7 @@ function loadConversation(conversationId) {
         localStorage.setItem("conversationId", conversationId);
         const chatContainer = document.getElementById("chatContainer");
         chatContainer.innerHTML = "";
+
         conv.messages.forEach((msg) => {
           if (msg.role === "assistant" || msg.role === "system") {
             addMessage("bot", msg.content);
@@ -175,14 +209,17 @@ function sendMessage() {
   const sendBtn = document.getElementById("sendBtn");
   const userMessage = chatInput.value.trim();
   if (!userMessage) return;
+
   addMessage("user", userMessage);
   chatInput.value = "";
   autoResize(chatInput);
   disableInput(chatInput, sendBtn, true);
   addBotTypingMessage();
+
   const userId = localStorage.getItem("userId");
   const conversationId = localStorage.getItem("conversationId");
   const payload = { userId, conversationId, message: userMessage };
+
   fetch("/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -207,14 +244,16 @@ function sendMessage() {
     });
 }
 
-// Adds a message to the chat container
+// Adds a message (user or bot) to the chat container
 function addMessage(sender, text) {
   const chatContainer = document.getElementById("chatContainer");
   const messageDiv = document.createElement("div");
   messageDiv.classList.add("message", sender);
+
   const bubbleDiv = document.createElement("div");
   bubbleDiv.className = "bubble";
   bubbleDiv.innerText = text;
+
   if (sender === "user") {
     messageDiv.appendChild(bubbleDiv);
     const userAvatarImg = document.createElement("img");
@@ -230,6 +269,7 @@ function addMessage(sender, text) {
     messageDiv.appendChild(botAvatar);
     messageDiv.appendChild(bubbleDiv);
   }
+
   chatContainer.appendChild(messageDiv);
   chatContainer.scrollTop = chatContainer.scrollHeight;
 }
@@ -240,11 +280,13 @@ function addBotTypingMessage() {
   const chatContainer = document.getElementById("chatContainer");
   typingIndicatorElement = document.createElement("div");
   typingIndicatorElement.classList.add("message", "bot", "typing-message");
+
   const botAvatar = document.createElement("img");
   botAvatar.className = "avatar";
   botAvatar.src = "images/accent-icons/bot-accent.svg";
   botAvatar.alt = "Bot Avatar";
   typingIndicatorElement.appendChild(botAvatar);
+
   const bubbleDiv = document.createElement("div");
   bubbleDiv.className = "bubble";
   bubbleDiv.innerHTML = `
@@ -254,11 +296,12 @@ function addBotTypingMessage() {
       <div class="dot"></div>
     </div>`;
   typingIndicatorElement.appendChild(bubbleDiv);
+
   chatContainer.appendChild(typingIndicatorElement);
   chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
-// Removes bot typing indicator
+// Removes the bot typing indicator
 function removeBotTypingMessage() {
   if (typingIndicatorElement) {
     const chatContainer = document.getElementById("chatContainer");
@@ -272,6 +315,7 @@ function removeBotTypingMessage() {
 function updateSuggestions(suggestions) {
   const suggestionsDiv = document.getElementById("suggestions");
   suggestionsDiv.innerHTML = "";
+
   if (suggestions && suggestions.length > 0) {
     suggestions.forEach((suggestion) => {
       const suggestionBtn = document.createElement("div");
@@ -287,6 +331,7 @@ function updateSuggestions(suggestions) {
   }
 }
 
+// Exporting so main.js can call these
 window.createProfile = createProfile;
 window.fetchIntro = fetchIntro;
 window.fetchConversations = fetchConversations;
