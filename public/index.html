@@ -139,7 +139,9 @@
         <span id="profileSubscription">Free Plan</span>
       </div>
       <div class="profile-actions">
-        <button id="logoutProfileBtn" class="glow-effect danger logout-btn">Logout</button>
+        <!-- Show "Log In" if no user; otherwise "Logout" -->
+        <button id="loginProfileBtn" class="glow-effect" style="display: none;">Log In</button>
+        <button id="logoutProfileBtn" class="glow-effect danger logout-btn" style="display: none;">Logout</button>
       </div>
     </div>
   </div>

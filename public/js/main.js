@@ -14,14 +14,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const profileBtn = document.getElementById("profileBtn");
   const profileModal = document.getElementById("profileModal");
   const closeProfile = document.getElementById("closeProfile");
-  const deleteAllDataBtn = document.getElementById("deleteAllDataBtn");
-  const deleteAllModal = document.getElementById("deleteAllModal"); // if exists
-  const closeDeleteAll = document.getElementById("closeDeleteAll"); // if exists
-  const confirmDeleteAllBtn = document.getElementById("confirmDeleteAllBtn"); // if exists
-  const cancelDeleteAllBtn = document.getElementById("cancelDeleteAllBtn"); // if exists
   const newChatBtn = document.getElementById("newChatBtn");
   const chatInput = document.getElementById("chatInput");
   const sendBtn = document.getElementById("sendBtn");
+  const loginProfileBtn = document.getElementById("loginProfileBtn");
+  const logoutProfileBtn = document.getElementById("logoutProfileBtn");
 
   // Theme toggle
   themeSwitcher.addEventListener("click", () => {
@@ -41,14 +38,41 @@ document.addEventListener("DOMContentLoaded", () => {
   settingsBtn.addEventListener("click", () => { settingsMenu.classList.toggle("hidden"); });
   openAboutUs.addEventListener("click", () => { aboutModal.classList.remove("hidden"); settingsMenu.classList.add("hidden"); });
   closeAbout.addEventListener("click", () => { aboutModal.classList.add("hidden"); });
-  profileBtn.addEventListener("click", () => { profileModal.classList.remove("hidden"); });
+  
+  // Profile button: if not logged in, open auth modal; if logged in, open profile modal.
+  profileBtn.addEventListener("click", () => {
+    if (!localStorage.getItem("userId")) {
+      openAuthModal();
+    } else {
+      profileModal.classList.remove("hidden");
+    }
+  });
   closeProfile.addEventListener("click", () => { profileModal.classList.add("hidden"); });
   
-  // Delete All Chat History (if implemented via a modal)
-  if(deleteAllDataBtn){
-    deleteAllDataBtn.addEventListener("click", () => { settingsMenu.classList.add("hidden"); if(deleteAllModal) deleteAllModal.classList.remove("hidden"); });
+  // Update profile modal: show "Log In" if not authenticated, "Logout" if authenticated.
+  if (localStorage.getItem("userId")) {
+    logoutProfileBtn.style.display = "inline-block";
+    loginProfileBtn.style.display = "none";
+  } else {
+    loginProfileBtn.style.display = "inline-block";
+    logoutProfileBtn.style.display = "none";
   }
   
+  // Logout button handler
+  logoutProfileBtn.addEventListener("click", () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("userId");
+    localStorage.removeItem("username");
+    profileModal.classList.add("hidden");
+    openAuthModal();
+  });
+  
+  // "Log In" button in profile modal opens auth modal
+  loginProfileBtn.addEventListener("click", () => {
+    profileModal.classList.add("hidden");
+    openAuthModal();
+  });
+
   // New Chat button: check auth
   newChatBtn.addEventListener("click", () => {
     if (!localStorage.getItem("userId")) {

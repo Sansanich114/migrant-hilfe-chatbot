@@ -3,13 +3,12 @@ const OpenAI = require('openai');
 const { parseAiResponse } = require('../utils/helpers');
 require('dotenv').config();
 
-// Create an OpenAI client using your OPENROUTER_API_KEY
+// Create an OpenAI client using your API key.
 const openai = new OpenAI({
   apiKey: process.env.OPENROUTER_API_KEY,
   baseURL: 'https://openrouter.ai/api/v1'
 });
 
-// System prompt remains as your guiding instructions.
 const systemPrompt = process.env.SYSTEM_PROMPT || `
 You are Sasha, a friendly migration assistant who explains things in simple language (easy enough for a 13-year-old, but still accurate).
 Rules:
@@ -24,12 +23,8 @@ Rules:
    }
 `.trim();
 
-/**
- * Generate a short, friendly greeting when the user is just being polite.
- */
 async function generatePolitenessReply(conversation, language) {
   const promptMessages = conversation.messages.map(m => `${m.role}: ${m.content}`).join("\n");
-
   const politenessPrompt = `
 ${systemPrompt}
 
@@ -56,15 +51,9 @@ Return valid JSON of the form:
   });
 
   const rawOutput = result.choices[0].message.content;
-  const parsedResponse = parseAiResponse(rawOutput);
-  return parsedResponse;
+  return parseAiResponse(rawOutput);
 }
 
-/**
- * Generate a Germany-related reply.
- * This prompt uses the conversation context and, if needed, instructs the model
- * to incorporate up-to-date facts from external research.
- */
 async function generateGermanyReply(conversation, message, language, requiresWebsearch) {
   const promptMessages = conversation.messages.map(m => `${m.role}: ${m.content}`).join("\n");
   const webInfoInstruction = requiresWebsearch ? "Incorporate up-to-date facts from recent data if available." : "";
@@ -95,14 +84,9 @@ Return valid JSON of the form:
   });
 
   const rawOutput = result.choices[0].message.content;
-  const parsedResponse = parseAiResponse(rawOutput);
-  return parsedResponse;
+  return parseAiResponse(rawOutput);
 }
 
-/**
- * Generate an off-topic reply.
- * Remind the user to return to questions about Germany or migration.
- */
 async function generateOffTopicReply(conversation, language) {
   const promptMessages = conversation.messages.map(m => `${m.role}: ${m.content}`).join("\n");
   const offTopicPrompt = `
@@ -130,13 +114,9 @@ Return valid JSON of the form:
   });
 
   const rawOutput = result.choices[0].message.content;
-  const parsedResponse = parseAiResponse(rawOutput);
-  return parsedResponse;
+  return parseAiResponse(rawOutput);
 }
 
-/**
- * Generate an introductory reply.
- */
 async function generateIntroReply(language) {
   const introPrompt = `
 ${systemPrompt}
@@ -160,8 +140,31 @@ Return valid JSON of the form:
   });
 
   const rawOutput = result.choices[0].message.content;
-  const parsedResponse = parseAiResponse(rawOutput);
-  return parsedResponse;
+  return parseAiResponse(rawOutput);
+}
+
+// NEW: Generate a summary for the conversation so far.
+async function generateConversationSummary(conversation, language) {
+  const conversationText = conversation.messages.map(m => `${m.role}: ${m.content}`).join("\n");
+  const summaryPrompt = `
+Please provide a brief summary in ${language} of the conversation so far. Include key points such as the user's language, situation, and main topics discussed.
+Conversation:
+${conversationText}
+  `.trim();
+
+  try {
+    const result = await openai.chat.completions.create({
+      model: 'deepseek/deepseek-chat:free',
+      messages: [{ role: 'system', content: summaryPrompt }],
+      temperature: 0.5,
+      max_tokens: 150
+    });
+    const summary = result.choices[0].message.content.trim();
+    return summary;
+  } catch (err) {
+    console.error("Error generating conversation summary:", err);
+    return "";
+  }
 }
 
 module.exports = {
@@ -169,4 +172,5 @@ module.exports = {
   generateGermanyReply,
   generatePolitenessReply,
   generateOffTopicReply,
+  generateConversationSummary,
 };

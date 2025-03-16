@@ -4,6 +4,28 @@
 let isBotTyping = false;
 let typingIndicatorElement = null;
 
+function createNewConversation() {
+  const userId = localStorage.getItem("userId");
+  if (!userId) return;
+  fetch("/user/createConversation", {  // Updated endpoint
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ userId }),
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      if (!data.conversationId) {
+        console.error("No conversationId returned:", data);
+        alert("Error creating new conversation.");
+        return;
+      }
+      localStorage.setItem("conversationId", data.conversationId);
+      fetchConversations();
+      loadConversation(data.conversationId); // Open new conversation immediately
+    })
+    .catch((err) => console.error("Error creating new conversation:", err));
+}
+
 // Creates a new user profile if none exists
 function createProfile() {
   const language = localStorage.getItem("userLanguage") || navigator.language || "en";
@@ -27,7 +49,6 @@ function fetchIntro() {
   const userId = localStorage.getItem("userId");
   const language = localStorage.getItem("userLanguage") || "en";
   if (!userId) return;
-
   fetch(`/user/intro?userId=${userId}&lang=${language}`)
     .then((res) => res.json())
     .then((data) => {
@@ -48,22 +69,16 @@ function fetchConversations() {
     .then((data) => {
       const chatListDiv = document.getElementById("chatList");
       chatListDiv.innerHTML = "";
-
       if (data.conversations) {
         data.conversations.forEach((conv) => {
           const convItem = document.createElement("div");
           convItem.className = "chat-item";
-
           const convName = document.createElement("span");
           convName.innerText = conv.conversationName || "Conversation " + conv._id.slice(-4);
           convItem.appendChild(convName);
-
-          // Buttons container
           const btnContainer = document.createElement("div");
           btnContainer.style.display = "flex";
           btnContainer.style.gap = "8px";
-
-          // Edit button
           const editBtn = document.createElement("button");
           editBtn.className = "edit-btn";
           editBtn.innerText = "✏️";
@@ -82,8 +97,6 @@ function fetchConversations() {
               console.error("Rename failed:", err);
             }
           };
-
-          // Delete button
           const deleteBtn = document.createElement("button");
           deleteBtn.innerText = "🗑️";
           deleteBtn.onclick = async (e) => {
@@ -93,18 +106,16 @@ function fetchConversations() {
               await fetch("/user/deleteConversation", {
                 method: "DELETE",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ conversationId: conv._id })
+                body: JSON.stringify({ conversationId: conv._id, userId })
               });
               fetchConversations();
             } catch (err) {
               console.error("Delete failed:", err);
             }
           };
-
           btnContainer.appendChild(editBtn);
           btnContainer.appendChild(deleteBtn);
           convItem.appendChild(btnContainer);
-
           convItem.onclick = () => loadConversation(conv._id);
           chatListDiv.appendChild(convItem);
         });
@@ -125,7 +136,6 @@ function loadConversation(conversationId) {
         localStorage.setItem("conversationId", conversationId);
         const chatContainer = document.getElementById("chatContainer");
         chatContainer.innerHTML = "";
-
         conv.messages.forEach((msg) => {
           if (msg.role === "assistant" || msg.role === "system") {
             addMessage("bot", msg.content);
@@ -138,24 +148,23 @@ function loadConversation(conversationId) {
     .catch((err) => console.error("Error loading conversation:", err));
 }
 
-// Deletes all user data
+// Deletes all chat history and auto-creates a default conversation
 async function deleteAllUserData() {
   const userId = localStorage.getItem("userId");
   if (!userId) return;
   try {
-    await fetch("/user/deleteAllUserData", {
+    await fetch("/user/deleteAllChatHistory", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userId })
     });
-    // Clear localStorage except for language
     const lang = localStorage.getItem("userLanguage");
     localStorage.clear();
     localStorage.setItem("userLanguage", lang);
     window.location.reload();
   } catch (err) {
-    console.error("Error deleting all user data:", err);
-    alert("Unable to delete data.");
+    console.error("Error deleting all chat history:", err);
+    alert("Unable to delete chat history.");
   }
 }
 
@@ -166,17 +175,14 @@ function sendMessage() {
   const sendBtn = document.getElementById("sendBtn");
   const userMessage = chatInput.value.trim();
   if (!userMessage) return;
-
   addMessage("user", userMessage);
   chatInput.value = "";
   autoResize(chatInput);
   disableInput(chatInput, sendBtn, true);
   addBotTypingMessage();
-
   const userId = localStorage.getItem("userId");
   const conversationId = localStorage.getItem("conversationId");
   const payload = { userId, conversationId, message: userMessage };
-
   fetch("/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -201,18 +207,15 @@ function sendMessage() {
     });
 }
 
-// Adds a message (user or bot) to the chat container
+// Adds a message to the chat container
 function addMessage(sender, text) {
   const chatContainer = document.getElementById("chatContainer");
   const messageDiv = document.createElement("div");
   messageDiv.classList.add("message", sender);
-
   const bubbleDiv = document.createElement("div");
   bubbleDiv.className = "bubble";
   bubbleDiv.innerText = text;
-
   if (sender === "user") {
-    // Put bubble first, then user icon on the right
     messageDiv.appendChild(bubbleDiv);
     const userAvatarImg = document.createElement("img");
     userAvatarImg.classList.add("avatar");
@@ -220,7 +223,6 @@ function addMessage(sender, text) {
     userAvatarImg.alt = "User Avatar";
     messageDiv.appendChild(userAvatarImg);
   } else {
-    // Bot on the left
     const botAvatar = document.createElement("img");
     botAvatar.className = "avatar";
     botAvatar.src = "images/accent-icons/bot-accent.svg";
@@ -228,7 +230,6 @@ function addMessage(sender, text) {
     messageDiv.appendChild(botAvatar);
     messageDiv.appendChild(bubbleDiv);
   }
-
   chatContainer.appendChild(messageDiv);
   chatContainer.scrollTop = chatContainer.scrollHeight;
 }
@@ -239,13 +240,11 @@ function addBotTypingMessage() {
   const chatContainer = document.getElementById("chatContainer");
   typingIndicatorElement = document.createElement("div");
   typingIndicatorElement.classList.add("message", "bot", "typing-message");
-
   const botAvatar = document.createElement("img");
   botAvatar.className = "avatar";
   botAvatar.src = "images/accent-icons/bot-accent.svg";
   botAvatar.alt = "Bot Avatar";
   typingIndicatorElement.appendChild(botAvatar);
-
   const bubbleDiv = document.createElement("div");
   bubbleDiv.className = "bubble";
   bubbleDiv.innerHTML = `
@@ -255,12 +254,11 @@ function addBotTypingMessage() {
       <div class="dot"></div>
     </div>`;
   typingIndicatorElement.appendChild(bubbleDiv);
-
   chatContainer.appendChild(typingIndicatorElement);
   chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
-// Removes the bot typing indicator
+// Removes bot typing indicator
 function removeBotTypingMessage() {
   if (typingIndicatorElement) {
     const chatContainer = document.getElementById("chatContainer");
@@ -274,7 +272,6 @@ function removeBotTypingMessage() {
 function updateSuggestions(suggestions) {
   const suggestionsDiv = document.getElementById("suggestions");
   suggestionsDiv.innerHTML = "";
-
   if (suggestions && suggestions.length > 0) {
     suggestions.forEach((suggestion) => {
       const suggestionBtn = document.createElement("div");
@@ -290,7 +287,6 @@ function updateSuggestions(suggestions) {
   }
 }
 
-// Export all chat functions to the global scope so main.js can use them
 window.createProfile = createProfile;
 window.fetchIntro = fetchIntro;
 window.fetchConversations = fetchConversations;
@@ -301,3 +297,4 @@ window.addMessage = addMessage;
 window.addBotTypingMessage = addBotTypingMessage;
 window.removeBotTypingMessage = removeBotTypingMessage;
 window.updateSuggestions = updateSuggestions;
+window.createNewConversation = createNewConversation;

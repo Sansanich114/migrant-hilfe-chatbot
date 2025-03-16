@@ -10,11 +10,12 @@ const ConversationSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   conversationName: { type: String, default: "Default Conversation" },
   messages: [MessageSchema],
+  summary: { type: String, default: "" },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });
 
-// Update the updatedAt field automatically
+// Automatically update the updatedAt field before save.
 ConversationSchema.pre("save", function(next) {
   this.updatedAt = Date.now();
   next();
