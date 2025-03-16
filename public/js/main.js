@@ -15,15 +15,15 @@ document.addEventListener("DOMContentLoaded", () => {
   const profileModal = document.getElementById("profileModal");
   const closeProfile = document.getElementById("closeProfile");
   const deleteAllDataBtn = document.getElementById("deleteAllDataBtn");
-  const deleteAllModal = document.getElementById("deleteAllModal");
-  const closeDeleteAll = document.getElementById("closeDeleteAll");
-  const confirmDeleteAllBtn = document.getElementById("confirmDeleteAllBtn");
-  const cancelDeleteAllBtn = document.getElementById("cancelDeleteAllBtn");
+  const deleteAllModal = document.getElementById("deleteAllModal"); // if exists
+  const closeDeleteAll = document.getElementById("closeDeleteAll"); // if exists
+  const confirmDeleteAllBtn = document.getElementById("confirmDeleteAllBtn"); // if exists
+  const cancelDeleteAllBtn = document.getElementById("cancelDeleteAllBtn"); // if exists
   const newChatBtn = document.getElementById("newChatBtn");
   const chatInput = document.getElementById("chatInput");
   const sendBtn = document.getElementById("sendBtn");
 
-  // Existing event listeners remain unchanged...
+  // Theme toggle
   themeSwitcher.addEventListener("click", () => {
     body.classList.add("theme-transition");
     body.classList.toggle("dark-mode");
@@ -36,15 +36,20 @@ document.addEventListener("DOMContentLoaded", () => {
     sendIcon.src = isDark ? "images/accent-icons/send-dark.svg" : "images/accent-icons/send-accent.svg";
     setTimeout(() => { body.classList.remove("theme-transition"); }, 300);
   });
+  
+  // Settings menu
   settingsBtn.addEventListener("click", () => { settingsMenu.classList.toggle("hidden"); });
   openAboutUs.addEventListener("click", () => { aboutModal.classList.remove("hidden"); settingsMenu.classList.add("hidden"); });
   closeAbout.addEventListener("click", () => { aboutModal.classList.add("hidden"); });
   profileBtn.addEventListener("click", () => { profileModal.classList.remove("hidden"); });
   closeProfile.addEventListener("click", () => { profileModal.classList.add("hidden"); });
-  deleteAllDataBtn.addEventListener("click", () => { settingsMenu.classList.add("hidden"); deleteAllModal.classList.remove("hidden"); });
-  closeDeleteAll.addEventListener("click", () => { deleteAllModal.classList.add("hidden"); });
-  confirmDeleteAllBtn.addEventListener("click", () => { deleteAllModal.classList.add("hidden"); deleteAllChatHistory(); });
-  cancelDeleteAllBtn.addEventListener("click", () => { deleteAllModal.classList.add("hidden"); });
+  
+  // Delete All Chat History (if implemented via a modal)
+  if(deleteAllDataBtn){
+    deleteAllDataBtn.addEventListener("click", () => { settingsMenu.classList.add("hidden"); if(deleteAllModal) deleteAllModal.classList.remove("hidden"); });
+  }
+  
+  // New Chat button: check auth
   newChatBtn.addEventListener("click", () => {
     if (!localStorage.getItem("userId")) {
       openAuthModal();
@@ -52,6 +57,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     createNewConversation();
   });
+  
+  // Send message: check auth
   sendBtn.addEventListener("click", () => {
     if (!localStorage.getItem("userId")) {
       openAuthModal();
@@ -59,6 +66,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     sendMessage();
   });
+  
   chatInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -83,7 +91,7 @@ document.addEventListener("DOMContentLoaded", () => {
     fetchConversations();
   }
 
-  // RENAME and DELETE conversation modal listeners remain as before...
+  // Expose modal functions for rename and delete conversation
   window.openRenameModal = (convId, oldName) => {
     renameConvId = convId;
     document.getElementById("renameInput").value = oldName || "";
