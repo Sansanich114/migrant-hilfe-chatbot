@@ -1,9 +1,17 @@
 // server/services/classificationService.js
-import OpenAI from "openai";
 import dotenv from "dotenv";
 dotenv.config();
 
-const { Configuration, OpenAIApi } = OpenAI;
+// Dynamically import the OpenAI package
+const openaiModule = await import("openai");
+const { Configuration, OpenAIApi } = openaiModule;
+
+// (Optional) Log the imported Configuration to verify it’s valid
+// console.log("Configuration:", Configuration);
+
+if (typeof Configuration !== "function") {
+  throw new Error("Configuration is not a constructor. Check your OpenAI package version.");
+}
 
 const configuration = new Configuration({
   apiKey: process.env.OPENROUTER_API_KEY,
