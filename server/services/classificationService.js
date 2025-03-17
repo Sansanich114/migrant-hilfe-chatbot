@@ -1,4 +1,5 @@
-import { Configuration, OpenAIApi } from "openai";
+// server/services/classificationService.js
+import { Configuration, OpenAIApi } from "openai/index.js";
 import dotenv from "dotenv";
 dotenv.config();
 
