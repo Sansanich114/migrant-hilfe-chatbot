@@ -1,7 +1,9 @@
 // server/services/classificationService.js
-import { Configuration, OpenAIApi } from "openai/index.js";
+import OpenAI from "openai";
 import dotenv from "dotenv";
 dotenv.config();
+
+const { Configuration, OpenAIApi } = OpenAI;
 
 const configuration = new Configuration({
   apiKey: process.env.OPENROUTER_API_KEY,
