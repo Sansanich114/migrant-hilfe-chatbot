@@ -2,11 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Migrant Hilfe Chatbot</title>
 
   <!-- Montserrat: multiple weights -->
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
 
   <!-- Modular CSS files -->
   <link rel="stylesheet" href="css/base.css" />
@@ -14,26 +17,47 @@
   <link rel="stylesheet" href="css/components.css" />
   <link rel="stylesheet" href="css/themes.css" />
 </head>
+
 <body class="theme-transition">
   <!-- Top Navigation Bar -->
   <nav class="top-nav">
     <div class="nav-left">
       <!-- Migrant Hilfe Logo -->
-      <img id="logoIcon" src="images/accent-icons/migrant-logo-accent.svg" alt="Migrant Hilfe Logo" class="nav-logo" />
+      <img
+        id="logoIcon"
+        src="images/accent-icons/migrant-logo-accent.svg"
+        alt="Migrant Hilfe Logo"
+        class="nav-logo"
+      />
       <span class="nav-title">Migrant Hilfe</span>
     </div>
     <div class="nav-right">
       <!-- Theme Switch -->
       <button id="themeSwitcher" class="nav-btn theme-btn" title="Toggle Theme">
-        <img id="themeIcon" src="images/accent-icons/theme-accent.svg" alt="Theme Icon" class="theme-icon" />
+        <img
+          id="themeIcon"
+          src="images/accent-icons/theme-accent.svg"
+          alt="Theme Icon"
+          class="theme-icon"
+        />
       </button>
       <!-- Settings -->
       <button id="settingsBtn" class="nav-btn settings-btn" title="Settings">
-        <img id="settingsIcon" src="images/accent-icons/settings-accent.svg" alt="Settings" class="icon" />
+        <img
+          id="settingsIcon"
+          src="images/accent-icons/settings-accent.svg"
+          alt="Settings"
+          class="icon"
+        />
       </button>
       <!-- Profile -->
       <button id="profileBtn" class="nav-btn profile-btn" title="Profile">
-        <img id="userIcon" src="images/accent-icons/user-accent.svg" alt="User Avatar" class="profile-icon" />
+        <img
+          id="userIcon"
+          src="images/accent-icons/user-accent.svg"
+          alt="User Avatar"
+          class="profile-icon"
+        />
       </button>
       <div id="settingsMenu" class="settings-menu hidden">
         <ul>
@@ -64,15 +88,21 @@
       <div class="chat-container" id="chatContainer">
         <!-- Messages appended here dynamically -->
       </div>
+
       <!-- Suggestions Row -->
       <div class="suggestions" id="suggestions">
         <!-- Suggestion pills rendered dynamically -->
       </div>
+
       <!-- Input Bar -->
       <div class="input-bar">
         <textarea id="chatInput" placeholder="Ask me anything…"></textarea>
         <button id="sendBtn" class="send-btn glow-effect">
-          <img id="sendIcon" src="images/accent-icons/send-accent.svg" alt="Send" />
+          <img
+            id="sendIcon"
+            src="images/accent-icons/send-accent.svg"
+            alt="Send"
+          />
         </button>
       </div>
     </section>
@@ -88,20 +118,43 @@
           <button id="showSignup">Sign Up</button>
           <button id="showLogin">Log In</button>
         </div>
+
         <!-- Sign Up Form -->
         <div id="signupForm" class="auth-form">
           <h2>Sign Up</h2>
           <input id="signupEmail" type="email" placeholder="Email" required />
-          <input id="signupUsername" type="text" placeholder="Username" required />
-          <input id="signupPassword" type="password" placeholder="Password" required />
-          <input id="signupPasswordConfirm" type="password" placeholder="Confirm Password" required />
+          <!-- Removed username field -->
+          <input
+            id="signupPassword"
+            type="password"
+            placeholder="Password"
+            required
+          />
+          <input
+            id="signupPasswordConfirm"
+            type="password"
+            placeholder="Confirm Password"
+            required
+          />
           <button id="signupBtn" class="glow-effect">Register</button>
         </div>
+
         <!-- Login Form -->
         <div id="loginForm" class="auth-form hidden">
           <h2>Log In</h2>
-          <input id="loginUsername" type="text" placeholder="Username" required />
-          <input id="loginPassword" type="password" placeholder="Password" required />
+          <!-- ID can remain "loginUsername" if you want, but let's rename it for clarity -->
+          <input
+            id="loginUsername"
+            type="text"
+            placeholder="Email"
+            required
+          />
+          <input
+            id="loginPassword"
+            type="password"
+            placeholder="Password"
+            required
+          />
           <button id="loginBtn" class="glow-effect">Login</button>
         </div>
       </div>
@@ -140,8 +193,20 @@
       </div>
       <div class="profile-actions">
         <!-- Show "Log In" if no user; otherwise "Logout" -->
-        <button id="loginProfileBtn" class="glow-effect" style="display: none;">Log In</button>
-        <button id="logoutProfileBtn" class="glow-effect danger logout-btn" style="display: none;">Logout</button>
+        <button
+          id="loginProfileBtn"
+          class="glow-effect"
+          style="display: none;"
+        >
+          Log In
+        </button>
+        <button
+          id="logoutProfileBtn"
+          class="glow-effect danger logout-btn"
+          style="display: none;"
+        >
+          Logout
+        </button>
       </div>
     </div>
   </div>
@@ -169,7 +234,9 @@
       <h2>Delete Conversation?</h2>
       <p>This action cannot be undone.</p>
       <div class="profile-actions">
-        <button id="confirmDeleteConvBtn" class="glow-effect danger">Delete</button>
+        <button id="confirmDeleteConvBtn" class="glow-effect danger">
+          Delete
+        </button>
         <button id="cancelDeleteConvBtn" class="glow-effect">Cancel</button>
       </div>
     </div>

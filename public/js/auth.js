@@ -1,3 +1,4 @@
+// public/js/auth.js
 document.addEventListener("DOMContentLoaded", () => {
   const authModal = document.getElementById("authModal");
   const closeAuth = document.getElementById("closeAuth");
@@ -24,10 +25,9 @@ document.addEventListener("DOMContentLoaded", () => {
   // Signup handler
   signupBtn.addEventListener("click", async () => {
     const email = document.getElementById("signupEmail").value.trim();
-    const username = document.getElementById("signupUsername").value.trim();
     const password = document.getElementById("signupPassword").value;
     const passwordConfirm = document.getElementById("signupPasswordConfirm").value;
-    if (!email || !username || !password || !passwordConfirm) {
+    if (!email || !password || !passwordConfirm) {
       alert("Please fill in all fields.");
       return;
     }
@@ -39,11 +39,11 @@ document.addEventListener("DOMContentLoaded", () => {
       const res = await fetch("/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, username, password, confirmPassword: passwordConfirm })
+        body: JSON.stringify({ email, password, confirmPassword: passwordConfirm })
       });
       const data = await res.json();
       if (res.ok) {
-        alert("Signup successful! Please verify your email.");
+        alert("Signup successful!");
         authModal.classList.add("hidden");
       } else {
         alert(data.error || "Signup failed.");
@@ -56,9 +56,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Login handler
   loginBtn.addEventListener("click", async () => {
-    const username = document.getElementById("loginUsername").value.trim();
+    const email = document.getElementById("loginUsername").value.trim();
     const password = document.getElementById("loginPassword").value;
-    if (!username || !password) {
+    if (!email || !password) {
       alert("Please fill in both fields.");
       return;
     }
@@ -66,14 +66,14 @@ document.addEventListener("DOMContentLoaded", () => {
       const res = await fetch("/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ email, password })
       });
       const data = await res.json();
       if (res.ok) {
-        // Save session token and user info (for example, in localStorage)
+        // Save session token and user info
         localStorage.setItem("token", data.token);
         localStorage.setItem("userId", data.userId);
-        localStorage.setItem("username", data.username);
+        localStorage.setItem("email", data.email);
         authModal.classList.add("hidden");
         location.reload(); // reload to allow chat functionality
       } else {

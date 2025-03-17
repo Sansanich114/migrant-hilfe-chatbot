@@ -1,11 +1,12 @@
+// server/models/User.js
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const SALT_WORK_FACTOR = 10;
 
 const UserSchema = new mongoose.Schema({
-  email: { type: String, unique: true, sparse: true },
-  username: { type: String, unique: true, required: true },
-  password: { type: String },
+  email: { type: String, unique: true, required: true },
+  // username removed entirely
+  password: { type: String, required: true },
   isVerified: { type: Boolean, default: false },
   subscriptionType: { type: String, default: "free" },
   freeUsageCount: { type: Number, default: 0 },
