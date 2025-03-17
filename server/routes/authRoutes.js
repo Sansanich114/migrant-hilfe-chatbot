@@ -4,6 +4,6 @@ const authController = require('../controllers/authController');
 
 router.post('/signup', authController.signup);
 router.post('/login', authController.login);
-router.get('/verify/:token', authController.verifyEmail);
+// Removed the /verify/:token route since email verification is no longer used
 
 module.exports = router;
