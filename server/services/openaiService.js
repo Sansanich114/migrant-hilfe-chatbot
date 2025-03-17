@@ -1,4 +1,5 @@
-import { Configuration, OpenAIApi } from "openai";
+// server/services/openaiService.js
+import { OpenAI } from "openai";
 import dotenv from "dotenv";
 dotenv.config();
 import { parseAiResponse } from "../utils/helpers.js";
@@ -17,11 +18,31 @@ Rules:
    }
 `.trim();
 
-const configuration = new Configuration({
+// Create the newer OpenAI instance
+const openai = new OpenAI({
   apiKey: process.env.OPENROUTER_API_KEY,
 });
-const openai = new OpenAIApi(configuration);
 
+/**
+ * Common helper for text-davinci completions
+ * @param {string} prompt The full text prompt you want to send
+ * @param {number} temperature The temperature
+ * @returns {string} The raw text response
+ */
+async function callTextDavinci003(prompt, temperature = 0.8) {
+  const completion = await openai.completions.create({
+    model: "text-davinci-003",
+    prompt: prompt,
+    temperature,
+    max_tokens: 500,
+  });
+  // text-davinci-003 responses are in completion.choices[0].text
+  return completion.choices[0].text;
+}
+
+/**
+ * Politeness reply
+ */
 export async function generatePolitenessReply(conversation, language) {
   const promptMessages = conversation.messages.map(m => `${m.role}: ${m.content}`).join("\n");
   const politenessPrompt = `
@@ -38,19 +59,14 @@ Return valid JSON of the form:
   "suggestions": ["...", "..."]
 }
   `.trim();
-  const response = await openai.createChatCompletion({
-    model: 'text-davinci-003',
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: politenessPrompt }
-    ],
-    temperature: 0.8,
-    max_tokens: 500,
-  });
-  const rawOutput = response.data.choices[0].message.content;
+
+  const rawOutput = await callTextDavinci003(politenessPrompt, 0.8);
   return parseAiResponse(rawOutput);
 }
 
+/**
+ * Germany-specific reply
+ */
 export async function generateGermanyReply(conversation, message, language, requiresWebsearch) {
   const promptMessages = conversation.messages.map(m => `${m.role}: ${m.content}`).join("\n");
   const webInfoInstruction = requiresWebsearch ? "Incorporate up-to-date facts from recent data if available." : "";
@@ -69,19 +85,14 @@ Return valid JSON of the form:
   "suggestions": ["...", "..."]
 }
   `.trim();
-  const response = await openai.createChatCompletion({
-    model: 'text-davinci-003',
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: germanyPrompt }
-    ],
-    temperature: 0.8,
-    max_tokens: 500,
-  });
-  const rawOutput = response.data.choices[0].message.content;
+
+  const rawOutput = await callTextDavinci003(germanyPrompt, 0.8);
   return parseAiResponse(rawOutput);
 }
 
+/**
+ * Off-topic reply
+ */
 export async function generateOffTopicReply(conversation, language) {
   const promptMessages = conversation.messages.map(m => `${m.role}: ${m.content}`).join("\n");
   const offTopicPrompt = `
@@ -97,19 +108,14 @@ Return valid JSON of the form:
   "suggestions": ["...", "..."]
 }
   `.trim();
-  const response = await openai.createChatCompletion({
-    model: 'text-davinci-003',
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: offTopicPrompt }
-    ],
-    temperature: 0.8,
-    max_tokens: 500,
-  });
-  const rawOutput = response.data.choices[0].message.content;
+
+  const rawOutput = await callTextDavinci003(offTopicPrompt, 0.8);
   return parseAiResponse(rawOutput);
 }
 
+/**
+ * Intro greeting
+ */
 export async function generateIntroReply(language) {
   const introPrompt = `
 ${systemPrompt}
@@ -121,19 +127,14 @@ Return valid JSON of the form:
   "suggestions": ["...", "..."]
 }
   `.trim();
-  const response = await openai.createChatCompletion({
-    model: 'text-davinci-003',
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: introPrompt }
-    ],
-    temperature: 0.8,
-    max_tokens: 500,
-  });
-  const rawOutput = response.data.choices[0].message.content;
+
+  const rawOutput = await callTextDavinci003(introPrompt, 0.8);
   return parseAiResponse(rawOutput);
 }
 
+/**
+ * Conversation summary
+ */
 export async function generateConversationSummary(conversation, language) {
   const conversationText = conversation.messages.map(m => `${m.role}: ${m.content}`).join("\n");
   const summaryPrompt = `
@@ -141,15 +142,10 @@ Please provide a brief summary in ${language} of the conversation so far. Includ
 Conversation:
 ${conversationText}
   `.trim();
+
   try {
-    const response = await openai.createChatCompletion({
-      model: 'text-davinci-003',
-      messages: [{ role: 'system', content: summaryPrompt }],
-      temperature: 0.5,
-      max_tokens: 150,
-    });
-    const summary = response.data.choices[0].message.content.trim();
-    return summary;
+    const rawOutput = await callTextDavinci003(summaryPrompt, 0.5);
+    return rawOutput.trim();
   } catch (err) {
     console.error("Error generating conversation summary:", err);
     return "";
