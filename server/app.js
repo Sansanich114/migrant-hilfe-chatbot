@@ -1,11 +1,13 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-require('dotenv').config();
+// server/app.js
+import express from "express";
+import mongoose from "mongoose";
+import cors from "cors";
+import dotenv from "dotenv";
+dotenv.config();
 
-const chatRoutes = require('./routes/chatRoutes');
-const userRoutes = require('./routes/userRoutes');
-const authRoutes = require('./routes/authRoutes');
+import chatRoutes from "./routes/chatRoutes.js";
+import userRoutes from "./routes/userRoutes.js";
+import authRoutes from "./routes/authRoutes.js";
 
 const app = express();
 
@@ -18,14 +20,14 @@ app.use(
   })
 );
 app.use(express.json());
-app.use(express.static('public'));
+app.use(express.static("public"));
 
-app.use('/chat', chatRoutes);
-app.use('/user', userRoutes);
-app.use('/auth', authRoutes);
+app.use("/chat", chatRoutes);
+app.use("/user", userRoutes);
+app.use("/auth", authRoutes);
 
 mongoose
-  .connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/migrantHilfe')
+  .connect(process.env.MONGODB_URI || "mongodb://localhost:27017/migrantHilfe")
   .then(() => console.log("✅ Connected to MongoDB"))
   .catch((err) => console.error("MongoDB connection error:", err));
 
