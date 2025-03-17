@@ -1,12 +1,13 @@
-const { Configuration, OpenAIApi } = require("openai");
-require('dotenv').config();
+import { Configuration, OpenAIApi } from "openai";
+import dotenv from "dotenv";
+dotenv.config();
 
 const configuration = new Configuration({
   apiKey: process.env.OPENROUTER_API_KEY,
 });
 const openai = new OpenAIApi(configuration);
 
-async function classifyMessage(conversationMessages, currentUserMessage) {
+export async function classifyMessage(conversationMessages, currentUserMessage) {
   const conversationText = conversationMessages.map(m => `${m.role}: ${m.content}`).join('\n');
 
   const classificationPrompt = `
@@ -77,5 +78,3 @@ Please return ONLY raw JSON (do not include any markdown formatting) of the form
     return { language: 'en', category: 'other', requiresWebsearch: false, websearchExplanation: "" };
   }
 }
-
-module.exports = { classifyMessage };

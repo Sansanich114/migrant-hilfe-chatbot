@@ -1,11 +1,7 @@
-const { Configuration, OpenAIApi } = require("openai");
-const { parseAiResponse } = require('../utils/helpers');
-require('dotenv').config();
-
-const configuration = new Configuration({
-  apiKey: process.env.OPENROUTER_API_KEY,
-});
-const openai = new OpenAIApi(configuration);
+import { Configuration, OpenAIApi } from "openai";
+import dotenv from "dotenv";
+dotenv.config();
+import { parseAiResponse } from "../utils/helpers.js";
 
 const systemPrompt = process.env.SYSTEM_PROMPT || `
 You are Sasha, a friendly migration assistant who explains things in simple language (easy enough for a 13-year-old, but still accurate).
@@ -21,7 +17,12 @@ Rules:
    }
 `.trim();
 
-async function generatePolitenessReply(conversation, language) {
+const configuration = new Configuration({
+  apiKey: process.env.OPENROUTER_API_KEY,
+});
+const openai = new OpenAIApi(configuration);
+
+export async function generatePolitenessReply(conversation, language) {
   const promptMessages = conversation.messages.map(m => `${m.role}: ${m.content}`).join("\n");
   const politenessPrompt = `
 ${systemPrompt}
@@ -50,7 +51,7 @@ Return valid JSON of the form:
   return parseAiResponse(rawOutput);
 }
 
-async function generateGermanyReply(conversation, message, language, requiresWebsearch) {
+export async function generateGermanyReply(conversation, message, language, requiresWebsearch) {
   const promptMessages = conversation.messages.map(m => `${m.role}: ${m.content}`).join("\n");
   const webInfoInstruction = requiresWebsearch ? "Incorporate up-to-date facts from recent data if available." : "";
   const germanyPrompt = `
@@ -81,7 +82,7 @@ Return valid JSON of the form:
   return parseAiResponse(rawOutput);
 }
 
-async function generateOffTopicReply(conversation, language) {
+export async function generateOffTopicReply(conversation, language) {
   const promptMessages = conversation.messages.map(m => `${m.role}: ${m.content}`).join("\n");
   const offTopicPrompt = `
 ${systemPrompt}
@@ -109,7 +110,7 @@ Return valid JSON of the form:
   return parseAiResponse(rawOutput);
 }
 
-async function generateIntroReply(language) {
+export async function generateIntroReply(language) {
   const introPrompt = `
 ${systemPrompt}
 
@@ -133,7 +134,7 @@ Return valid JSON of the form:
   return parseAiResponse(rawOutput);
 }
 
-async function generateConversationSummary(conversation, language) {
+export async function generateConversationSummary(conversation, language) {
   const conversationText = conversation.messages.map(m => `${m.role}: ${m.content}`).join("\n");
   const summaryPrompt = `
 Please provide a brief summary in ${language} of the conversation so far. Include key points such as the user's language, situation, and main topics discussed.
@@ -154,11 +155,3 @@ ${conversationText}
     return "";
   }
 }
-
-module.exports = {
-  generateIntroReply,
-  generateGermanyReply,
-  generatePolitenessReply,
-  generateOffTopicReply,
-  generateConversationSummary,
-};
