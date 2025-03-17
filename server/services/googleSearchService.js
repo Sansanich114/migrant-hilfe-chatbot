@@ -1,9 +1,10 @@
-const axios = require('axios');
+// server/services/googleSearchService.js
+import axios from "axios";
 
-async function getGoogleSummary(query) {
+export async function getGoogleSummary(query) {
   try {
     // Make the request to Google Custom Search
-    const res = await axios.get('https://customsearch.googleapis.com/customsearch/v1', {
+    const res = await axios.get("https://customsearch.googleapis.com/customsearch/v1", {
       params: {
         key: process.env.GOOGLE_CSE_KEY,
         cx: process.env.GOOGLE_CSE_ID,
@@ -15,10 +16,8 @@ async function getGoogleSummary(query) {
     const items = res.data.items ? res.data.items.slice(0, 3) : [];
 
     // Combine snippets into a single string
-    // You could also pick the "best" snippet or do more sophisticated parsing
-    const snippetText = items.map(item => item.snippet).join("\n\n");
+    const snippetText = items.map((item) => item.snippet).join("\n\n");
 
-    // Return the combined snippet text
     return snippetText || "No relevant info found from the web search.";
   } catch (err) {
     console.error("Google Search error:", err);
@@ -26,5 +25,3 @@ async function getGoogleSummary(query) {
     return "I couldn't find extra info right now.";
   }
 }
-
-module.exports = { getGoogleSummary };

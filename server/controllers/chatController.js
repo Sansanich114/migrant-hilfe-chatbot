@@ -1,10 +1,15 @@
-const User = require('../models/User');
-const Conversation = require('../models/Conversation');
-const classificationService = require('../services/classificationService');
-const openaiService = require('../services/openaiService');
+// server/controllers/chatController.js
+import User from "../models/User.js";
+import Conversation from "../models/Conversation.js";
+import { classifyMessage } from "../services/classificationService.js";
+import {
+  generatePolitenessReply,
+  generateGermanyReply,
+  generateOffTopicReply,
+  generateConversationSummary,
+} from "../services/openaiService.js";
 
-// Chat controller logic – called by the /chat endpoint.
-const chat = async (req, res) => {
+export async function chat(req, res) {
   const { userId, conversationId, message } = req.body;
   if (!userId || !message) {
     return res.status(400).json({ error: "userId and message are required." });
@@ -24,10 +29,7 @@ const chat = async (req, res) => {
     }
 
     // 3) Classify the user's new message.
-    const classification = await classificationService.classifyMessage(
-      conversation.messages,
-      message
-    );
+    const classification = await classifyMessage(conversation.messages, message);
     const { language, category, requiresWebsearch } = classification;
 
     // 4) Update user's language if needed.
@@ -47,16 +49,16 @@ const chat = async (req, res) => {
     // 6) Generate a reply based on the classification.
     let replyData;
     if (category === "politeness") {
-      replyData = await openaiService.generatePolitenessReply(conversation, finalLanguage);
+      replyData = await generatePolitenessReply(conversation, finalLanguage);
     } else if (category === "germany") {
-      replyData = await openaiService.generateGermanyReply(
+      replyData = await generateGermanyReply(
         conversation,
         message,
         finalLanguage,
         requiresWebsearch
       );
     } else {
-      replyData = await openaiService.generateOffTopicReply(conversation, finalLanguage);
+      replyData = await generateOffTopicReply(conversation, finalLanguage);
     }
 
     // 7) Add assistant's reply.
@@ -67,7 +69,7 @@ const chat = async (req, res) => {
     });
 
     // 8) Generate an updated summary of the conversation.
-    const summary = await openaiService.generateConversationSummary(conversation, finalLanguage);
+    const summary = await generateConversationSummary(conversation, finalLanguage);
     conversation.summary = summary;
 
     // 9) Save the conversation.
@@ -79,6 +81,4 @@ const chat = async (req, res) => {
     console.error("Error in /chat:", err);
     return res.status(500).json({ error: "Unable to process request." });
   }
-};
-
-module.exports = { chat };
+}

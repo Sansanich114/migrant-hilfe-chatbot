@@ -1,9 +1,11 @@
-const express = require('express');
-const router = express.Router();
-const authController = require('../controllers/authController');
+// server/routes/authRoutes.js
+import express from "express";
+import { signup, login, verifyEmail } from "../controllers/authController.js";
 
-router.post('/signup', authController.signup);
-router.post('/login', authController.login);
+const router = express.Router();
+
+router.post("/signup", signup);
+router.post("/login", login);
 // Removed the /verify/:token route since email verification is no longer used
 
-module.exports = router;
+export default router;

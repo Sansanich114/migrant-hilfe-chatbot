@@ -1,13 +1,23 @@
-const express = require('express');
+// server/routes/userRoutes.js
+import express from "express";
+import {
+  createProfile,
+  createConversation,
+  getProfile,
+  renameConversation,
+  deleteConversation,
+  deleteAllChatHistory,
+  intro,
+} from "../controllers/userController.js";
+
 const router = express.Router();
-const userController = require('../controllers/userController');
 
-router.post('/createProfile', userController.createProfile);
-router.post('/createConversation', userController.createConversation);
-router.get('/profile/:userId', userController.getProfile);
-router.patch('/renameConversation', userController.renameConversation);
-router.delete('/deleteConversation', userController.deleteConversation);
-router.delete('/deleteAllChatHistory', userController.deleteAllChatHistory);
-router.get('/intro', userController.intro);
+router.post("/createProfile", createProfile);
+router.post("/createConversation", createConversation);
+router.get("/profile/:userId", getProfile);
+router.patch("/renameConversation", renameConversation);
+router.delete("/deleteConversation", deleteConversation);
+router.delete("/deleteAllChatHistory", deleteAllChatHistory);
+router.get("/intro", intro);
 
-module.exports = router;
+export default router;

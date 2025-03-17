@@ -1,9 +1,10 @@
-const mongoose = require("mongoose");
+// server/models/Conversation.js
+import mongoose from "mongoose";
 
 const MessageSchema = new mongoose.Schema({
   role: { type: String, enum: ["user", "assistant", "system"], required: true },
   content: { type: String, required: true },
-  timestamp: { type: Date, default: Date.now }
+  timestamp: { type: Date, default: Date.now },
 });
 
 const ConversationSchema = new mongoose.Schema({
@@ -12,13 +13,13 @@ const ConversationSchema = new mongoose.Schema({
   messages: [MessageSchema],
   summary: { type: String, default: "" },
   createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now }
+  updatedAt: { type: Date, default: Date.now },
 });
 
 // Automatically update the updatedAt field before save.
-ConversationSchema.pre("save", function(next) {
+ConversationSchema.pre("save", function (next) {
   this.updatedAt = Date.now();
   next();
 });
 
-module.exports = mongoose.model("Conversation", ConversationSchema);
+export default mongoose.model("Conversation", ConversationSchema);
