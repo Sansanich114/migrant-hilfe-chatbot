@@ -34,13 +34,15 @@ export async function signup(req, res) {
   }
 }
 
+// Updated login function: now requires email and password
 export async function login(req, res) {
-  const { username, password } = req.body;
-  if (!username || !password) {
-    return res.status(400).json({ error: "Missing username or password." });
+  const { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({ error: "Missing email or password." });
   }
   try {
-    const user = await User.findOne({ username });
+    // Find user by email
+    const user = await User.findOne({ email });
     if (!user) return res.status(401).json({ error: "Invalid credentials." });
     user.comparePassword(password, (err, isMatch) => {
       if (err || !isMatch) {
@@ -48,7 +50,7 @@ export async function login(req, res) {
       }
       // Removed email verification check since users are now automatically verified
       const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: "7d" });
-      return res.json({ token, userId: user._id, username: user.username });
+      return res.json({ token, userId: user._id, email: user.email });
     });
   } catch (err) {
     console.error("Login error:", err);
