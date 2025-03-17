@@ -7,7 +7,7 @@ const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret";
 // Signup now marks the user as verified by default
 export async function signup(req, res) {
   const { email, username, password, confirmPassword } = req.body;
-  if (!username || !password || !confirmPassword) {
+  if (!email || !username || !password || !confirmPassword) {
     return res.status(400).json({ error: "Missing required fields." });
   }
   if (password !== confirmPassword) {
@@ -25,6 +25,10 @@ export async function signup(req, res) {
     await newUser.save();
     return res.status(201).json({ message: "Signup successful." });
   } catch (err) {
+    // Check for duplicate key error (email already exists)
+    if (err.code === 11000) {
+      return res.status(400).json({ error: "This email is already in use." });
+    }
     console.error("Signup error:", err);
     return res.status(500).json({ error: "Error signing up." });
   }
