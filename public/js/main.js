@@ -62,7 +62,7 @@ document.addEventListener("DOMContentLoaded", () => {
   logoutProfileBtn.addEventListener("click", () => {
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
-    localStorage.removeItem("username");
+    // Removed username removal as username is no longer used.
     profileModal.classList.add("hidden");
     openAuthModal();
   });

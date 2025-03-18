@@ -4,7 +4,9 @@ import dotenv from "dotenv";
 dotenv.config();
 import { parseAiResponse } from "../utils/helpers.js";
 
-const systemPrompt = process.env.SYSTEM_PROMPT || `
+const systemPrompt =
+  process.env.SYSTEM_PROMPT ||
+  `
 You are Sasha, a friendly migration assistant who explains things in simple language (easy enough for a 13-year-old, but still accurate).
 Rules:
 1. Your answers should be short and clear.
@@ -18,33 +20,36 @@ Rules:
    }
 `.trim();
 
-// Create the newer OpenAI instance
+/**
+ * Configure the official 'openai' library to talk to OpenRouter,
+ * passing your single API key in the X-OpenRouter-Api-Key header.
+ */
 const openai = new OpenAI({
-  apiKey: process.env.OPENROUTER_API_KEY,
+  baseURL: "https://openrouter.ai/api/v1",
+  defaultHeaders: {
+    "X-OpenRouter-Api-Key": process.env.OPENROUTER_API_KEY,
+  },
 });
 
-/**
- * Common helper for text-davinci completions
- * @param {string} prompt The full text prompt you want to send
- * @param {number} temperature The temperature
- * @returns {string} The raw text response
+/** 
+ * Helper that calls the 'deepseek/r1' model via chat completions 
+ * (the main chatbot).
  */
-async function callTextDavinci003(prompt, temperature = 0.8) {
-  const completion = await openai.completions.create({
-    model: "text-davinci-003",
-    prompt: prompt,
+async function callDeepSeekR1Chat(messages, temperature = 0.8) {
+  const response = await openai.chat.completions.create({
+    model: "deepseek/r1", // <-- Uses DeepSeek Free R1 for main chatbot
+    messages,
     temperature,
     max_tokens: 500,
   });
-  // text-davinci-003 responses are in completion.choices[0].text
-  return completion.choices[0].text;
+  return response.choices[0].message.content;
 }
 
-/**
- * Politeness reply
- */
+/** Politeness reply */
 export async function generatePolitenessReply(conversation, language) {
-  const promptMessages = conversation.messages.map(m => `${m.role}: ${m.content}`).join("\n");
+  const promptMessages = conversation.messages
+    .map((m) => `${m.role}: ${m.content}`)
+    .join("\n");
   const politenessPrompt = `
 ${systemPrompt}
 
@@ -52,7 +57,7 @@ Conversation so far:
 ${promptMessages}
 
 The user is just being polite. Respond in ${language} with a short, friendly greeting.
-Provide exactly 2 short suggestions for what the user might ask about Germany or migration next.
+Provide exactly 2 short suggestions for what they might ask about Germany or migration next.
 Return valid JSON of the form:
 {
   "reply": "...",
@@ -60,16 +65,24 @@ Return valid JSON of the form:
 }
   `.trim();
 
-  const rawOutput = await callTextDavinci003(politenessPrompt, 0.8);
+  const messages = [{ role: "system", content: politenessPrompt }];
+  const rawOutput = await callDeepSeekR1Chat(messages, 0.8);
   return parseAiResponse(rawOutput);
 }
 
-/**
- * Germany-specific reply
- */
-export async function generateGermanyReply(conversation, message, language, requiresWebsearch) {
-  const promptMessages = conversation.messages.map(m => `${m.role}: ${m.content}`).join("\n");
-  const webInfoInstruction = requiresWebsearch ? "Incorporate up-to-date facts from recent data if available." : "";
+/** Germany-specific reply */
+export async function generateGermanyReply(
+  conversation,
+  message,
+  language,
+  requiresWebsearch
+) {
+  const promptMessages = conversation.messages
+    .map((m) => `${m.role}: ${m.content}`)
+    .join("\n");
+  const webInfoInstruction = requiresWebsearch
+    ? "Incorporate up-to-date facts from recent data if available."
+    : "";
   const germanyPrompt = `
 ${systemPrompt}
 
@@ -86,15 +99,16 @@ Return valid JSON of the form:
 }
   `.trim();
 
-  const rawOutput = await callTextDavinci003(germanyPrompt, 0.8);
+  const messages = [{ role: "system", content: germanyPrompt }];
+  const rawOutput = await callDeepSeekR1Chat(messages, 0.8);
   return parseAiResponse(rawOutput);
 }
 
-/**
- * Off-topic reply
- */
+/** Off-topic reply */
 export async function generateOffTopicReply(conversation, language) {
-  const promptMessages = conversation.messages.map(m => `${m.role}: ${m.content}`).join("\n");
+  const promptMessages = conversation.messages
+    .map((m) => `${m.role}: ${m.content}`)
+    .join("\n");
   const offTopicPrompt = `
 ${systemPrompt}
 
@@ -109,13 +123,12 @@ Return valid JSON of the form:
 }
   `.trim();
 
-  const rawOutput = await callTextDavinci003(offTopicPrompt, 0.8);
+  const messages = [{ role: "system", content: offTopicPrompt }];
+  const rawOutput = await callDeepSeekR1Chat(messages, 0.8);
   return parseAiResponse(rawOutput);
 }
 
-/**
- * Intro greeting
- */
+/** Intro greeting */
 export async function generateIntroReply(language) {
   const introPrompt = `
 ${systemPrompt}
@@ -128,23 +141,25 @@ Return valid JSON of the form:
 }
   `.trim();
 
-  const rawOutput = await callTextDavinci003(introPrompt, 0.8);
+  const messages = [{ role: "system", content: introPrompt }];
+  const rawOutput = await callDeepSeekR1Chat(messages, 0.8);
   return parseAiResponse(rawOutput);
 }
 
-/**
- * Conversation summary
- */
+/** Conversation summary */
 export async function generateConversationSummary(conversation, language) {
-  const conversationText = conversation.messages.map(m => `${m.role}: ${m.content}`).join("\n");
+  const conversationText = conversation.messages
+    .map((m) => `${m.role}: ${m.content}`)
+    .join("\n");
   const summaryPrompt = `
 Please provide a brief summary in ${language} of the conversation so far. Include key points such as the user's language, situation, and main topics discussed.
 Conversation:
 ${conversationText}
   `.trim();
 
+  const messages = [{ role: "system", content: summaryPrompt }];
   try {
-    const rawOutput = await callTextDavinci003(summaryPrompt, 0.5);
+    const rawOutput = await callDeepSeekR1Chat(messages, 0.5);
     return rawOutput.trim();
   } catch (err) {
     console.error("Error generating conversation summary:", err);

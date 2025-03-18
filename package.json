@@ -1,7 +1,8 @@
 {
   "name": "migrant-hilfe-chatbot",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "server/app.js",
+  "type": "module",
   "scripts": {
     "start": "node server/app.js",
     "test": "echo \"Error: no test specified\" && exit 1"

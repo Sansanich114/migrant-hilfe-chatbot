@@ -1,29 +1,28 @@
-// ------------------------
 // server/services/classificationService.js
-// ------------------------
 import { OpenAI } from "openai";
 import dotenv from "dotenv";
-
 dotenv.config();
-
-// 1) Create an OpenAI client instance
-const openai = new OpenAI({
-  apiKey: process.env.OPENROUTER_API_KEY,
-});
 
 /**
  * Classifies the user's newest message by:
  *  - Detecting the language
  *  - Categorizing the topic
- *  - Checking if web search is required (for time-sensitive info)
+ *  - Checking if web search is required
  */
 export async function classifyMessage(conversationMessages, currentUserMessage) {
+  // Use OpenRouter with DeepSeek Free v3
+  const openai = new OpenAI({
+    baseURL: "https://openrouter.ai/api/v1",
+    defaultHeaders: {
+      "X-OpenRouter-Api-Key": process.env.OPENROUTER_API_KEY,
+    },
+  });
+
   // Build text representation of the conversation so far
   const conversationText = conversationMessages
-    .map(m => `${m.role}: ${m.content}`)
+    .map((m) => `${m.role}: ${m.content}`)
     .join("\n");
 
-  // We’ll pass this entire prompt in as a single system message
   const classificationPrompt = `
 You are a strict classifier that identifies three things about the user's newest message:
 
@@ -32,15 +31,7 @@ You are a strict classifier that identifies three things about the user's newest
    - "germany" if the message is about immigrating or living in Germany
    - "politeness" if the user is just being polite (greeting, etc.)
    - "other" if it's off-topic with no mention of Germany or immigration.
-3) If the category is "germany", decide if a websearch is needed for time-sensitive info 
-   (for example, if the user asks about recent laws or COVID rules). If needed, set "requiresWebsearch" to true
-   and provide a short reason in "websearchExplanation". Otherwise, set it to false.
-
-Conversation so far:
-${conversationText}
-
-User's New Message:
-"${currentUserMessage}"
+3) If the category is "germany", decide if a websearch is needed.
 
 Return ONLY raw JSON (no markdown), of the form:
 {
@@ -49,42 +40,44 @@ Return ONLY raw JSON (no markdown), of the form:
   "requiresWebsearch": true/false,
   "websearchExplanation": "..."
 }
-  `.trim();
+
+Conversation so far:
+${conversationText}
+
+User's New Message:
+"${currentUserMessage}"
+`.trim();
 
   try {
-    // 2) Make a Chat Completion request to GPT-3.5
+    // Using chat completions with the DeepSeek Free v3 model
     const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: "deepseek/v3", // <-- Updated to use DeepSeek Free v3
       messages: [
         {
           role: "system",
-          content: classificationPrompt
-        }
+          content: classificationPrompt,
+        },
       ],
       temperature: 0,
-      max_tokens: 150
+      max_tokens: 150,
     });
 
-    // 3) Extract the raw text from the assistant’s reply
     const rawOutput = response.choices[0].message.content.trim();
     console.log("Raw classification output:", rawOutput);
 
-    // 4) Attempt to parse the JSON
     let parsed;
     try {
       parsed = JSON.parse(rawOutput);
     } catch (err) {
       console.error("Failed to parse classification JSON:", err);
-      // Return a fallback if JSON parsing fails
-      return { 
-        language: "en", 
-        category: "other", 
-        requiresWebsearch: false, 
-        websearchExplanation: "" 
+      return {
+        language: "en",
+        category: "other",
+        requiresWebsearch: false,
+        websearchExplanation: "",
       };
     }
 
-    // 5) Validate the fields
     let { language, category, requiresWebsearch, websearchExplanation } = parsed;
     const validCategories = ["germany", "politeness", "other"];
 
@@ -93,7 +86,7 @@ Return ONLY raw JSON (no markdown), of the form:
         language: "en",
         category: "other",
         requiresWebsearch: false,
-        websearchExplanation: ""
+        websearchExplanation: "",
       };
     }
 
@@ -107,17 +100,14 @@ Return ONLY raw JSON (no markdown), of the form:
       websearchExplanation = "";
     }
 
-    // 6) Return the classification info
     return { language, category, requiresWebsearch, websearchExplanation };
-
   } catch (err) {
-    // 7) If the API call fails, log the error and return a fallback
     console.error("Classification error:", err);
     return {
       language: "en",
       category: "other",
       requiresWebsearch: false,
-      websearchExplanation: ""
+      websearchExplanation: "",
     };
   }
 }

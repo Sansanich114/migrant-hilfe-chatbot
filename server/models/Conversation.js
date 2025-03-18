@@ -16,10 +16,11 @@ const ConversationSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now },
 });
 
-// Automatically update the updatedAt field before save.
+// Automatically update the updatedAt field before save
 ConversationSchema.pre("save", function (next) {
   this.updatedAt = Date.now();
   next();
 });
 
-export default mongoose.model("Conversation", ConversationSchema);
+const Conversation = mongoose.model("Conversation", ConversationSchema);
+export default Conversation;

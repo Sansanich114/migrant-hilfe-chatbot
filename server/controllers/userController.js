@@ -1,9 +1,12 @@
-const User = require('../models/User');
-const Conversation = require('../models/Conversation');
-const openaiService = require('../services/openaiService');
+// server/controllers/userController.js
+import dotenv from "dotenv";
+dotenv.config();
 
-// Create a new user profile (for legacy support – new auth system will handle account creation)
-const createProfile = async (req, res) => {
+import User from "../models/User.js";
+import Conversation from "../models/Conversation.js";
+import * as openaiService from "../services/openaiService.js";
+
+export async function createProfile(req, res) {
   try {
     const newUser = new User({
       subscriptionType: "free",
@@ -26,9 +29,9 @@ const createProfile = async (req, res) => {
     console.error("Error creating profile:", err);
     res.status(500).json({ error: "Failed to create profile" });
   }
-};
+}
 
-const createConversation = async (req, res) => {
+export async function createConversation(req, res) {
   const { userId } = req.body;
   if (!userId) return res.status(400).json({ error: "userId is required." });
   try {
@@ -45,21 +48,22 @@ const createConversation = async (req, res) => {
     console.error("Error creating new conversation:", err);
     res.status(500).json({ error: "Unable to create new conversation." });
   }
-};
+}
 
-const getProfile = async (req, res) => {
+export async function getProfile(req, res) {
   try {
     const user = await User.findById(req.params.userId).lean();
     if (!user) return res.status(404).json({ error: "User not found" });
+
     const conversations = await Conversation.find({ userId: req.params.userId }).lean();
     res.status(200).json({ user, conversations });
   } catch (err) {
     console.error("Error retrieving profile:", err);
     res.status(500).json({ error: "Failed to retrieve profile" });
   }
-};
+}
 
-const renameConversation = async (req, res) => {
+export async function renameConversation(req, res) {
   const { conversationId, newName } = req.body;
   if (!conversationId || !newName) {
     return res.status(400).json({ error: "conversationId and newName are required." });
@@ -76,9 +80,9 @@ const renameConversation = async (req, res) => {
     console.error("Error renaming conversation:", err);
     res.status(500).json({ error: "Unable to rename conversation." });
   }
-};
+}
 
-const deleteConversation = async (req, res) => {
+export async function deleteConversation(req, res) {
   const { conversationId, userId } = req.body;
   if (!conversationId || !userId) {
     return res.status(400).json({ error: "conversationId and userId are required." });
@@ -89,7 +93,8 @@ const deleteConversation = async (req, res) => {
       return res.status(404).json({ error: "Conversation not found." });
     }
     await conversation.deleteOne();
-    // Check if any conversations remain for the user; if not, create a default one.
+
+    // If no conversations remain, create a default one
     const remaining = await Conversation.find({ userId });
     if (remaining.length === 0) {
       const defaultConv = new Conversation({
@@ -106,16 +111,16 @@ const deleteConversation = async (req, res) => {
     console.error("Error deleting conversation:", err);
     res.status(500).json({ error: "Unable to delete conversation." });
   }
-};
+}
 
-const deleteAllChatHistory = async (req, res) => {
+export async function deleteAllChatHistory(req, res) {
   const { userId } = req.body;
   if (!userId) {
     return res.status(400).json({ error: "userId is required." });
   }
   try {
     await Conversation.deleteMany({ userId });
-    // After deletion, create a new default conversation.
+    // After deletion, create a new default conversation
     const defaultConv = new Conversation({
       userId,
       conversationName: "Default Conversation",
@@ -124,14 +129,16 @@ const deleteAllChatHistory = async (req, res) => {
       ],
     });
     await defaultConv.save();
-    return res.status(200).json({ message: "All chat history deleted and default conversation created." });
+    return res.status(200).json({
+      message: "All chat history deleted and default conversation created.",
+    });
   } catch (err) {
     console.error("Error deleting all chat history:", err);
     res.status(500).json({ error: "Unable to delete all chat history." });
   }
-};
+}
 
-const intro = async (req, res) => {
+export async function intro(req, res) {
   try {
     const { userId, lang } = req.query;
     if (!userId) {
@@ -148,14 +155,4 @@ const intro = async (req, res) => {
     console.error("Intro Error:", err);
     return res.status(500).json({ error: "Unable to process introduction request." });
   }
-};
-
-module.exports = {
-  createProfile,
-  createConversation,
-  getProfile,
-  renameConversation,
-  deleteConversation,
-  deleteAllChatHistory,
-  intro,
-};
+}

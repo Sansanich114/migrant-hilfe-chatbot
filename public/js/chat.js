@@ -61,7 +61,7 @@ function fetchIntro() {
     .catch((err) => console.error("Error fetching intro message:", err));
 }
 
-// Fetches all conversations for the current user
+// Fetches all conversations for the current user and updates profile fields.
 function fetchConversations() {
   const userId = localStorage.getItem("userId");
   if (!userId) return;
@@ -69,6 +69,14 @@ function fetchConversations() {
   fetch(`/user/profile/${userId}`)
     .then((res) => res.json())
     .then((data) => {
+      // Update profile modal with user info (email & subscription)
+      if (data.user) {
+        const emailEl = document.getElementById("profileEmail");
+        const subscriptionEl = document.getElementById("profileSubscription");
+        emailEl.innerText = data.user.email || "No email set";
+        subscriptionEl.innerText = data.user.subscriptionType || "Free Plan";
+      }
+
       const chatListDiv = document.getElementById("chatList");
       chatListDiv.innerHTML = "";
 
