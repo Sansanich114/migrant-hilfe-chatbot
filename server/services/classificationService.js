@@ -10,21 +10,16 @@ dotenv.config();
  *  - Checking if web search is required
  */
 export async function classifyMessage(conversationMessages, currentUserMessage) {
-  // Use whichever environment variable is available
-  const apiKey = process.env.OPENAI_API_KEY || process.env.OPENROUTER_API_KEY;
-  if (!apiKey) {
-    throw new Error("API key missing: set OPENAI_API_KEY or OPENROUTER_API_KEY in your environment.");
-  }
-
+  // We expect OPENROUTER_API_KEY to be set
   const openai = new OpenAI({
-    apiKey,
-    // If you want to use openrouter.ai, you can uncomment:
-    // baseURL: "https://openrouter.ai/api/v1",
+    baseURL: "https://openrouter.ai/api/v1",
+    defaultHeaders: {
+      "X-OpenRouter-Api-Key": process.env.OPENROUTER_API_KEY,
+    },
   });
 
-  // Build text representation of the conversation so far
   const conversationText = conversationMessages
-    .map((m) => `${m.role}: ${m.content}`)
+    .map(m => `${m.role}: ${m.content}`)
     .join("\n");
 
   const classificationPrompt = `
@@ -53,7 +48,7 @@ User's New Message:
 `.trim();
 
   try {
-    // UPDATED: use "deepseek/deepseek-chat:free"
+    // We'll call "deepseek/deepseek-chat:free" to do classification
     const response = await openai.chat.completions.create({
       model: "deepseek/deepseek-chat:free",
       messages: [{ role: "system", content: classificationPrompt }],
@@ -80,6 +75,7 @@ User's New Message:
     let { language, category, requiresWebsearch, websearchExplanation } = parsed;
     const validCategories = ["germany", "politeness", "other"];
 
+    // Fallback if the classification is incomplete
     if (!language || !validCategories.includes(category)) {
       return {
         language: "en",
@@ -89,7 +85,7 @@ User's New Message:
       };
     }
 
-    // If not "germany," force no websearch
+    // If not "germany," no websearch
     if (category !== "germany") {
       requiresWebsearch = false;
       websearchExplanation = "";
