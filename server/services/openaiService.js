@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 dotenv.config();
 import { parseAiResponse } from "../utils/helpers.js";
 
+// The system prompt you use for your chatbot:
 const systemPrompt =
   process.env.SYSTEM_PROMPT ||
   `
@@ -20,24 +21,26 @@ Rules:
    }
 `.trim();
 
-/**
- * Configure the official 'openai' library to talk to OpenRouter,
- * passing your single API key in the X-OpenRouter-Api-Key header.
- */
+// Use whichever environment variable you prefer (OPENAI_API_KEY or OPENROUTER_API_KEY)
+const apiKey = process.env.OPENAI_API_KEY || process.env.OPENROUTER_API_KEY;
+if (!apiKey) {
+  throw new Error("No valid API key found in OPENAI_API_KEY or OPENROUTER_API_KEY.");
+}
+
+// Create OpenAI client
 const openai = new OpenAI({
-  baseURL: "https://openrouter.ai/api/v1",
-  defaultHeaders: {
-    "X-OpenRouter-Api-Key": process.env.OPENROUTER_API_KEY,
-  },
+  apiKey,
+  // If you need to point to openrouter.ai, you can uncomment:
+  // baseURL: "https://openrouter.ai/api/v1",
 });
 
-/** 
- * Helper that calls the 'deepseek/r1' model via chat completions 
- * (the main chatbot).
+/**
+ * Helper that calls the 'deepseek/deepseek-chat:free' model via chat completions
  */
-async function callDeepSeekR1Chat(messages, temperature = 0.8) {
+async function callDeepSeekChat(messages, temperature = 0.8) {
   const response = await openai.chat.completions.create({
-    model: "deepseek/r1", // <-- Uses DeepSeek Free R1 for main chatbot
+    // UPDATED model:
+    model: "deepseek/deepseek-chat:free",
     messages,
     temperature,
     max_tokens: 500,
@@ -47,9 +50,7 @@ async function callDeepSeekR1Chat(messages, temperature = 0.8) {
 
 /** Politeness reply */
 export async function generatePolitenessReply(conversation, language) {
-  const promptMessages = conversation.messages
-    .map((m) => `${m.role}: ${m.content}`)
-    .join("\n");
+  const promptMessages = conversation.messages.map(m => `${m.role}: ${m.content}`).join("\n");
   const politenessPrompt = `
 ${systemPrompt}
 
@@ -63,10 +64,10 @@ Return valid JSON of the form:
   "reply": "...",
   "suggestions": ["...", "..."]
 }
-  `.trim();
+`.trim();
 
   const messages = [{ role: "system", content: politenessPrompt }];
-  const rawOutput = await callDeepSeekR1Chat(messages, 0.8);
+  const rawOutput = await callDeepSeekChat(messages, 0.8);
   return parseAiResponse(rawOutput);
 }
 
@@ -77,12 +78,11 @@ export async function generateGermanyReply(
   language,
   requiresWebsearch
 ) {
-  const promptMessages = conversation.messages
-    .map((m) => `${m.role}: ${m.content}`)
-    .join("\n");
+  const promptMessages = conversation.messages.map(m => `${m.role}: ${m.content}`).join("\n");
   const webInfoInstruction = requiresWebsearch
     ? "Incorporate up-to-date facts from recent data if available."
     : "";
+
   const germanyPrompt = `
 ${systemPrompt}
 
@@ -97,18 +97,16 @@ Return valid JSON of the form:
   "reply": "...",
   "suggestions": ["...", "..."]
 }
-  `.trim();
+`.trim();
 
   const messages = [{ role: "system", content: germanyPrompt }];
-  const rawOutput = await callDeepSeekR1Chat(messages, 0.8);
+  const rawOutput = await callDeepSeekChat(messages, 0.8);
   return parseAiResponse(rawOutput);
 }
 
 /** Off-topic reply */
 export async function generateOffTopicReply(conversation, language) {
-  const promptMessages = conversation.messages
-    .map((m) => `${m.role}: ${m.content}`)
-    .join("\n");
+  const promptMessages = conversation.messages.map(m => `${m.role}: ${m.content}`).join("\n");
   const offTopicPrompt = `
 ${systemPrompt}
 
@@ -121,10 +119,10 @@ Return valid JSON of the form:
   "reply": "...",
   "suggestions": ["...", "..."]
 }
-  `.trim();
+`.trim();
 
   const messages = [{ role: "system", content: offTopicPrompt }];
-  const rawOutput = await callDeepSeekR1Chat(messages, 0.8);
+  const rawOutput = await callDeepSeekChat(messages, 0.8);
   return parseAiResponse(rawOutput);
 }
 
@@ -139,27 +137,25 @@ Return valid JSON of the form:
   "reply": "...",
   "suggestions": ["...", "..."]
 }
-  `.trim();
+`.trim();
 
   const messages = [{ role: "system", content: introPrompt }];
-  const rawOutput = await callDeepSeekR1Chat(messages, 0.8);
+  const rawOutput = await callDeepSeekChat(messages, 0.8);
   return parseAiResponse(rawOutput);
 }
 
 /** Conversation summary */
 export async function generateConversationSummary(conversation, language) {
-  const conversationText = conversation.messages
-    .map((m) => `${m.role}: ${m.content}`)
-    .join("\n");
+  const conversationText = conversation.messages.map(m => `${m.role}: ${m.content}`).join("\n");
   const summaryPrompt = `
 Please provide a brief summary in ${language} of the conversation so far. Include key points such as the user's language, situation, and main topics discussed.
 Conversation:
 ${conversationText}
-  `.trim();
+`.trim();
 
   const messages = [{ role: "system", content: summaryPrompt }];
   try {
-    const rawOutput = await callDeepSeekR1Chat(messages, 0.5);
+    const rawOutput = await callDeepSeekChat(messages, 0.5);
     return rawOutput.trim();
   } catch (err) {
     console.error("Error generating conversation summary:", err);

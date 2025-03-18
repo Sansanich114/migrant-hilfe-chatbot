@@ -10,12 +10,16 @@ dotenv.config();
  *  - Checking if web search is required
  */
 export async function classifyMessage(conversationMessages, currentUserMessage) {
-  // Use OpenRouter with DeepSeek Free v3
+  // Use whichever environment variable is available
+  const apiKey = process.env.OPENAI_API_KEY || process.env.OPENROUTER_API_KEY;
+  if (!apiKey) {
+    throw new Error("API key missing: set OPENAI_API_KEY or OPENROUTER_API_KEY in your environment.");
+  }
+
   const openai = new OpenAI({
-    baseURL: "https://openrouter.ai/api/v1",
-    defaultHeaders: {
-      "X-OpenRouter-Api-Key": process.env.OPENROUTER_API_KEY,
-    },
+    apiKey,
+    // If you want to use openrouter.ai, you can uncomment:
+    // baseURL: "https://openrouter.ai/api/v1",
   });
 
   // Build text representation of the conversation so far
@@ -49,15 +53,10 @@ User's New Message:
 `.trim();
 
   try {
-    // Using chat completions with the DeepSeek Free v3 model
+    // UPDATED: use "deepseek/deepseek-chat:free"
     const response = await openai.chat.completions.create({
-      model: "deepseek/v3", // <-- Updated to use DeepSeek Free v3
-      messages: [
-        {
-          role: "system",
-          content: classificationPrompt,
-        },
-      ],
+      model: "deepseek/deepseek-chat:free",
+      messages: [{ role: "system", content: classificationPrompt }],
       temperature: 0,
       max_tokens: 150,
     });
@@ -90,12 +89,11 @@ User's New Message:
       };
     }
 
+    // If not "germany," force no websearch
     if (category !== "germany") {
-      // If not Germany, ensure we don’t do websearch
       requiresWebsearch = false;
       websearchExplanation = "";
     } else if (typeof requiresWebsearch !== "boolean") {
-      // Must be boolean
       requiresWebsearch = false;
       websearchExplanation = "";
     }
