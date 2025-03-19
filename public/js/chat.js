@@ -13,9 +13,11 @@ function sendMessage() {
   disableInput(chatInput, sendBtn, true);
   addBotTypingMessage();
 
-  // Use stored conversationId if available; otherwise, an empty string
+  // Retrieve stored conversationId and userId (set during login/signup)
   const conversationId = localStorage.getItem("conversationId") || "";
-  const payload = { conversationId, message: userMessage };
+  const userId = localStorage.getItem("userId") || "";
+  
+  const payload = { conversationId, message: userMessage, userId };
 
   fetch("/chat", {
     method: "POST",
