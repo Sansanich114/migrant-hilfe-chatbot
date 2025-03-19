@@ -1,28 +1,26 @@
-// server/services/openaiService.js
 import { OpenAI } from "openai";
 import dotenv from "dotenv";
 dotenv.config();
 import { parseAiResponse } from "../utils/helpers.js";
 
-// Your system prompt text:
+// Updated system prompt for real estate context
 const systemPrompt =
   process.env.SYSTEM_PROMPT ||
   `
-You are Sasha, a friendly migration assistant who explains things in simple language (easy enough for a 13-year-old, but still accurate).
+You are a professional real estate assistant chatbot, designed to help potential buyers, renters, and investors navigate the real estate market.
+
 Rules:
-1. Your answers should be short and clear.
-2. No direct links. Summarize any info you find.
-3. If you have extra facts from web research, put them in your answer.
-4. Provide exactly 2 short suggestions that are relevant next questions the user might ask.
-5. Return valid JSON:
+1. Your responses should be clear, concise, and professional.
+2. Provide relevant property information, financing options, and market insights.
+3. When necessary, guide users to appropriate website pages for more details.
+4. Offer exactly 2 follow-up questions to keep the conversation moving.
+5. Return responses in JSON format:
    {
      "reply": "...",
      "suggestions": ["...", "..."]
    }
 `.trim();
 
-// Create an OpenAI client pointing to OpenRouter
-// This looks for process.env.OPENROUTER_API_KEY
 const openai = new OpenAI({
   baseURL: "https://openrouter.ai/api/v1",
   defaultHeaders: {
@@ -30,12 +28,7 @@ const openai = new OpenAI({
   },
 });
 
-/** 
- * Main helper that calls the "deepseek/deepseek-chat:free" model 
- * for chat completions.
- */
 async function callDeepSeekChat(messages, temperature = 0.8) {
-  // Note the model name: "deepseek/deepseek-chat:free"
   const response = await openai.chat.completions.create({
     model: "deepseek/deepseek-chat:free",
     messages,
@@ -45,10 +38,34 @@ async function callDeepSeekChat(messages, temperature = 0.8) {
   return response.choices[0].message.content;
 }
 
-/** Politeness reply */
+// Real Estate reply generation
+export async function generateRealEstateReply(conversation, message, language) {
+  const promptMessages = conversation.messages
+    .map((m) => `${m.role}: ${m.content}`)
+    .join("\n");
+  const realEstatePrompt = `
+${systemPrompt}
+
+Conversation so far:
+${promptMessages}
+
+User's latest query: "${message}"
+Provide a professional and concise response with relevant property information, financing advice, or market insights.
+Return valid JSON of the form:
+{
+  "reply": "...",
+  "suggestions": ["...", "..."]
+}
+  `.trim();
+
+  const messages = [{ role: "system", content: realEstatePrompt }];
+  const rawOutput = await callDeepSeekChat(messages, 0.8);
+  return parseAiResponse(rawOutput);
+}
+
 export async function generatePolitenessReply(conversation, language) {
   const promptMessages = conversation.messages
-    .map(m => `${m.role}: ${m.content}`)
+    .map((m) => `${m.role}: ${m.content}`)
     .join("\n");
   const politenessPrompt = `
 ${systemPrompt}
@@ -57,7 +74,7 @@ Conversation so far:
 ${promptMessages}
 
 The user is just being polite. Respond in ${language} with a short, friendly greeting.
-Provide exactly 2 short suggestions for what they might ask about Germany or migration next.
+Provide exactly 2 short suggestions for what they might ask about real estate next.
 Return valid JSON of the form:
 {
   "reply": "...",
@@ -70,44 +87,9 @@ Return valid JSON of the form:
   return parseAiResponse(rawOutput);
 }
 
-/** Germany-specific reply */
-export async function generateGermanyReply(
-  conversation,
-  message,
-  language,
-  requiresWebsearch
-) {
-  const promptMessages = conversation.messages
-    .map(m => `${m.role}: ${m.content}`)
-    .join("\n");
-  const webInfoInstruction = requiresWebsearch
-    ? "Incorporate up-to-date facts from recent data if available."
-    : "";
-  const germanyPrompt = `
-${systemPrompt}
-
-Conversation so far:
-${promptMessages}
-
-User's latest query: "${message}"
-${webInfoInstruction}
-Respond in ${language} with clear, concise information about migrating to or living in Germany.
-Return valid JSON of the form:
-{
-  "reply": "...",
-  "suggestions": ["...", "..."]
-}
-  `.trim();
-
-  const messages = [{ role: "system", content: germanyPrompt }];
-  const rawOutput = await callDeepSeekChat(messages, 0.8);
-  return parseAiResponse(rawOutput);
-}
-
-/** Off-topic reply */
 export async function generateOffTopicReply(conversation, language) {
   const promptMessages = conversation.messages
-    .map(m => `${m.role}: ${m.content}`)
+    .map((m) => `${m.role}: ${m.content}`)
     .join("\n");
   const offTopicPrompt = `
 ${systemPrompt}
@@ -115,7 +97,7 @@ ${systemPrompt}
 Conversation so far:
 ${promptMessages}
 
-The user's latest message is off-topic. Remind the user to return to questions about Germany or migration in ${language}.
+The user's latest message is off-topic. Kindly remind the user to ask questions related to real estate.
 Return valid JSON of the form:
 {
   "reply": "...",
@@ -128,7 +110,6 @@ Return valid JSON of the form:
   return parseAiResponse(rawOutput);
 }
 
-/** Intro greeting */
 export async function generateIntroReply(language) {
   const introPrompt = `
 ${systemPrompt}
@@ -146,13 +127,12 @@ Return valid JSON of the form:
   return parseAiResponse(rawOutput);
 }
 
-/** Conversation summary */
 export async function generateConversationSummary(conversation, language) {
   const conversationText = conversation.messages
-    .map(m => `${m.role}: ${m.content}`)
+    .map((m) => `${m.role}: ${m.content}`)
     .join("\n");
   const summaryPrompt = `
-Please provide a brief summary in ${language} of the conversation so far. Include key points such as the user's language, situation, and main topics discussed.
+Please provide a brief summary in ${language} of the conversation so far. Include key points such as property interests, market queries, and user preferences.
 Conversation:
 ${conversationText}
   `.trim();

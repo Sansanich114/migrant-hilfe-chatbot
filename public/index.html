@@ -3,104 +3,55 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Migrant Hilfe Chatbot</title>
-
-  <!-- Montserrat: multiple weights -->
+  <title>Smart Realty Assistant</title>
   <link
     href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap"
     rel="stylesheet"
   />
-
-  <!-- Modular CSS files -->
   <link rel="stylesheet" href="css/base.css" />
   <link rel="stylesheet" href="css/layout.css" />
   <link rel="stylesheet" href="css/components.css" />
   <link rel="stylesheet" href="css/themes.css" />
 </head>
-
 <body class="theme-transition">
-  <!-- Top Navigation Bar -->
   <nav class="top-nav">
     <div class="nav-left">
-      <!-- Migrant Hilfe Logo -->
       <img
         id="logoIcon"
-        src="images/accent-icons/migrant-logo-accent.svg"
-        alt="Migrant Hilfe Logo"
+        src="https://example.com/icons/real-estate-logo.svg"
+        alt="Smart Realty Assistant Logo"
         class="nav-logo"
       />
-      <span class="nav-title">Migrant Hilfe</span>
+      <span class="nav-title">Smart Realty Assistant</span>
     </div>
     <div class="nav-right">
-      <!-- Theme Switch -->
       <button id="themeSwitcher" class="nav-btn theme-btn" title="Toggle Theme">
         <img
           id="themeIcon"
-          src="images/accent-icons/theme-accent.svg"
+          src="https://example.com/icons/theme-light.svg"
           alt="Theme Icon"
           class="theme-icon"
         />
       </button>
-      <!-- Settings -->
-      <button id="settingsBtn" class="nav-btn settings-btn" title="Settings">
-        <img
-          id="settingsIcon"
-          src="images/accent-icons/settings-accent.svg"
-          alt="Settings"
-          class="icon"
-        />
-      </button>
-      <!-- Profile -->
-      <button id="profileBtn" class="nav-btn profile-btn" title="Profile">
-        <img
-          id="userIcon"
-          src="images/accent-icons/user-accent.svg"
-          alt="User Avatar"
-          class="profile-icon"
-        />
-      </button>
-      <div id="settingsMenu" class="settings-menu hidden">
-        <ul>
-          <li id="openAboutUs">About Us</li>
-          <li id="deleteAllDataBtn">Delete All Chat History</li>
-          <li id="logoutBtn">Logout</li>
-        </ul>
-      </div>
     </div>
   </nav>
 
-  <!-- Main Container -->
   <div class="main-container">
-    <!-- Sidebar -->
     <aside class="sidebar">
-      <!-- +New Chat Button -->
-      <button id="newChatBtn" class="new-chat-btn glow-effect">
-        + New Chat
-      </button>
-      <div id="chatList" class="chat-list">
-        <!-- Conversation items go here -->
-      </div>
+      <!-- Sidebar intentionally left blank as chat management buttons are removed -->
     </aside>
 
-    <!-- Chat Section -->
     <section class="chat-section">
-      <!-- Chat Container -->
       <div class="chat-container" id="chatContainer">
-        <!-- Messages appended here dynamically -->
+        <!-- Chat messages will appear here -->
       </div>
-
-      <!-- Suggestions Row -->
-      <div class="suggestions" id="suggestions">
-        <!-- Suggestion pills rendered dynamically -->
-      </div>
-
-      <!-- Input Bar -->
+      <div class="suggestions" id="suggestions"></div>
       <div class="input-bar">
-        <textarea id="chatInput" placeholder="Ask me anything…"></textarea>
-        <button id="sendBtn" class="send-btn glow-effect">
+        <textarea id="chatInput" placeholder="Ask about properties, market trends, etc…"></textarea>
+        <button id="sendBtn" class="send-btn">
           <img
             id="sendIcon"
-            src="images/accent-icons/send-accent.svg"
+            src="https://example.com/icons/send-light.svg"
             alt="Send"
           />
         </button>
@@ -108,141 +59,21 @@
     </section>
   </div>
 
-  <!-- Authentication Modal (Sign Up / Login) -->
-  <div id="authModal" class="modal hidden">
-    <div class="modal-content">
-      <span id="closeAuth" class="modal-close">&times;</span>
-      <div id="authContent">
-        <!-- Tabs for Sign Up / Login -->
-        <div class="auth-tabs">
-          <button id="showSignup">Sign Up</button>
-          <button id="showLogin">Log In</button>
-        </div>
-
-        <!-- Sign Up Form -->
-        <div id="signupForm" class="auth-form">
-          <h2>Sign Up</h2>
-          <input id="signupEmail" type="email" placeholder="Email" required />
-          <!-- Removed username field -->
-          <input
-            id="signupPassword"
-            type="password"
-            placeholder="Password"
-            required
-          />
-          <input
-            id="signupPasswordConfirm"
-            type="password"
-            placeholder="Confirm Password"
-            required
-          />
-          <button id="signupBtn" class="glow-effect">Register</button>
-        </div>
-
-        <!-- Login Form -->
-        <div id="loginForm" class="auth-form hidden">
-          <h2>Log In</h2>
-          <input
-            id="loginUsername"
-            type="text"
-            placeholder="Email"
-            required
-          />
-          <input
-            id="loginPassword"
-            type="password"
-            placeholder="Password"
-            required
-          />
-          <button id="loginBtn" class="glow-effect">Login</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- About Us Modal -->
+  <!-- About Us Modal (optional) -->
   <div id="aboutModal" class="modal hidden">
     <div class="modal-content">
       <span id="closeAbout" class="modal-close">&times;</span>
       <h2>About Us</h2>
       <p>
-        Our mission is to help migrants integrate into Germany with ease.
-        We offer free guidance, resources, and personalized support.
+        We are a leading real estate company offering expert guidance in buying, renting, and investing in properties.
       </p>
-      <p><strong>Team Members:</strong> Coming soon...</p>
+      <p><strong>Our Mission:</strong> Helping you find your dream property.</p>
     </div>
   </div>
 
-  <!-- Profile Modal -->
-  <div id="profileModal" class="modal hidden">
-    <div class="modal-content">
-      <span id="closeProfile" class="modal-close">&times;</span>
-      <h2>Your Profile</h2>
-      <!-- Removed username field -->
-      <div class="profile-field">
-        <label>Email:</label>
-        <span id="profileEmail">No email set</span>
-      </div>
-      <div class="profile-field">
-        <label>Subscription:</label>
-        <span id="profileSubscription">Free Plan</span>
-      </div>
-      <div class="profile-actions">
-        <!-- Show "Log In" if no user; otherwise "Logout" -->
-        <button
-          id="loginProfileBtn"
-          class="glow-effect"
-          style="display: none;"
-        >
-          Log In
-        </button>
-        <button
-          id="logoutProfileBtn"
-          class="glow-effect danger logout-btn"
-          style="display: none;"
-        >
-          Logout
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Rename Conversation Modal -->
-  <div id="renameModal" class="modal hidden">
-    <div class="modal-content">
-      <span id="closeRename" class="modal-close">&times;</span>
-      <h2>Rename Conversation</h2>
-      <div class="profile-field">
-        <label for="renameInput">New Name:</label>
-        <input id="renameInput" type="text" />
-      </div>
-      <div class="profile-actions">
-        <button id="saveRenameBtn" class="glow-effect">Save</button>
-        <button id="cancelRenameBtn" class="glow-effect">Cancel</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Delete Conversation Modal -->
-  <div id="deleteConvModal" class="modal hidden">
-    <div class="modal-content">
-      <span id="closeDeleteConv" class="modal-close">&times;</span>
-      <h2>Delete Conversation?</h2>
-      <p>This action cannot be undone.</p>
-      <div class="profile-actions">
-        <button id="confirmDeleteConvBtn" class="glow-effect danger">
-          Delete
-        </button>
-        <button id="cancelDeleteConvBtn" class="glow-effect">Cancel</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- JavaScript files -->
   <script src="js/utils.js"></script>
   <script src="js/modals.js"></script>
   <script src="js/chat.js"></script>
-  <script src="js/auth.js"></script>
   <script src="js/main.js"></script>
   <script src="js/swipe.js"></script>
 </body>

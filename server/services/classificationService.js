@@ -1,16 +1,15 @@
-// server/services/classificationService.js
 import { OpenAI } from "openai";
 import dotenv from "dotenv";
 dotenv.config();
 
 /**
- * Classifies the user's newest message by:
- *  - Detecting the language
- *  - Categorizing the topic
- *  - Checking if web search is required
+ * Classifies the user's newest message for the real estate context.
+ * It detects:
+ *  - Language (e.g., "en", "de")
+ *  - Category: "realestate" for property-related queries, "politeness" for greetings, or "other"
+ *  - Whether up-to-date web information is needed (requiresWebsearch)
  */
 export async function classifyMessage(conversationMessages, currentUserMessage) {
-  // We expect OPENROUTER_API_KEY to be set
   const openai = new OpenAI({
     baseURL: "https://openrouter.ai/api/v1",
     defaultHeaders: {
@@ -19,20 +18,20 @@ export async function classifyMessage(conversationMessages, currentUserMessage) 
   });
 
   const conversationText = conversationMessages
-    .map(m => `${m.role}: ${m.content}`)
+    .map((m) => `${m.role}: ${m.content}`)
     .join("\n");
 
   const classificationPrompt = `
 You are a strict classifier that identifies three things about the user's newest message:
 
-1) Determine the language (like "en", "de", or "tr").
+1) Determine the language (like "en", "de", or "es").
 2) Identify the category. It can be:
-   - "germany" if the message is about immigrating or living in Germany
-   - "politeness" if the user is just being polite (greeting, etc.)
-   - "other" if it's off-topic with no mention of Germany or immigration.
-3) If the category is "germany", decide if a websearch is needed.
+   - "realestate" if the message is about property inquiries, market trends, or real estate financing.
+   - "politeness" if the user is just being polite (greeting, etc.).
+   - "other" if it's off-topic.
+3) For real estate queries, decide if up-to-date web information is required, and set requiresWebsearch to true or false.
 
-Return ONLY raw JSON (no markdown), of the form:
+Return ONLY raw JSON (no markdown) in the following format:
 {
   "language": "...",
   "category": "...",
@@ -45,10 +44,9 @@ ${conversationText}
 
 User's New Message:
 "${currentUserMessage}"
-`.trim();
+  `.trim();
 
   try {
-    // We'll call "deepseek/deepseek-chat:free" to do classification
     const response = await openai.chat.completions.create({
       model: "deepseek/deepseek-chat:free",
       messages: [{ role: "system", content: classificationPrompt }],
@@ -73,9 +71,8 @@ User's New Message:
     }
 
     let { language, category, requiresWebsearch, websearchExplanation } = parsed;
-    const validCategories = ["germany", "politeness", "other"];
+    const validCategories = ["realestate", "politeness", "other"];
 
-    // Fallback if the classification is incomplete
     if (!language || !validCategories.includes(category)) {
       return {
         language: "en",
@@ -85,8 +82,7 @@ User's New Message:
       };
     }
 
-    // If not "germany," no websearch
-    if (category !== "germany") {
+    if (category !== "realestate") {
       requiresWebsearch = false;
       websearchExplanation = "";
     } else if (typeof requiresWebsearch !== "boolean") {
