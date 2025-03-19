@@ -21,13 +21,23 @@ Rules:
    }
 `.trim();
 
+/*
+  We use process.env["X-OpenRouter-Api-Key"] for both 'apiKey' (to satisfy
+  the openai library) and the 'X-OpenRouter-Api-Key' header for OpenRouter.
+*/
 const openai = new OpenAI({
+  // Provide a placeholder to avoid the missing API key error
+  apiKey: process.env["X-OpenRouter-Api-Key"] || "DUMMY_PLACEHOLDER",
   baseURL: "https://openrouter.ai/api/v1",
   defaultHeaders: {
-    "X-OpenRouter-Api-Key": process.env.OPENROUTER_API_KEY,
+    "X-OpenRouter-Api-Key": process.env["X-OpenRouter-Api-Key"],
   },
 });
 
+/** 
+ * Helper to call the "deepseek/deepseek-chat:free" model 
+ * for chat completions via OpenRouter.
+ */
 async function callDeepSeekChat(messages, temperature = 0.8) {
   const response = await openai.chat.completions.create({
     model: "deepseek/deepseek-chat:free",
@@ -38,7 +48,7 @@ async function callDeepSeekChat(messages, temperature = 0.8) {
   return response.choices[0].message.content;
 }
 
-// Real Estate reply generation
+// Generate real estate-related replies
 export async function generateRealEstateReply(conversation, message, language) {
   const promptMessages = conversation.messages
     .map((m) => `${m.role}: ${m.content}`)

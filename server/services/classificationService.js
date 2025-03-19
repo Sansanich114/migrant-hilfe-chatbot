@@ -5,15 +5,19 @@ dotenv.config();
 /**
  * Classifies the user's newest message for the real estate context.
  * It detects:
- *  - Language (e.g., "en", "de")
- *  - Category: "realestate" for property-related queries, "politeness" for greetings, or "other"
- *  - Whether up-to-date web information is needed (requiresWebsearch)
+ *  - Language (e.g., "en", "de", or "es").
+ *  - Category: "realestate" (property inquiries, financing, market),
+ *              "politeness" (greetings), or "other" (off-topic).
+ *  - Whether up-to-date web information is needed (requiresWebsearch).
  */
 export async function classifyMessage(conversationMessages, currentUserMessage) {
+  // Use the same environment variable name X-OpenRouter-Api-Key
+  // plus a fallback dummy key for the library.
   const openai = new OpenAI({
+    apiKey: process.env["X-OpenRouter-Api-Key"] || "DUMMY_PLACEHOLDER",
     baseURL: "https://openrouter.ai/api/v1",
     defaultHeaders: {
-      "X-OpenRouter-Api-Key": process.env.OPENROUTER_API_KEY,
+      "X-OpenRouter-Api-Key": process.env["X-OpenRouter-Api-Key"],
     },
   });
 
@@ -82,6 +86,7 @@ User's New Message:
       };
     }
 
+    // If not real estate, no web search needed
     if (category !== "realestate") {
       requiresWebsearch = false;
       websearchExplanation = "";
