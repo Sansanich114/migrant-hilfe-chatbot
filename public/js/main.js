@@ -4,30 +4,39 @@ document.addEventListener("DOMContentLoaded", () => {
   const themeIcon = document.getElementById("themeIcon");
   const logoIcon = document.getElementById("logoIcon");
   const sendIcon = document.getElementById("sendIcon");
-  const closeAbout = document.getElementById("closeAbout");
   const aboutModal = document.getElementById("aboutModal");
+  const closeAbout = document.getElementById("closeAbout");
+  const chatInput = document.getElementById("chatInput");
+  const sendBtn = document.getElementById("sendBtn");
 
-  // Theme toggle functionality
+  // === THEME TOGGLE ===
   themeSwitcher.addEventListener("click", () => {
     body.classList.add("theme-transition");
     body.classList.toggle("dark-mode");
     const isDark = body.classList.contains("dark-mode");
+
+    // Toggle icons for dark/light mode
     themeIcon.src = isDark
-      ? "https://example.com/icons/theme-dark.svg"
-      : "https://example.com/icons/theme-light.svg";
+      ? "https://img.icons8.com/ios-filled/24/ffffff/crescent-moon.png" // White Moon
+      : "https://img.icons8.com/ios-filled/24/000000/sun--v1.png";       // Black Sun
+
+    // Toggle the main logo for dark mode (if desired)
     logoIcon.src = isDark
-      ? "https://example.com/icons/real-estate-logo-dark.svg"
-      : "https://example.com/icons/real-estate-logo.svg";
+      ? "https://img.icons8.com/ios-filled/50/ffffff/home--v1.png"
+      : "https://img.icons8.com/ios-filled/50/000000/home--v1.png";
+
+    // Toggle send icon color if you want it to change in dark mode
     sendIcon.src = isDark
-      ? "https://example.com/icons/send-dark.svg"
-      : "https://example.com/icons/send-light.svg";
+      ? "https://img.icons8.com/ios-filled/24/ffffff/filled-sent.png"
+      : "https://img.icons8.com/ios-filled/24/000000/filled-sent.png";
+
     setTimeout(() => {
       body.classList.remove("theme-transition");
     }, 300);
   });
 
-  // About modal handling
-  if (aboutModal) {
+  // === ABOUT MODAL ===
+  if (aboutModal && closeAbout) {
     document.addEventListener("click", (e) => {
       if (e.target === aboutModal) {
         aboutModal.classList.add("hidden");
@@ -38,6 +47,20 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Initialize the chat with an intro message
+  // === CHAT SEND EVENTS ===
+  // 1) Clicking the "Send" button
+  sendBtn.addEventListener("click", () => {
+    sendMessage();
+  });
+
+  // 2) Pressing "Enter" (without Shift) in the textarea
+  chatInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+
+  // Fetch intro message on load
   fetchIntro();
 });
