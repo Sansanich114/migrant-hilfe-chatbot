@@ -5,20 +5,28 @@ import {
   generateRealEstateReply,
   generateOffTopicReply,
   generateConversationSummary,
+  generateIntroReply
 } from "../services/openaiService.js";
 
 export async function chat(req, res) {
-  const { conversationId, message } = req.body;
+  const { conversationId, message, userId } = req.body;
   if (!message) {
     return res.status(400).json({ error: "message is required." });
   }
   try {
     let conversation;
+    // Try to load an existing conversation
     if (conversationId) {
       conversation = await Conversation.findById(conversationId);
     }
+    // If no conversation exists, create one for this user
     if (!conversation) {
+      if (!userId) {
+        // In your ideal flow, the user should have been created beforehand.
+        return res.status(400).json({ error: "userId is required to create a new conversation." });
+      }
       conversation = new Conversation({
+        userId: userId,
         conversationName: "Default Conversation",
         messages: [
           {
@@ -27,7 +35,19 @@ export async function chat(req, res) {
           },
         ],
       });
+      // Generate an introductory message from the assistant
+      const introData = await generateIntroReply("en");
+      conversation.messages.push({
+        role: "assistant",
+        content: introData.reply,
+        timestamp: new Date(),
+      });
+      await conversation.save();
+      // Return the introductory message to the client
+      return res.status(200).json(introData);
     }
+
+    // Conversation exists; process the user's message
     conversation.messages.push({
       role: "user",
       content: message,
