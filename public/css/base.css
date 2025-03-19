@@ -7,7 +7,7 @@
   padding: 0;
 }
 
-/* Ensure no extra white space, full height */
+/* Ensure full height */
 html, body {
   height: 100%;
   font-family: "Montserrat", -apple-system, BlinkMacSystemFont, "SF Pro Display",
@@ -16,8 +16,6 @@ html, body {
   overscroll-behavior: none;
   margin: 0;
   padding: 0;
-  /* Prevent scroll bounce on iOS */
-  overflow: hidden;
   /* Base font size and line-height */
   font-size: 16px;
   line-height: 1.5;

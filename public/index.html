@@ -14,58 +14,45 @@
   <link rel="stylesheet" href="css/themes.css" />
 </head>
 <body class="theme-transition">
-  <!-- Top Navigation -->
-  <nav class="top-nav">
-    <div class="nav-left">
-      <!-- Real Estate Logo (House Icon) -->
-      <img
-        id="logoIcon"
-        src="https://img.icons8.com/ios-filled/50/000000/home--v1.png"
-        alt="Real Estate Logo"
-        class="nav-logo"
-      />
+  <!-- Minimal Top Navigation -->
+  <nav class="top-nav single-column-nav">
+    <div class="nav-center">
+      <!-- Title -->
       <span class="nav-title">Smart Realty Assistant</span>
+      <!-- "Online" indicator -->
+      <span class="online-status">Online</span>
     </div>
-    <div class="nav-right">
-      <!-- Theme Switcher Button -->
-      <button id="themeSwitcher" class="nav-btn theme-btn" title="Toggle Theme">
-        <!-- Start with a "Sun" icon for light mode; switch to "Moon" for dark mode -->
+    <!-- (Optional) Theme Switcher -->
+    <button id="themeSwitcher" class="nav-btn theme-btn" title="Toggle Theme">
+      <img
+        id="themeIcon"
+        src="images/accent-icons/theme-accent.svg"
+        alt="Theme Icon"
+        class="theme-icon"
+      />
+    </button>
+  </nav>
+
+  <!-- Single Column Container -->
+  <div class="single-column-container">
+    <!-- Chat Container -->
+    <div class="chat-container" id="chatContainer"></div>
+
+    <!-- Suggestions -->
+    <div class="suggestions" id="suggestions"></div>
+
+    <!-- Input Bar -->
+    <div class="input-bar">
+      <textarea id="chatInput" placeholder="Type your message..."></textarea>
+      <button id="sendBtn" class="send-btn" title="Send Message">
+        <!-- Local send icon -->
         <img
-          id="themeIcon"
-          src="https://img.icons8.com/ios-filled/24/000000/sun--v1.png"
-          alt="Theme Icon"
-          class="theme-icon"
+          id="sendIcon"
+          src="images/accent-icons/send-accent.svg"
+          alt="Send Icon"
         />
       </button>
     </div>
-  </nav>
-
-  <!-- Main Layout -->
-  <div class="main-container">
-    <!-- Sidebar (empty, or future expansions) -->
-    <aside class="sidebar"></aside>
-
-    <!-- Chat Section -->
-    <section class="chat-section">
-      <!-- Chat Container -->
-      <div class="chat-container" id="chatContainer"></div>
-
-      <!-- Suggestions -->
-      <div class="suggestions" id="suggestions"></div>
-
-      <!-- Input Bar -->
-      <div class="input-bar">
-        <textarea id="chatInput" placeholder="Ask about properties, market trends, etc…"></textarea>
-        <button id="sendBtn" class="send-btn" title="Send Message">
-          <!-- Send Button Icon -->
-          <img
-            id="sendIcon"
-            src="https://img.icons8.com/ios-filled/24/000000/filled-sent.png"
-            alt="Send Icon"
-          />
-        </button>
-      </div>
-    </section>
   </div>
 
   <!-- About Us Modal (optional) -->

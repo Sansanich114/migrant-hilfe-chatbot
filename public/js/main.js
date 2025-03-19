@@ -1,43 +1,47 @@
+// public/js/main.js
 document.addEventListener("DOMContentLoaded", () => {
   const body = document.body;
   const themeSwitcher = document.getElementById("themeSwitcher");
   const themeIcon = document.getElementById("themeIcon");
-  const logoIcon = document.getElementById("logoIcon");
+  const logoIcon = document.getElementById("logoIcon"); // If you still have a logo
   const sendIcon = document.getElementById("sendIcon");
   const aboutModal = document.getElementById("aboutModal");
   const closeAbout = document.getElementById("closeAbout");
   const chatInput = document.getElementById("chatInput");
   const sendBtn = document.getElementById("sendBtn");
 
-  // === THEME TOGGLE ===
+  // THEME TOGGLE
   themeSwitcher.addEventListener("click", () => {
     body.classList.add("theme-transition");
     body.classList.toggle("dark-mode");
     const isDark = body.classList.contains("dark-mode");
 
-    // Swap theme icons:
-    // In dark mode, show a Sun icon (to switch to light)
-    // In light mode, show a Moon icon (to switch to dark)
+    // If dark => show a bright sun icon
+    // If light => show a dark moon icon
     themeIcon.src = isDark
-      ? "https://img.icons8.com/ios-filled/24/000000/sun--v1.png"         // Sun icon for dark mode
-      : "https://img.icons8.com/ios-filled/24/ffffff/crescent-moon.png";    // Moon icon for light mode
+      ? "images/accent-icons/sun-bright.svg"   // bright sun in dark mode
+      : "images/accent-icons/moon-dark.svg";   // dark moon in light mode
 
-    // Toggle the main logo for dark mode (if desired)
-    logoIcon.src = isDark
-      ? "https://img.icons8.com/ios-filled/50/ffffff/home--v1.png"
-      : "https://img.icons8.com/ios-filled/50/000000/home--v1.png";
-
-    // Toggle send icon (remains unchanged here)
+    // Optionally update send icon color
     sendIcon.src = isDark
-      ? "https://img.icons8.com/ios-filled/24/ffffff/filled-sent.png"
-      : "https://img.icons8.com/ios-filled/24/000000/filled-sent.png";
+      ? "images/accent-icons/send-dark.svg"
+      : "images/accent-icons/send-accent.svg";
+
+    // If you have a logo and want to change it in dark mode, uncomment:
+    /*
+    if (logoIcon) {
+      logoIcon.src = isDark
+        ? "images/accent-icons/migrant-logo-dark.svg"
+        : "images/accent-icons/migrant-logo-accent.svg";
+    }
+    */
 
     setTimeout(() => {
       body.classList.remove("theme-transition");
     }, 300);
   });
 
-  // === ABOUT MODAL ===
+  // ABOUT MODAL
   if (aboutModal && closeAbout) {
     document.addEventListener("click", (e) => {
       if (e.target === aboutModal) {
@@ -49,13 +53,12 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // === CHAT SEND EVENTS ===
-  // 1) Clicking the "Send" button
+  // SEND BUTTON CLICK
   sendBtn.addEventListener("click", () => {
     sendMessage();
   });
 
-  // 2) Pressing "Enter" (without Shift) in the textarea
+  // PRESSING ENTER
   chatInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -63,6 +66,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Fetch intro message on load
+  // FETCH INTRO MESSAGE ON LOAD
   fetchIntro();
 });

@@ -1,111 +1,56 @@
 /* layout.css */
-/* Overall layout: top nav, sidebar, chat section */
+/* Overall layout: single column chat, minimal top nav */
 
 /***************************************************
  * TOP NAV
  ***************************************************/
  .top-nav {
-  position: fixed;
+  position: sticky;
   top: 0;
   width: 100%;
-  height: 64px;
+  height: 56px;
   background-color: #ffffff;
   border-bottom: 1px solid #E5E5E5;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 0 16px;
+  justify-content: space-between;
   z-index: 1000;
   transition: background-color 0.3s, border-color 0.3s;
+  padding: 0 16px;
 }
 
-/* Remove any animation from nav-title */
+.nav-center {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .nav-title {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 700;
-  animation: none !important; /* No animation */
 }
 
-.nav-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.nav-logo {
-  width: 32px;
-  height: 32px;
-}
-
-.nav-right {
-  display: flex;
-  align-items: center;
-  gap: 16px;
+.online-status {
+  font-size: 14px;
+  color: #28a745; /* green text for "Online" */
 }
 
 /***************************************************
- * MAIN CONTAINER
+ * SINGLE COLUMN CONTAINER
  ***************************************************/
-.main-container {
-  display: flex;
-  margin-top: 64px;
-  height: calc(100% - 64px);
-  overflow: hidden; /* Restrict scrolling to chat container */
-}
-
-/***************************************************
- * SIDEBAR
- ***************************************************/
-.sidebar {
-  width: 280px;
-  background-color: rgba(255,255,255,0.8);
-  border-right: 1px solid #ddd;
-  transform: translateX(0);
-  transition: transform 0.3s ease-in-out;
-  z-index: 999;
-}
-
-/***************************************************
- * CHAT SECTION
- ***************************************************/
-.chat-section {
-  flex: 1;
+.single-column-container {
   display: flex;
   flex-direction: column;
-  width: 100%;
+  height: calc(100% - 56px);
+  margin-top: 56px; /* accounts for the top nav */
 }
+
+/***************************************************
+ * CHAT CONTAINER
+ ***************************************************/
 .chat-container {
   flex: 1;
   overflow-y: auto;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
-  padding: 24px;
-}
-
-/***************************************************
- * MOBILE & SIDEBAR-HIDDEN OVERRIDES
- ***************************************************/
-@media (max-width: 768px) {
-  .sidebar {
-    position: absolute;
-    left: 0;
-    top: 64px;
-    bottom: 0;
-    transform: translateX(-280px);
-  }
-  .sidebar-hidden .sidebar {
-    transform: translateX(0);
-  }
-
-  body {
-    font-size: 14px;
-  }
-  .bubble {
-    font-size: 14px;
-    line-height: 1.4;
-    padding: 8px 12px;
-  }
-  .input-bar textarea {
-    font-size: 14px;
-  }
+  padding: 16px;
+  background-color: #f9f9f9;
 }
