@@ -21,16 +21,17 @@ Rules:
    }
 `.trim();
 
-/*
-  We use process.env["X-OpenRouter-Api-Key"] for both 'apiKey' (to satisfy
-  the openai library) and the 'X-OpenRouter-Api-Key' header for OpenRouter.
-*/
+// Ensure the API key is set
+const apiKey = process.env["X-OpenRouter-Api-Key"];
+if (!apiKey) {
+  throw new Error("X-OpenRouter-Api-Key environment variable is not set.");
+}
+
 const openai = new OpenAI({
-  // Provide a placeholder to avoid the missing API key error
-  apiKey: process.env["X-OpenRouter-Api-Key"] || "DUMMY_PLACEHOLDER",
+  apiKey,
   baseURL: "https://openrouter.ai/api/v1",
   defaultHeaders: {
-    "X-OpenRouter-Api-Key": process.env["X-OpenRouter-Api-Key"],
+    "X-OpenRouter-Api-Key": apiKey,
   },
 });
 

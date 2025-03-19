@@ -11,13 +11,17 @@ dotenv.config();
  *  - Whether up-to-date web information is needed (requiresWebsearch).
  */
 export async function classifyMessage(conversationMessages, currentUserMessage) {
-  // Use the same environment variable name X-OpenRouter-Api-Key
-  // plus a fallback dummy key for the library.
+  // Ensure the API key is set
+  const apiKey = process.env["X-OpenRouter-Api-Key"];
+  if (!apiKey) {
+    throw new Error("X-OpenRouter-Api-Key environment variable is not set.");
+  }
+
   const openai = new OpenAI({
-    apiKey: process.env["X-OpenRouter-Api-Key"] || "DUMMY_PLACEHOLDER",
+    apiKey,
     baseURL: "https://openrouter.ai/api/v1",
     defaultHeaders: {
-      "X-OpenRouter-Api-Key": process.env["X-OpenRouter-Api-Key"],
+      "X-OpenRouter-Api-Key": apiKey,
     },
   });
 

@@ -115,7 +115,7 @@
 /* Bot messages are left, user messages are right */
 .message.bot {
   justify-content: flex-start;
-  margin-left: 8px; /* Move bot bubble a bit to the left */
+  margin-left: 8px;
 }
 .message.user {
   justify-content: flex-end;
@@ -250,8 +250,7 @@
 .send-btn img {
   width: 24px;
   height: 24px;
-  /* Force it to be white in light mode for visibility */
-  filter: brightness(0) invert(1);
+  /* Removed filter to ensure the icon is visible */
 }
 .send-btn:hover {
   background-color: #4a4ab0;
@@ -322,13 +321,13 @@
   right: 16px;
   font-size: 24px;
   cursor: pointer;
-  color: #2D2D2D; /* Dark text in light mode */
+  color: #2D2D2D;
 }
 .modal-close:hover {
   opacity: 0.7;
 }
 body.dark-mode .modal-close {
-  color: #fff; /* White in dark mode */
+  color: #fff;
 }
 .profile-field {
   margin-bottom: 10px;
@@ -392,7 +391,7 @@ body.dark-mode .modal-close {
   border: 1px solid #ddd;
   border-radius: 6px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  top: 36px; /* adjust if needed */
+  top: 36px;
   right: 0;
   z-index: 999;
   min-width: 80px;

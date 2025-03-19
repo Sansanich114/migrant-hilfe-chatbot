@@ -15,17 +15,19 @@ document.addEventListener("DOMContentLoaded", () => {
     body.classList.toggle("dark-mode");
     const isDark = body.classList.contains("dark-mode");
 
-    // Toggle icons for dark/light mode
+    // Swap theme icons:
+    // In dark mode, show a Sun icon (to switch to light)
+    // In light mode, show a Moon icon (to switch to dark)
     themeIcon.src = isDark
-      ? "https://img.icons8.com/ios-filled/24/ffffff/crescent-moon.png" // White Moon
-      : "https://img.icons8.com/ios-filled/24/000000/sun--v1.png";       // Black Sun
+      ? "https://img.icons8.com/ios-filled/24/000000/sun--v1.png"         // Sun icon for dark mode
+      : "https://img.icons8.com/ios-filled/24/ffffff/crescent-moon.png";    // Moon icon for light mode
 
     // Toggle the main logo for dark mode (if desired)
     logoIcon.src = isDark
       ? "https://img.icons8.com/ios-filled/50/ffffff/home--v1.png"
       : "https://img.icons8.com/ios-filled/50/000000/home--v1.png";
 
-    // Toggle send icon color if you want it to change in dark mode
+    // Toggle send icon (remains unchanged here)
     sendIcon.src = isDark
       ? "https://img.icons8.com/ios-filled/24/ffffff/filled-sent.png"
       : "https://img.icons8.com/ios-filled/24/000000/filled-sent.png";
