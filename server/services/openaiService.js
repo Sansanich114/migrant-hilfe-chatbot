@@ -21,10 +21,10 @@ Rules:
    }
 `.trim();
 
-// Ensure the API key is set
-const apiKey = process.env["X-OpenRouter-Api-Key"];
-if (!apiKey) {
-  throw new Error("X-OpenRouter-Api-Key environment variable is not set.");
+// Use OPENROUTER_API_KEY environment variable instead of X-OpenRouter-Api-Key
+const apiKey = process.env.OPENROUTER_API_KEY || "DUMMY_PLACEHOLDER";
+if (!process.env.OPENROUTER_API_KEY) {
+  console.warn("Warning: OPENROUTER_API_KEY environment variable is not set. Using a dummy placeholder.");
 }
 
 const openai = new OpenAI({

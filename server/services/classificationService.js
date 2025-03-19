@@ -11,12 +11,9 @@ dotenv.config();
  *  - Whether up-to-date web information is needed (requiresWebsearch).
  */
 export async function classifyMessage(conversationMessages, currentUserMessage) {
-  // Ensure the API key is set
-  const apiKey = process.env["X-OpenRouter-Api-Key"];
-  if (!apiKey) {
-    throw new Error("X-OpenRouter-Api-Key environment variable is not set.");
-  }
-
+  // Use OPENROUTER_API_KEY instead of X-OpenRouter-Api-Key
+  const apiKey = process.env.OPENROUTER_API_KEY || "DUMMY_PLACEHOLDER";
+  
   const openai = new OpenAI({
     apiKey,
     baseURL: "https://openrouter.ai/api/v1",
