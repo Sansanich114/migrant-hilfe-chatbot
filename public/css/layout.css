@@ -53,5 +53,6 @@
   overflow-y: auto;
   padding: 16px;
   background-color: #f9f9f9;
-  padding-bottom: 80px; /* Added to prevent fixed input bar overlap */
+  /* Increase bottom padding so suggestions & last messages stay above the fixed input bar */
+  padding-bottom: 200px;
 }

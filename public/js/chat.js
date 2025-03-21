@@ -15,7 +15,7 @@ function sendMessage() {
 
   // Retrieve stored conversationId and userId (set during login/signup)
   let conversationId = localStorage.getItem("conversationId") || "";
-  // Validate conversationId (should be 24 hex characters for MongoDB)
+  // Validate conversationId length (MongoDB IDs are typically 24 hex chars)
   if (conversationId && conversationId.length !== 24) {
     conversationId = "";
     localStorage.removeItem("conversationId");
@@ -64,7 +64,6 @@ function addMessage(sender, text) {
   messageDiv.appendChild(bubbleDiv);
   chatContainer.appendChild(messageDiv);
   // Removed auto-scroll to keep the UI stable
-  // chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
 function addBotTypingMessage() {
@@ -85,7 +84,6 @@ function addBotTypingMessage() {
 
   chatContainer.appendChild(typingIndicatorElement);
   // Removed auto-scroll to keep the UI stable
-  // chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
 function removeBotTypingMessage() {
@@ -97,6 +95,7 @@ function removeBotTypingMessage() {
   }
 }
 
+// Updated so clicking a suggestion automatically sends it
 function updateSuggestions(suggestions) {
   const suggestionsDiv = document.getElementById("suggestions");
   suggestionsDiv.innerHTML = "";
@@ -109,6 +108,7 @@ function updateSuggestions(suggestions) {
         const chatInput = document.getElementById("chatInput");
         chatInput.value = suggestion;
         autoResize(chatInput);
+        sendMessage(); // auto-send the suggestion
       };
       suggestionsDiv.appendChild(suggestionBtn);
     });

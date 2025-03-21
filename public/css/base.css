@@ -13,7 +13,7 @@ html, body {
   font-family: "Montserrat", -apple-system, BlinkMacSystemFont, "SF Pro Display",
     "Inter", Roboto, Arial, sans-serif;
   color: #2D2D2D;
-  overscroll-behavior: none;
+  overscroll-behavior: none; /* Prevents "pull/bounce" on mobile */
   margin: 0;
   padding: 0;
   /* Base font size and line-height */
