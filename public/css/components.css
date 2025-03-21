@@ -67,6 +67,9 @@
   border-top: 1px solid #e5e5e5;
   background-color: #fafafa;
   box-shadow: inset 0 -1px 0 rgba(0,0,0,0.05);
+
+  /* ADDED: ensure suggestions are fully visible even if multi-line */
+  overflow: visible;
 }
 .suggestion {
   padding: 8px 16px;

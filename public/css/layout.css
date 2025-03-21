@@ -53,6 +53,7 @@
   overflow-y: auto;
   padding: 16px;
   background-color: #f9f9f9;
-  /* Increase bottom padding so suggestions & last messages stay above the fixed input bar */
-  padding-bottom: 200px;
+
+  /* Reduced bottom padding so suggestions & last messages stay above the fixed input bar */
+  padding-bottom: 80px; /* CHANGED from 200px to 80px */
 }
