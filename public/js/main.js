@@ -16,16 +16,14 @@ document.addEventListener("DOMContentLoaded", () => {
     body.classList.toggle("dark-mode");
     const isDark = body.classList.contains("dark-mode");
 
-    // If dark => show a bright sun icon
-    // If light => show a dark moon icon
+    // Update theme toggle icons:
+    // In dark mode, use the accent icon; in light mode, use the correct dark theme file.
     themeIcon.src = isDark
-      ? "images/accent-icons/sun-bright.svg"   // bright sun in dark mode
-      : "images/accent-icons/moon-dark.svg";   // dark moon in light mode
+      ? "images/accent-icons/theme-accent.svg"  // Icon for dark mode active
+      : "images/accent-icons/theme-dark.svg";   // Correct light mode icon
 
-    // Optionally update send icon color
-    sendIcon.src = isDark
-      ? "images/accent-icons/send-dark.svg"
-      : "images/accent-icons/send-accent.svg";
+    // Always use the white send icon for better visibility
+    sendIcon.src = "images/accent-icons/send-dark.svg";
 
     // If you have a logo and want to change it in dark mode, uncomment:
     /*
