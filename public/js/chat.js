@@ -14,7 +14,12 @@ function sendMessage() {
   addBotTypingMessage();
 
   // Retrieve stored conversationId and userId (set during login/signup)
-  const conversationId = localStorage.getItem("conversationId") || "";
+  let conversationId = localStorage.getItem("conversationId") || "";
+  // Validate conversationId (should be 24 hex characters for MongoDB)
+  if (conversationId && conversationId.length !== 24) {
+    conversationId = "";
+    localStorage.removeItem("conversationId");
+  }
   const userId = localStorage.getItem("userId") || "";
   
   const payload = { conversationId, message: userMessage, userId };
@@ -58,7 +63,8 @@ function addMessage(sender, text) {
 
   messageDiv.appendChild(bubbleDiv);
   chatContainer.appendChild(messageDiv);
-  chatContainer.scrollTop = chatContainer.scrollHeight;
+  // Removed auto-scroll to keep the UI stable
+  // chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
 function addBotTypingMessage() {
@@ -78,7 +84,8 @@ function addBotTypingMessage() {
   typingIndicatorElement.appendChild(bubbleDiv);
 
   chatContainer.appendChild(typingIndicatorElement);
-  chatContainer.scrollTop = chatContainer.scrollHeight;
+  // Removed auto-scroll to keep the UI stable
+  // chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
 function removeBotTypingMessage() {

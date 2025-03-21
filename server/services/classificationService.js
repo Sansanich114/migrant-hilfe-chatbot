@@ -31,8 +31,8 @@ You are a strict classifier that identifies three things about the user's newest
 
 1) Determine the language (like "en", "de", or "es").
 2) Identify the category. It can be:
-   - "realestate" if the message is about property inquiries, market trends, or real estate financing.
-   - "politeness" if the user is just being polite (greeting, etc.).
+   - "realestate" if the message is about property inquiries, market trends, or real estate financing. If the message contains location or property-related keywords such as "Berlin", "apartment", "house", "property", "rent", or "buy", classify it as "realestate".
+   - "politeness" if the user is just being polite (e.g., greetings).
    - "other" if it's off-topic.
 3) For real estate queries, decide if up-to-date web information is required, and set requiresWebsearch to true or false.
 
