@@ -16,25 +16,23 @@ const openai = new OpenAI({
   },
 });
 
-/**
- * System prompt: short, direct, no polite filler.
- * Always ask clarifying questions about the user's real estate needs.
- * Provide short suggestions that are context-related.
- */
-const systemPrompt = `
-You are a concise and pragmatic real estate assistant.
-You do NOT use polite filler or say "thank you." 
-Always respond in short, direct sentences with relevant real estate info.
-Ask at least one clarifying question if needed. 
-Provide 1 or 2 context-specific suggestions (e.g., "3-bedroom", "Garden", "Near city center"), 
-and return them in JSON with the structure:
-{
-  "reply": "...",
-  "suggestions": ["...", "..."]
-}
-`.trim();
+// Minimal fallback if no system message is present
+const fallbackSystemPrompt = "You are a helpful real estate assistant.";
 
+/**
+ * A generic function to call the chat model.
+ * Ensures we have at least one system message in the chain.
+ */
 async function callDeepSeekChat(messages, temperature = 0.8) {
+  // If no system message is present, insert a fallback
+  const hasSystem = messages.some((m) => m.role === "system");
+  if (!hasSystem) {
+    messages.unshift({
+      role: "system",
+      content: fallbackSystemPrompt,
+    });
+  }
+
   const response = await openai.chat.completions.create({
     model: "deepseek/deepseek-chat:free",
     messages,
@@ -44,110 +42,124 @@ async function callDeepSeekChat(messages, temperature = 0.8) {
   return response.choices[0].message.content;
 }
 
+/**
+ * Generate a real estate related reply using the conversation so far.
+ * Adds a system-level note to return JSON.
+ */
 export async function generateRealEstateReply(conversation, message, language) {
-  const promptMessages = conversation.messages
-    .map((m) => `${m.role}: ${m.content}`)
-    .join("\n");
-  const realEstatePrompt = `
-${systemPrompt}
+  // Convert stored conversation messages into the format required by OpenAI
+  const messages = conversation.messages.map((m) => ({
+    role: m.role,
+    content: m.content,
+  }));
 
-Conversation so far:
-${promptMessages}
-
-User's latest query: "${message}"
-
+  // Add a short system instruction to ensure JSON output
+  messages.push({
+    role: "system",
+    content: `
 Return valid JSON of the form:
 {
   "reply": "...",
   "suggestions": ["...", "..."]
 }
-  `.trim();
+    `.trim(),
+  });
 
-  const messages = [{ role: "system", content: realEstatePrompt }];
   const rawOutput = await callDeepSeekChat(messages, 0.8);
   return parseAiResponse(rawOutput);
 }
 
+/**
+ * Generate a reply for polite/greeting messages.
+ */
 export async function generatePolitenessReply(conversation, language) {
-  const promptMessages = conversation.messages
-    .map((m) => `${m.role}: ${m.content}`)
-    .join("\n");
-  const politenessPrompt = `
-${systemPrompt}
+  const messages = conversation.messages.map((m) => ({
+    role: m.role,
+    content: m.content,
+  }));
 
-Conversation so far:
-${promptMessages}
-
-The user is just being polite or greeting. Provide a short greeting back, 
-then offer 1 or 2 quick suggestions about real estate topics.
-
-Return valid JSON:
+  messages.push({
+    role: "system",
+    content: `
+The user is greeting or being polite. Respond briefly and politely, then offer 1 or 2 short suggestions about real estate, in valid JSON:
 {
   "reply": "...",
   "suggestions": ["...", "..."]
 }
-  `.trim();
+    `.trim(),
+  });
 
-  const messages = [{ role: "system", content: politenessPrompt }];
   const rawOutput = await callDeepSeekChat(messages, 0.7);
   return parseAiResponse(rawOutput);
 }
 
+/**
+ * Generate a reply for off-topic queries.
+ */
 export async function generateOffTopicReply(conversation, language) {
-  const promptMessages = conversation.messages
-    .map((m) => `${m.role}: ${m.content}`)
-    .join("\n");
-  const offTopicPrompt = `
-${systemPrompt}
+  const messages = conversation.messages.map((m) => ({
+    role: m.role,
+    content: m.content,
+  }));
 
-Conversation so far:
-${promptMessages}
-
-User's message is off-topic. Politely redirect them to real estate questions. 
-Return valid JSON:
+  messages.push({
+    role: "system",
+    content: `
+User's message is off-topic. Politely guide them back to real estate topics. Return valid JSON:
 {
   "reply": "...",
   "suggestions": ["...", "..."]
 }
-  `.trim();
+    `.trim(),
+  });
 
-  const messages = [{ role: "system", content: offTopicPrompt }];
   const rawOutput = await callDeepSeekChat(messages, 0.7);
   return parseAiResponse(rawOutput);
 }
 
+/**
+ * Optional function if you still want an AI-based introduction for other use-cases.
+ */
 export async function generateIntroReply(language) {
-  const introPrompt = `
-${systemPrompt}
-
-Respond in ${language} with a short introduction about real estate assistance. 
-Offer 1 or 2 suggestions for what they can ask next.
-
-Return valid JSON:
+  const messages = [
+    {
+      role: "system",
+      content: fallbackSystemPrompt,
+    },
+    {
+      role: "system",
+      content: `
+Respond in ${language} with a short introduction about real estate assistance.
+Offer 1 or 2 suggestions for what they can ask next, in valid JSON:
 {
   "reply": "...",
   "suggestions": ["...", "..."]
 }
-  `.trim();
+      `.trim(),
+    },
+  ];
 
-  const messages = [{ role: "system", content: introPrompt }];
   const rawOutput = await callDeepSeekChat(messages, 0.7);
   return parseAiResponse(rawOutput);
 }
 
+/**
+ * Generate a short summary of the conversation so far.
+ */
 export async function generateConversationSummary(conversation, language) {
-  const conversationText = conversation.messages
-    .map((m) => `${m.role}: ${m.content}`)
-    .join("\n");
-  const summaryPrompt = `
-Please provide a very short summary in ${language} of the conversation so far. 
-Focus on property interests, location, budget, etc.
+  const messages = conversation.messages.map((m) => ({
+    role: m.role,
+    content: m.content,
+  }));
 
-Conversation:
-${conversationText}
-  `.trim();
+  messages.push({
+    role: "system",
+    content: `
+Please provide a short summary in ${language} of the conversation so far,
+focusing on property interests, location, and budget.
+    `.trim(),
+  });
 
-  const messages = [{ role: "system", content: summaryPrompt }];
   try {
     const rawOutput = await callDeepSeekChat(messages, 0.5);
     return rawOutput.trim();
