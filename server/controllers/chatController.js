@@ -1,13 +1,17 @@
-import fs from "fs";
-import path from "path";
+// server/controllers/chatController.js
+
 import Conversation from "../models/Conversation.js";
 import { classifyMessage } from "../services/classificationService.js";
 import {
   generatePolitenessReply,
   generateRealEstateReply,
   generateOffTopicReply,
-  generateConversationSummary
+  generateConversationSummary,
+  generateIntroReply
 } from "../services/openaiService.js";
+
+// (Optional) If you want to query Property data from your local DB
+import Property from "../models/Property.js";
 
 export async function chat(req, res) {
   const { conversationId, message, userId } = req.body;
@@ -17,60 +21,48 @@ export async function chat(req, res) {
     return res.status(400).json({ error: "message is required." });
   }
 
+  // 2) Enforce that a valid userId is provided
+  if (!userId) {
+    return res.status(400).json({ error: "userId is required. Please log in." });
+  }
+
   try {
     let conversation;
 
-    // 2) If conversationId is provided, try to load an existing conversation
+    // 3) If conversationId is provided, try to load an existing conversation
     if (conversationId) {
       conversation = await Conversation.findById(conversationId);
     }
 
-    // 3) If no conversation is found, create a new one
+    // 4) If no conversation is found, create a new one
     if (!conversation) {
-      // Attempt to load the salesman tutorial from the text file
-      const tutorialPath = path.join(process.cwd(), "server", "tutorials", "salesmanTutorial.txt");
-      let tutorialText = "";
-
-      try {
-        tutorialText = fs.readFileSync(tutorialPath, "utf8");
-      } catch (err) {
-        console.error("Could not load salesmanTutorial.txt:", err);
-        // Fallback text if file not found
-        tutorialText = "You are a real estate assistant with a pragmatic sales approach.";
-      }
-
-      // Create a new conversation with the tutorial as the system message
       conversation = new Conversation({
-        userId: userId || null, // store null if no userId was provided
+        userId: userId, // userId is required per your schema
         conversationName: "Default Conversation",
         messages: [
           {
             role: "system",
-            content: tutorialText,
+            content: process.env.SYSTEM_PROMPT || "Default system prompt",
           },
         ],
       });
 
-      // Add a short static intro as the first assistant response
-      const staticIntro = {
-        reply: "Hello and welcome to Real Estate Beispiel GmbH! I'm here to help you find the perfect property. Let's discuss your needs, and I'll do my best to arrange a meeting with one of our expert agents.",
-        suggestions: ["Show me properties", "I want to buy", "I want to rent"],
-      };
-
+      // Generate an introductory message from the assistant
+      const introData = await generateIntroReply("en");
       conversation.messages.push({
         role: "assistant",
-        content: staticIntro.reply,
+        content: introData.reply,
         timestamp: new Date(),
       });
 
       await conversation.save();
 
-      // Return the static intro plus the newly created conversationId
-      staticIntro.conversationId = conversation._id.toString();
-      return res.status(200).json(staticIntro);
+      // Return the intro data plus the newly created conversationId
+      introData.conversationId = conversation._id.toString();
+      return res.status(200).json(introData);
     }
 
-    // 4) Conversation exists; process the user's new message
+    // 5) Conversation exists; process the user's new message
     conversation.messages.push({
       role: "user",
       content: message,
@@ -80,13 +72,28 @@ export async function chat(req, res) {
     // Classify the user’s message
     const classification = await classifyMessage(conversation.messages, message);
 
-    // Generate the appropriate reply
     let replyData;
     if (classification.category === "politeness") {
+      // Polite greeting flow
       replyData = await generatePolitenessReply(conversation, classification.language);
     } else if (classification.category === "realestate") {
+      // REAL ESTATE FLOW
+      // Example: parse location from user’s message, then query Property data
+      const locationRegex = /berlin/i;
+      const locationMatch = message.match(locationRegex);
+      const location = locationMatch ? "Berlin" : null;
+
+      let properties = [];
+      if (location) {
+        properties = await Property.find({
+          address: { $regex: location, $options: "i" },
+        });
+      }
+
+      // Then pass data to generateRealEstateReply (you can modify that function to accept properties)
       replyData = await generateRealEstateReply(conversation, message, classification.language);
     } else {
+      // Off-topic flow
       replyData = await generateOffTopicReply(conversation, classification.language);
     }
 
@@ -97,7 +104,7 @@ export async function chat(req, res) {
       timestamp: new Date(),
     });
 
-    // Update summary
+    // Update the conversation summary
     const summary = await generateConversationSummary(conversation, classification.language);
     conversation.summary = summary;
 
@@ -106,6 +113,7 @@ export async function chat(req, res) {
     // Include the conversationId in the response
     replyData.conversationId = conversation._id.toString();
     return res.status(200).json(replyData);
+
   } catch (err) {
     console.error("Error in /chat:", err);
     return res.status(500).json({ error: "Unable to process request." });

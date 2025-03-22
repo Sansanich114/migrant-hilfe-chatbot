@@ -1,4 +1,5 @@
 // public/js/main.js
+
 document.addEventListener("DOMContentLoaded", () => {
   const body = document.body;
   const themeSwitcher = document.getElementById("themeSwitcher");
@@ -9,6 +10,17 @@ document.addEventListener("DOMContentLoaded", () => {
   const closeAbout = document.getElementById("closeAbout");
   const chatInput = document.getElementById("chatInput");
   const sendBtn = document.getElementById("sendBtn");
+
+  // 1) If user is not logged in, open the auth modal
+  //    so they can't send messages without a valid userId.
+  const userId = localStorage.getItem("userId");
+  if (!userId) {
+    // Only do this if you have an auth modal defined (e.g., #authModal in HTML).
+    // If you do, open it right away:
+    if (typeof openAuthModal === "function") {
+      openAuthModal();
+    }
+  }
 
   // THEME TOGGLE
   themeSwitcher.addEventListener("click", () => {

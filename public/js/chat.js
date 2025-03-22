@@ -1,7 +1,17 @@
+// public/js/chat.js
+
 let isBotTyping = false;
 let typingIndicatorElement = null;
 
 function sendMessage() {
+  // 1) Check if the user is logged in
+  const userId = localStorage.getItem("userId");
+  if (!userId) {
+    alert("Please log in first.");
+    openAuthModal(); // from auth.js
+    return;
+  }
+
   const chatInput = document.getElementById("chatInput");
   const sendBtn = document.getElementById("sendBtn");
   const userMessage = chatInput.value.trim();
@@ -13,16 +23,20 @@ function sendMessage() {
   disableInput(chatInput, sendBtn, true);
   addBotTypingMessage();
 
-  // Retrieve stored conversationId and userId (set during login/signup)
+  // Retrieve stored conversationId
   let conversationId = localStorage.getItem("conversationId") || "";
   // Validate conversationId length (MongoDB IDs are typically 24 hex chars)
   if (conversationId && conversationId.length !== 24) {
     conversationId = "";
     localStorage.removeItem("conversationId");
   }
-  const userId = localStorage.getItem("userId") || "";
-  
-  const payload = { conversationId, message: userMessage, userId };
+
+  // Build payload with userId included
+  const payload = {
+    conversationId,
+    message: userMessage,
+    userId, // we already validated it's not empty
+  };
 
   fetch("/chat", {
     method: "POST",
@@ -116,6 +130,8 @@ function updateSuggestions(suggestions) {
 }
 
 function fetchIntro() {
+  // We won't block this call if user isn't logged in,
+  // because it's just a one-time intro. But you can if you want.
   fetch("/user/intro?lang=en")
     .then((res) => res.json())
     .then((data) => {
@@ -127,6 +143,7 @@ function fetchIntro() {
     .catch((err) => console.error("Error fetching intro message:", err));
 }
 
+// Export functions to global scope
 window.sendMessage = sendMessage;
 window.addMessage = addMessage;
 window.addBotTypingMessage = addBotTypingMessage;
