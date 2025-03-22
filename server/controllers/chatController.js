@@ -1,6 +1,5 @@
-// server/controllers/chatController.js
-
 import Conversation from "../models/Conversation.js";
+import User from "../models/User.js";
 import { classifyMessage } from "../services/classificationService.js";
 import {
   generatePolitenessReply,
@@ -10,26 +9,30 @@ import {
   generateIntroReply
 } from "../services/openaiService.js";
 
-// (Optional) If you want to query Property data from your local DB
-import Property from "../models/Property.js";
-
 export async function chat(req, res) {
-  const { conversationId, message, userId } = req.body;
-
-  // 1) Validate that a message was provided
-  if (!message) {
-    return res.status(400).json({ error: "message is required." });
-  }
-
-  // 2) Enforce that a valid userId is provided
-  if (!userId) {
-    return res.status(400).json({ error: "userId is required. Please log in." });
-  }
-
   try {
-    let conversation;
+    const { conversationId, message, userId: clientUserId } = req.body;
 
-    // 3) If conversationId is provided, try to load an existing conversation
+    // 1) Validate that a message was provided
+    if (!message) {
+      return res.status(400).json({ error: "message is required." });
+    }
+
+    // 2) If no userId was passed, create a new “anonymous” user
+    let userId = clientUserId;
+    if (!userId) {
+      const newUser = new User({
+        // Generate a fake email so it's unique
+        email: `anon_${Date.now()}@example.com`,
+        // Password can be anything, since user won't manually log in
+        password: "anonymous"
+      });
+      await newUser.save();
+      userId = newUser._id.toString();
+    }
+
+    // 3) Attempt to load an existing conversation
+    let conversation = null;
     if (conversationId) {
       conversation = await Conversation.findById(conversationId);
     }
@@ -37,7 +40,7 @@ export async function chat(req, res) {
     // 4) If no conversation is found, create a new one
     if (!conversation) {
       conversation = new Conversation({
-        userId: userId, // userId is required per your schema
+        userId,
         conversationName: "Default Conversation",
         messages: [
           {
@@ -57,61 +60,48 @@ export async function chat(req, res) {
 
       await conversation.save();
 
-      // Return the intro data plus the newly created conversationId
+      // Return the intro data, plus the newly created conversationId and userId
       introData.conversationId = conversation._id.toString();
+      introData.userId = userId;
       return res.status(200).json(introData);
     }
 
-    // 5) Conversation exists; process the user's new message
+    // 5) If conversation exists, add the user's new message
     conversation.messages.push({
       role: "user",
       content: message,
       timestamp: new Date(),
     });
 
-    // Classify the user’s message
+    // 6) Classify the user’s message
     const classification = await classifyMessage(conversation.messages, message);
 
+    // 7) Generate the appropriate reply
     let replyData;
     if (classification.category === "politeness") {
-      // Polite greeting flow
       replyData = await generatePolitenessReply(conversation, classification.language);
     } else if (classification.category === "realestate") {
-      // REAL ESTATE FLOW
-      // Example: parse location from user’s message, then query Property data
-      const locationRegex = /berlin/i;
-      const locationMatch = message.match(locationRegex);
-      const location = locationMatch ? "Berlin" : null;
-
-      let properties = [];
-      if (location) {
-        properties = await Property.find({
-          address: { $regex: location, $options: "i" },
-        });
-      }
-
-      // Then pass data to generateRealEstateReply (you can modify that function to accept properties)
       replyData = await generateRealEstateReply(conversation, message, classification.language);
     } else {
-      // Off-topic flow
       replyData = await generateOffTopicReply(conversation, classification.language);
     }
 
-    // Add the assistant reply to the conversation
+    // 8) Add the assistant reply to the conversation
     conversation.messages.push({
       role: "assistant",
       content: replyData.reply,
       timestamp: new Date(),
     });
 
-    // Update the conversation summary
+    // 9) Update summary
     const summary = await generateConversationSummary(conversation, classification.language);
     conversation.summary = summary;
 
     await conversation.save();
 
-    // Include the conversationId in the response
+    // 10) Return the conversation data, including conversationId and userId
     replyData.conversationId = conversation._id.toString();
+    replyData.userId = userId;
     return res.status(200).json(replyData);
 
   } catch (err) {

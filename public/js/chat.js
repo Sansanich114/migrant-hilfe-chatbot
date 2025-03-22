@@ -1,43 +1,31 @@
-// public/js/chat.js
-
 let isBotTyping = false;
 let typingIndicatorElement = null;
 
 function sendMessage() {
-  // 1) Check if the user is logged in
-  const userId = localStorage.getItem("userId");
-  if (!userId) {
-    alert("Please log in first.");
-    openAuthModal(); // from auth.js
-    return;
-  }
-
   const chatInput = document.getElementById("chatInput");
   const sendBtn = document.getElementById("sendBtn");
   const userMessage = chatInput.value.trim();
   if (!userMessage) return;
 
+  // 1) Add user message to the chat
   addMessage("user", userMessage);
+
+  // 2) Clear input
   chatInput.value = "";
   autoResize(chatInput);
   disableInput(chatInput, sendBtn, true);
+
+  // 3) Show bot typing indicator
   addBotTypingMessage();
 
-  // Retrieve stored conversationId
+  // 4) Retrieve stored conversationId and userId from localStorage
   let conversationId = localStorage.getItem("conversationId") || "";
-  // Validate conversationId length (MongoDB IDs are typically 24 hex chars)
-  if (conversationId && conversationId.length !== 24) {
-    conversationId = "";
-    localStorage.removeItem("conversationId");
-  }
+  let userId = localStorage.getItem("userId") || "";
 
-  // Build payload with userId included
-  const payload = {
-    conversationId,
-    message: userMessage,
-    userId, // we already validated it's not empty
-  };
+  // 5) Prepare payload
+  const payload = { conversationId, message: userMessage, userId };
 
+  // 6) Send POST request to /chat
   fetch("/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -45,17 +33,26 @@ function sendMessage() {
   })
     .then((response) => response.json())
     .then((data) => {
+      // 7) Remove bot typing indicator
       removeBotTypingMessage();
       disableInput(chatInput, sendBtn, false);
+
+      // 8) If there's a bot reply, add it; else fallback
       if (data.reply) {
         addMessage("bot", data.reply);
       } else {
         addMessage("bot", "Sorry, I didn't get a response.");
       }
+
+      // 9) Update suggestions
       updateSuggestions(data.suggestions);
-      // Store conversationId if returned by the server
+
+      // 10) Store conversationId & userId in localStorage for next time
       if (data.conversationId) {
         localStorage.setItem("conversationId", data.conversationId);
+      }
+      if (data.userId) {
+        localStorage.setItem("userId", data.userId);
       }
     })
     .catch((error) => {
@@ -77,7 +74,6 @@ function addMessage(sender, text) {
 
   messageDiv.appendChild(bubbleDiv);
   chatContainer.appendChild(messageDiv);
-  // Removed auto-scroll to keep the UI stable
 }
 
 function addBotTypingMessage() {
@@ -97,7 +93,6 @@ function addBotTypingMessage() {
   typingIndicatorElement.appendChild(bubbleDiv);
 
   chatContainer.appendChild(typingIndicatorElement);
-  // Removed auto-scroll to keep the UI stable
 }
 
 function removeBotTypingMessage() {
@@ -109,7 +104,6 @@ function removeBotTypingMessage() {
   }
 }
 
-// Updated so clicking a suggestion automatically sends it
 function updateSuggestions(suggestions) {
   const suggestionsDiv = document.getElementById("suggestions");
   suggestionsDiv.innerHTML = "";
@@ -130,8 +124,6 @@ function updateSuggestions(suggestions) {
 }
 
 function fetchIntro() {
-  // We won't block this call if user isn't logged in,
-  // because it's just a one-time intro. But you can if you want.
   fetch("/user/intro?lang=en")
     .then((res) => res.json())
     .then((data) => {
@@ -143,7 +135,7 @@ function fetchIntro() {
     .catch((err) => console.error("Error fetching intro message:", err));
 }
 
-// Export functions to global scope
+// Exported to global scope (e.g., from an inline script in index.html)
 window.sendMessage = sendMessage;
 window.addMessage = addMessage;
 window.addBotTypingMessage = addBotTypingMessage;
