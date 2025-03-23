@@ -8,6 +8,7 @@ import {
   generateConversationSummary,
   generateIntroReply
 } from "../services/openaiService.js";
+import { getGoogleSummary } from "../services/googleSearchService.js";
 
 export async function chat(req, res) {
   try {
@@ -81,6 +82,15 @@ export async function chat(req, res) {
     if (classification.category === "politeness") {
       replyData = await generatePolitenessReply(conversation, classification.language);
     } else if (classification.category === "realestate") {
+      // If the query needs up-to-date information, perform a web search
+      if (classification.requiresWebsearch) {
+        const webSnippet = await getGoogleSummary(message);
+        // Append the web search snippet as additional system context
+        conversation.messages.push({
+          role: "system",
+          content: `Web context: ${webSnippet}`,
+        });
+      }
       replyData = await generateRealEstateReply(conversation, message, classification.language);
     } else {
       replyData = await generateOffTopicReply(conversation, classification.language);

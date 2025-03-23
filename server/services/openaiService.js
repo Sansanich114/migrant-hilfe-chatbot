@@ -102,7 +102,8 @@ export async function generateRealEstateReply(conversation, message, language) {
     propertySnippet = "No matching property found.";
   }
 
-  // Build the messages for the language model prompt
+  // Build the messages for the language model prompt.
+  // The conversation.messages already include all prior context, including any web search context.
   const messages = conversation.messages.map((m) => ({
     role: m.role,
     content: m.content,
