@@ -2,6 +2,7 @@ import { OpenAI } from "openai";
 import dotenv from "dotenv";
 dotenv.config();
 import { parseAiResponse } from "../utils/helpers.js";
+import Property from "../models/Property.js";
 
 const apiKey = process.env.OPENROUTER_API_KEY || "DUMMY_PLACEHOLDER";
 if (!process.env.OPENROUTER_API_KEY) {
@@ -43,17 +44,77 @@ async function callDeepSeekChat(messages, temperature = 0.8) {
 }
 
 /**
+ * Compute the cosine similarity between two vectors.
+ */
+function cosineSimilarity(vecA, vecB) {
+  const dotProduct = vecA.reduce((sum, a, idx) => sum + a * vecB[idx], 0);
+  const normA = Math.sqrt(vecA.reduce((sum, a) => sum + a * a, 0));
+  const normB = Math.sqrt(vecB.reduce((sum, b) => sum + b * b, 0));
+  return dotProduct / (normA * normB);
+}
+
+/**
+ * Get an embedding for a given text using the OpenRouter API.
+ */
+async function getEmbedding(text) {
+  try {
+    const response = await openai.embeddings.create({
+      model: "text-embedding-ada-002",
+      input: text,
+    });
+    // Adjust path according to response structure
+    return response.data.data[0].embedding;
+  } catch (error) {
+    console.error("Embedding error:", error);
+    return null;
+  }
+}
+
+/**
  * Generate a real estate related reply using the conversation so far.
- * Adds a system-level note to return JSON.
+ * Uses semantic search to find the best matching property and injects that data.
  */
 export async function generateRealEstateReply(conversation, message, language) {
-  // Convert stored conversation messages into the format required by OpenAI
+  // Compute an embedding for the user's query
+  const queryEmbedding = await getEmbedding(message);
+  let bestProperty = null;
+  let bestScore = -Infinity;
+
+  // Retrieve all properties (in production, consider using a pre-filter)
+  const properties = await Property.find({});
+  if (queryEmbedding) {
+    for (const property of properties) {
+      // Assume each property document has a precomputed 'embedding' field (an array of numbers)
+      if (property.embedding && Array.isArray(property.embedding)) {
+        const score = cosineSimilarity(queryEmbedding, property.embedding);
+        if (score > bestScore) {
+          bestScore = score;
+          bestProperty = property;
+        }
+      }
+    }
+  }
+
+  let propertySnippet = "";
+  if (bestProperty) {
+    propertySnippet = `Best match: ${bestProperty.title} - ${bestProperty.price} located at ${bestProperty.address}.`;
+  } else {
+    propertySnippet = "No matching property found.";
+  }
+
+  // Build the messages for the language model prompt
   const messages = conversation.messages.map((m) => ({
     role: m.role,
     content: m.content,
   }));
 
-  // Add a short system instruction to ensure JSON output
+  // Inject the property snippet into the context for semantic grounding
+  messages.push({
+    role: "system",
+    content: `Based on the query, the most relevant property is: ${propertySnippet}`,
+  });
+
+  // Append the system instruction to return valid JSON
   messages.push({
     role: "system",
     content: `
@@ -118,7 +179,7 @@ User's message is off-topic. Politely guide them back to real estate topics. Ret
 }
 
 /**
- * Optional function if you still want an AI-based introduction for other use-cases.
+ * Optional function for an AI-based introduction.
  */
 export async function generateIntroReply(language) {
   const messages = [
