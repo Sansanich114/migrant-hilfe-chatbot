@@ -1,5 +1,6 @@
 import { OpenAI } from "openai";
 import dotenv from "dotenv";
+import axios from "axios";
 dotenv.config();
 import { parseAiResponse } from "../utils/helpers.js";
 import Property from "../models/Property.js";
@@ -54,18 +55,14 @@ function cosineSimilarity(vecA, vecB) {
 }
 
 /**
- * Get an embedding for a given text using the OpenRouter API.
+ * Get an embedding for a given text using the local embedding service.
  */
 async function getEmbedding(text) {
   try {
-    const response = await openai.embeddings.create({
-      model: "text-embedding-ada-002",
-      input: text,
-    });
-    // Adjust path according to response structure
-    return response.data.data[0].embedding;
+    const response = await axios.post("http://127.0.0.1:4999/embed", { text });
+    return response.data.embedding;
   } catch (error) {
-    console.error("Embedding error:", error);
+    console.error("Local embedding error:", error);
     return null;
   }
 }
@@ -75,7 +72,7 @@ async function getEmbedding(text) {
  * Uses semantic search to find the best matching property and injects that data.
  */
 export async function generateRealEstateReply(conversation, message, language) {
-  // Compute an embedding for the user's query
+  // Compute an embedding for the user's query using the local service
   const queryEmbedding = await getEmbedding(message);
   let bestProperty = null;
   let bestScore = -Infinity;
@@ -103,7 +100,7 @@ export async function generateRealEstateReply(conversation, message, language) {
   }
 
   // Build the messages for the language model prompt.
-  // The conversation.messages already include all prior context, including any web search context.
+  // The conversation.messages already include all prior context.
   const messages = conversation.messages.map((m) => ({
     role: m.role,
     content: m.content,

@@ -23,9 +23,7 @@ export async function chat(req, res) {
     let userId = clientUserId;
     if (!userId) {
       const newUser = new User({
-        // Generate a fake email so it's unique
         email: `anon_${Date.now()}@example.com`,
-        // Password can be anything, since user won't manually log in
         password: "anonymous"
       });
       await newUser.save();
@@ -44,10 +42,7 @@ export async function chat(req, res) {
         userId,
         conversationName: "Default Conversation",
         messages: [
-          {
-            role: "system",
-            content: process.env.SYSTEM_PROMPT || "Default system prompt",
-          },
+          { role: "system", content: process.env.SYSTEM_PROMPT || "Default system prompt" }
         ],
       });
 
@@ -61,20 +56,19 @@ export async function chat(req, res) {
 
       await conversation.save();
 
-      // Return the intro data, plus the newly created conversationId and userId
       introData.conversationId = conversation._id.toString();
       introData.userId = userId;
       return res.status(200).json(introData);
     }
 
-    // 5) If conversation exists, add the user's new message
+    // 5) Add the user's new message
     conversation.messages.push({
       role: "user",
       content: message,
       timestamp: new Date(),
     });
 
-    // 6) Classify the user’s message
+    // 6) Classify the user's message
     const classification = await classifyMessage(conversation.messages, message);
 
     // 7) Generate the appropriate reply
@@ -82,10 +76,8 @@ export async function chat(req, res) {
     if (classification.category === "politeness") {
       replyData = await generatePolitenessReply(conversation, classification.language);
     } else if (classification.category === "realestate") {
-      // If the query needs up-to-date information, perform a web search
       if (classification.requiresWebsearch) {
         const webSnippet = await getGoogleSummary(message);
-        // Append the web search snippet as additional system context
         conversation.messages.push({
           role: "system",
           content: `Web context: ${webSnippet}`,
@@ -96,20 +88,19 @@ export async function chat(req, res) {
       replyData = await generateOffTopicReply(conversation, classification.language);
     }
 
-    // 8) Add the assistant reply to the conversation
+    // 8) Add the assistant's reply
     conversation.messages.push({
       role: "assistant",
       content: replyData.reply,
       timestamp: new Date(),
     });
 
-    // 9) Update summary
+    // 9) Update conversation summary
     const summary = await generateConversationSummary(conversation, classification.language);
     conversation.summary = summary;
 
     await conversation.save();
 
-    // 10) Return the conversation data, including conversationId and userId
     replyData.conversationId = conversation._id.toString();
     replyData.userId = userId;
     return res.status(200).json(replyData);
