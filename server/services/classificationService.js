@@ -1,17 +1,9 @@
+// classificationService.js
 import { OpenAI } from "openai";
 import dotenv from "dotenv";
 dotenv.config();
 
-/**
- * Classifies the user's newest message for the real estate context.
- * It detects:
- *  - Language (e.g., "en", "de", or "es").
- *  - Category: "realestate" (property inquiries, financing, market),
- *              "politeness" (greetings), or "other" (off-topic).
- *  - Whether up-to-date web information is needed (requiresWebsearch).
- */
 export async function classifyMessage(conversationMessages, currentUserMessage) {
-  // Use OPENROUTER_API_KEY instead of X-OpenRouter-Api-Key
   const apiKey = process.env.OPENROUTER_API_KEY || "DUMMY_PLACEHOLDER";
   
   const openai = new OpenAI({
@@ -34,14 +26,13 @@ You are a strict classifier that identifies three things about the user's newest
    - "realestate" if the message is about property inquiries, market trends, or real estate financing. If the message contains location or property-related keywords such as "Berlin", "apartment", "house", "property", "rent", or "buy", classify it as "realestate".
    - "politeness" if the user is just being polite (e.g., greetings).
    - "other" if it's off-topic.
-3) For real estate queries, decide if up-to-date web information is required, and set requiresWebsearch to true or false.
 
 Return ONLY raw JSON (no markdown) in the following format:
 {
   "language": "...",
   "category": "...",
-  "requiresWebsearch": true/false,
-  "websearchExplanation": "..."
+  "requiresWebsearch": false,
+  "websearchExplanation": ""
 }
 
 Conversation so far:
