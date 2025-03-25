@@ -1,12 +1,23 @@
 ﻿/* base.css */
+/* Global resets, typography, basic element styles */
+
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
+
 html, body {
   height: 100%;
-  font-family: "Montserrat", sans-serif;
+  font-family: "Montserrat", -apple-system, BlinkMacSystemFont, "SF Pro Display",
+    "Inter", Roboto, Arial, sans-serif;
+  overscroll-behavior: none; /* Prevents "pull/bounce" on mobile */
+  margin: 0;
+  padding: 0;
+  /* Base font size and line-height */
+  font-size: 16px;
+  line-height: 1.5;
+  transition: background-color 0.3s, color 0.3s;
   color: #2D2D2D;
-  background-color: #ffffff;
+  background-color: #FFFFFF; /* White background for default theme */
 }
