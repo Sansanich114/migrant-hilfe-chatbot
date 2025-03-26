@@ -1,5 +1,3 @@
-// server/app.js
-
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
@@ -8,6 +6,7 @@ dotenv.config();
 
 import chatRoutes from "./routes/chatRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
+import leadRoutes from "./routes/leadRoutes.js";
 
 const app = express();
 
@@ -23,7 +22,7 @@ app.use(
 app.use(express.json());
 app.use(express.static("public"));
 
-// Connect to your (single) MongoDB instance
+// Connect to MongoDB
 mongoose
   .connect(process.env.MONGODB_URI || "mongodb://localhost:27017/realEstateDemo")
   .then(() => console.log("✅ Connected to MongoDB"))
@@ -32,7 +31,7 @@ mongoose
 // Routes
 app.use("/chat", chatRoutes);
 app.use("/user", userRoutes);
+app.use("/lead", leadRoutes);
 
-// Start the server
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`✅ Server running on port ${port}`));
