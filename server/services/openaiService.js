@@ -1,11 +1,12 @@
+// redemo/server/services/openaiService.js
 import { OpenAI } from "openai";
 import dotenv from "dotenv";
 import axios from "axios";
 dotenv.config();
 import { parseAiResponse } from "../utils/helpers.js";
 import Property from "../models/Property.js";
-// NEW: Import our child-process embedding function
-import { getEmbeddings } from "../../embedding_service/embeddingService.js";
+
+// Removed the old import and function for child-process embeddings
 
 const apiKey = process.env.OPENROUTER_API_KEY || "DUMMY_PLACEHOLDER";
 if (!process.env.OPENROUTER_API_KEY) {
@@ -42,13 +43,25 @@ async function callDeepSeekChat(messages, temperature = 0.8) {
   return response.choices[0].message.content;
 }
 
-// --- NEW: Updated getEmbedding using the child process ---
-async function getEmbedding(text) {
+// NEW: Function to get a query embedding using OpenAI’s Embedding API.
+export async function getQueryEmbedding(text) {
   try {
-    const response = await getEmbeddings(text);
-    return response.embeddings && response.embeddings[0];
+    const response = await axios.post(
+      "https://api.openai.com/v1/embeddings",
+      {
+        model: "text-embedding-ada-002",
+        input: text,
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+        },
+      }
+    );
+    return response.data.data[0].embedding;
   } catch (error) {
-    console.error("Embedding error via child process:", error);
+    console.error("Error computing query embedding:", error);
     return null;
   }
 }
@@ -61,10 +74,10 @@ function cosineSimilarity(vecA, vecB) {
   return dotProduct / (normA * normB);
 }
 
-// --- REAL ESTATE REPLY using embeddings ---
+// --- REAL ESTATE REPLY using precomputed embeddings ---
 export async function generateRealEstateReply(conversation, message, language) {
-  // Get the embedding for the user's message using our child process.
-  const queryEmbedding = await getEmbedding(message);
+  // Get the embedding for the user's message using our new function.
+  const queryEmbedding = await getQueryEmbedding(message);
   let bestProperty = null;
   let bestScore = -Infinity;
 
