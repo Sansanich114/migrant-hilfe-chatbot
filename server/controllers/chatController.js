@@ -1,8 +1,14 @@
-// chatController.js
+// redemo/server/controllers/chatController.js
 import Conversation from "../models/Conversation.js";
 import User from "../models/User.js";
 import { classifyMessage } from "../services/classificationService.js";
-import { generatePolitenessReply, generateRealEstateReply, generateOffTopicReply, generateIntroReply } from "../services/openaiService.js";
+import { 
+  generatePolitenessReply, 
+  generateRealEstateReply, 
+  generateOffTopicReply, 
+  generateIntroReply,
+  generateConversationSummary  // <-- Added this function import
+} from "../services/openaiService.js";
 
 export async function chat(req, res) {
   try {
@@ -67,6 +73,7 @@ export async function chat(req, res) {
       timestamp: new Date(),
     });
 
+    // Now generate a summary for the conversation
     conversation.summary = await generateConversationSummary(conversation, classification.language);
     await conversation.save();
 
