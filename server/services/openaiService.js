@@ -6,8 +6,7 @@ dotenv.config();
 import { parseAiResponse } from "../utils/helpers.js";
 import Property from "../models/Property.js";
 
-// Removed the old import and function for child-process embeddings
-
+// Use the OpenRouter API key for both chat and embeddings.
 const apiKey = process.env.OPENROUTER_API_KEY || "DUMMY_PLACEHOLDER";
 if (!process.env.OPENROUTER_API_KEY) {
   console.warn("Warning: OPENROUTER_API_KEY environment variable is not set. Using a dummy placeholder.");
@@ -43,11 +42,11 @@ async function callDeepSeekChat(messages, temperature = 0.8) {
   return response.choices[0].message.content;
 }
 
-// NEW: Function to get a query embedding using OpenAI’s Embedding API.
+// UPDATED: Use OpenRouter's API key and endpoint for embeddings
 export async function getQueryEmbedding(text) {
   try {
     const response = await axios.post(
-      "https://api.openai.com/v1/embeddings",
+      "https://openrouter.ai/api/v1/embeddings",
       {
         model: "text-embedding-ada-002",
         input: text,
@@ -55,13 +54,13 @@ export async function getQueryEmbedding(text) {
       {
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+          "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
         },
       }
     );
     return response.data.data[0].embedding;
   } catch (error) {
-    console.error("Error computing query embedding:", error);
+    console.error("Error computing query embedding:", error.response?.data || error.message);
     return null;
   }
 }
@@ -85,7 +84,6 @@ export async function generateRealEstateReply(conversation, message, language) {
   const properties = await Property.find({});
   if (queryEmbedding) {
     for (const property of properties) {
-      // Compare with each listing's precomputed embedding.
       if (property.embedding && Array.isArray(property.embedding)) {
         const score = cosineSimilarity(queryEmbedding, property.embedding);
         if (score > bestScore) {
