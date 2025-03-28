@@ -55,8 +55,9 @@ async function callDeepSeekChat(messages, temperature = 0.8) {
 }
 
 /**
- * 4) Hugging Face-based function to generate embeddings
- *    using the "sentence-transformers/all-MiniLM-L6-v2" model.
+ * Hugging Face-based function to generate embeddings
+ * using the "sentence-transformers/all-MiniLM-L6-v2" model.
+ * Sends a payload in the form: { inputs: text }
  */
 export async function getQueryEmbedding(text) {
   try {
@@ -70,8 +71,7 @@ export async function getQueryEmbedding(text) {
         },
       }
     );
-    // The HF Inference API typically returns an array with a single embedding
-    // e.g. [[0.123, 0.456, ...]]
+    // The HF Inference API returns an array with a single embedding, e.g. [[0.123, 0.456, ...]]
     const [embedding] = response.data;
     return embedding;
   } catch (error) {
@@ -92,10 +92,10 @@ function cosineSimilarity(vecA, vecB) {
 
 /**
  * Generate a real estate-related reply:
- * 1) Get the embedding for the user message from Hugging Face
- * 2) Compare with your precomputed property embeddings
- * 3) Provide best match property snippet
- * 4) Call the chat model to build a final answer
+ * 1) Get the embedding for the user message from Hugging Face.
+ * 2) Compare with your precomputed property embeddings.
+ * 3) Provide the best match property snippet.
+ * 4) Call the chat model to build a final answer.
  */
 export async function generateRealEstateReply(conversation, message, language) {
   // 1) Get user query embedding
@@ -154,7 +154,7 @@ Return valid JSON of the form:
 }
 
 /**
- * Generate a short, polite greeting reply + real estate suggestions.
+ * Generate a short, polite greeting reply with real estate suggestions.
  */
 export async function generatePolitenessReply(conversation, language) {
   const messagesForChat = conversation.messages.map((m) => ({
@@ -178,7 +178,7 @@ The user is greeting or being polite. Respond briefly and politely, then offer 1
 }
 
 /**
- * Generate a short "off-topic" reply that gently redirects user back to real estate.
+ * Generate a short "off-topic" reply that gently redirects the user back to real estate.
  */
 export async function generateOffTopicReply(conversation, language) {
   const messagesForChat = conversation.messages.map((m) => ({
