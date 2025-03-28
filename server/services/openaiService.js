@@ -1,31 +1,41 @@
-// redemo/server/services/openaiService.js
+// server/services/openaiService.js
 import { OpenAI } from "openai";
 import dotenv from "dotenv";
 import axios from "axios";
 dotenv.config();
+
 import { parseAiResponse } from "../utils/helpers.js";
 import Property from "../models/Property.js";
 
-// Use the OpenRouter API key for both chat and embeddings.
-const apiKey = process.env.OPENROUTER_API_KEY || "DUMMY_PLACEHOLDER";
-if (!process.env.OPENROUTER_API_KEY) {
-  console.warn("Warning: OPENROUTER_API_KEY environment variable is not set. Using a dummy placeholder.");
+// 1) Load environment variables
+const openRouterApiKey = process.env.OPENROUTER_API_KEY;
+const hfApiKey = process.env.HF_API_KEY;
+
+// 2) Ensure both are present
+if (!openRouterApiKey) {
+  throw new Error("Missing environment variable: OPENROUTER_API_KEY");
+}
+if (!hfApiKey) {
+  throw new Error("Missing environment variable: HF_API_KEY");
 }
 
+// 3) Configure the OpenAI wrapper for OpenRouter (chat usage)
 const openai = new OpenAI({
-  apiKey,
+  apiKey: openRouterApiKey,
   baseURL: "https://openrouter.ai/api/v1",
   defaultHeaders: {
-    "X-OpenRouter-Api-Key": apiKey,
+    "X-OpenRouter-Api-Key": openRouterApiKey,
   },
 });
 
-// Minimal fallback system prompt.
+// Minimal fallback system prompt for chat
 const fallbackSystemPrompt = "You are a helpful real estate assistant.";
 
-// Generic function to call the chat model.
+/**
+ * Helper function to call the DeepSeek Chat model via OpenRouter.
+ * We inject a system message if none is present.
+ */
 async function callDeepSeekChat(messages, temperature = 0.8) {
-  // Ensure at least one system message is present.
   const hasSystem = messages.some((m) => m.role === "system");
   if (!hasSystem) {
     messages.unshift({
@@ -33,39 +43,46 @@ async function callDeepSeekChat(messages, temperature = 0.8) {
       content: fallbackSystemPrompt,
     });
   }
+
   const response = await openai.chat.completions.create({
     model: "deepseek/deepseek-chat:free",
     messages,
     temperature,
     max_tokens: 500,
   });
+
   return response.choices[0].message.content;
 }
 
-// UPDATED: Use OpenRouter's API key and endpoint for embeddings
+/**
+ * 4) Hugging Face-based function to generate embeddings
+ *    using the "sentence-transformers/all-MiniLM-L6-v2" model.
+ */
 export async function getQueryEmbedding(text) {
   try {
     const response = await axios.post(
-      "https://openrouter.ai/api/v1/embeddings",
-      {
-        model: "text-embedding-ada-002",
-        input: text,
-      },
+      "https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2",
+      { inputs: text },
       {
         headers: {
+          Authorization: `Bearer ${hfApiKey}`,
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
         },
       }
     );
-    return response.data.data[0].embedding;
+    // The HF Inference API typically returns an array with a single embedding
+    // e.g. [[0.123, 0.456, ...]]
+    const [embedding] = response.data;
+    return embedding;
   } catch (error) {
     console.error("Error computing query embedding:", error.response?.data || error.message);
     return null;
   }
 }
 
-// Helper: Compute cosine similarity between two vectors.
+/**
+ * Helper: Compute cosine similarity between two vectors of the same length.
+ */
 function cosineSimilarity(vecA, vecB) {
   const dotProduct = vecA.reduce((sum, a, idx) => sum + a * vecB[idx], 0);
   const normA = Math.sqrt(vecA.reduce((sum, a) => sum + a * a, 0));
@@ -73,15 +90,23 @@ function cosineSimilarity(vecA, vecB) {
   return dotProduct / (normA * normB);
 }
 
-// --- REAL ESTATE REPLY using precomputed embeddings ---
+/**
+ * Generate a real estate-related reply:
+ * 1) Get the embedding for the user message from Hugging Face
+ * 2) Compare with your precomputed property embeddings
+ * 3) Provide best match property snippet
+ * 4) Call the chat model to build a final answer
+ */
 export async function generateRealEstateReply(conversation, message, language) {
-  // Get the embedding for the user's message using our new function.
+  // 1) Get user query embedding
   const queryEmbedding = await getQueryEmbedding(message);
   let bestProperty = null;
   let bestScore = -Infinity;
 
-  // Retrieve all properties from MongoDB.
+  // 2) Retrieve all properties from MongoDB
   const properties = await Property.find({});
+
+  // 3) Compare query embedding to each property’s stored embedding
   if (queryEmbedding) {
     for (const property of properties) {
       if (property.embedding && Array.isArray(property.embedding)) {
@@ -94,22 +119,24 @@ export async function generateRealEstateReply(conversation, message, language) {
     }
   }
 
-  let propertySnippet = "";
+  let propertySnippet;
   if (bestProperty) {
     propertySnippet = `Best match: ${bestProperty.title} - ${bestProperty.price} located at ${bestProperty.address}.`;
   } else {
     propertySnippet = "No matching property found.";
   }
 
-  // Build messages for the chat model prompt.
+  // 4) Build prompt for the chat model
   const messagesForChat = conversation.messages.map((m) => ({
     role: m.role,
     content: m.content,
   }));
+
   messagesForChat.push({
     role: "system",
     content: `Based on the query, the most relevant property is: ${propertySnippet}`,
   });
+
   messagesForChat.push({
     role: "system",
     content: `
@@ -121,15 +148,20 @@ Return valid JSON of the form:
     `.trim(),
   });
 
+  // 5) Generate final answer using OpenRouter
   const rawOutput = await callDeepSeekChat(messagesForChat, 0.8);
   return parseAiResponse(rawOutput);
 }
 
+/**
+ * Generate a short, polite greeting reply + real estate suggestions.
+ */
 export async function generatePolitenessReply(conversation, language) {
   const messagesForChat = conversation.messages.map((m) => ({
     role: m.role,
     content: m.content,
   }));
+
   messagesForChat.push({
     role: "system",
     content: `
@@ -140,15 +172,20 @@ The user is greeting or being polite. Respond briefly and politely, then offer 1
 }
     `.trim(),
   });
+
   const rawOutput = await callDeepSeekChat(messagesForChat, 0.7);
   return parseAiResponse(rawOutput);
 }
 
+/**
+ * Generate a short "off-topic" reply that gently redirects user back to real estate.
+ */
 export async function generateOffTopicReply(conversation, language) {
   const messagesForChat = conversation.messages.map((m) => ({
     role: m.role,
     content: m.content,
   }));
+
   messagesForChat.push({
     role: "system",
     content: `
@@ -159,10 +196,14 @@ User's message is off-topic. Politely guide them back to real estate topics. Ret
 }
     `.trim(),
   });
+
   const rawOutput = await callDeepSeekChat(messagesForChat, 0.7);
   return parseAiResponse(rawOutput);
 }
 
+/**
+ * Generate a short introduction reply in the user's preferred language.
+ */
 export async function generateIntroReply(language) {
   const messagesForChat = [
     {
@@ -181,15 +222,20 @@ Offer 1 or 2 suggestions for what they can ask next, in valid JSON:
       `.trim(),
     },
   ];
+
   const rawOutput = await callDeepSeekChat(messagesForChat, 0.7);
   return parseAiResponse(rawOutput);
 }
 
+/**
+ * Generate a short summary of the conversation so far.
+ */
 export async function generateConversationSummary(conversation, language) {
   const messagesForChat = conversation.messages.map((m) => ({
     role: m.role,
     content: m.content,
   }));
+
   messagesForChat.push({
     role: "system",
     content: `
@@ -197,6 +243,7 @@ Please provide a short summary in ${language} of the conversation so far,
 focusing on property interests, location, and budget.
     `.trim(),
   });
+
   try {
     const rawOutput = await callDeepSeekChat(messagesForChat, 0.5);
     return rawOutput.trim();
