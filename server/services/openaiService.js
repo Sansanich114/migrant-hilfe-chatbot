@@ -57,7 +57,7 @@ async function callDeepSeekChat(messages, temperature = 0.8) {
 /**
  * Hugging Face-based function to generate embeddings using the 
  * "sentence-transformers/all-MiniLM-L6-v2" model.
- * Now sends the payload as { inputs: [text] } to ensure correct format.
+ * Sends the payload as { inputs: [text] } to ensure the proper format.
  */
 export async function getQueryEmbedding(text) {
   try {
@@ -71,7 +71,7 @@ export async function getQueryEmbedding(text) {
         },
       }
     );
-    // The HF Inference API returns an array with a single embedding, e.g. [[0.123, 0.456, ...]]
+    // The HF API returns an array with a single embedding, e.g. [[0.123, 0.456, ...]]
     const [embedding] = response.data;
     return embedding;
   } catch (error) {
@@ -92,20 +92,16 @@ function cosineSimilarity(vecA, vecB) {
 
 /**
  * Generate a qualified real estate reply:
- * - Uses the embedding to find the best matching property,
- * - Provides the best offer,
- * - And suggests moving to scheduling a meeting.
+ * - Finds the best matching property using embeddings,
+ * - Presents the best offer,
+ * - And prompts for meeting scheduling.
  */
 export async function generateQualifiedReply(conversation, message, language) {
-  // Get user query embedding
   const queryEmbedding = await getQueryEmbedding(message);
   let bestProperty = null;
   let bestScore = -Infinity;
 
-  // Retrieve all properties from MongoDB
   const properties = await Property.find({});
-
-  // Compare query embedding to each property’s stored embedding
   if (queryEmbedding) {
     for (const property of properties) {
       if (property.embedding && Array.isArray(property.embedding)) {
@@ -125,17 +121,14 @@ export async function generateQualifiedReply(conversation, message, language) {
     propertySnippet = "We couldn't find a property that matches your criteria.";
   }
 
-  // Build prompt for a qualified reply
   const messagesForChat = conversation.messages.map((m) => ({
     role: m.role,
     content: m.content,
   }));
-
   messagesForChat.push({
     role: "system",
-    content: `Based on your preferences, ${propertySnippet} Would you like to schedule a meeting with our agent to view this property?`,
+    content: `Based on your preferences, ${propertySnippet} Would you like to schedule a meeting with our agent?`,
   });
-
   messagesForChat.push({
     role: "system",
     content: `
@@ -153,22 +146,17 @@ Return valid JSON of the form:
 
 /**
  * Generate an exploratory real estate reply:
- * - Provides property options,
- * - And asks follow-up questions to clarify user preferences.
+ * - Asks follow-up questions to clarify user preferences.
  */
 export async function generateExploratoryReply(conversation, message, language) {
-  // You might still use the embedding here for context,
-  // but the prompt will encourage further details.
   const messagesForChat = conversation.messages.map((m) => ({
     role: m.role,
     content: m.content,
   }));
-
   messagesForChat.push({
     role: "system",
     content: `I understand you're exploring real estate options. Could you please tell me more about your preferred location, budget, or property type?`,
   });
-
   messagesForChat.push({
     role: "system",
     content: `
@@ -179,20 +167,18 @@ Return valid JSON of the form:
 }
     `.trim(),
   });
-
   const rawOutput = await callDeepSeekChat(messagesForChat, 0.8);
   return parseAiResponse(rawOutput);
 }
 
 /**
- * Generate a short, polite greeting reply with real estate suggestions.
+ * Generate a polite greeting reply with real estate suggestions.
  */
 export async function generatePolitenessReply(conversation, language) {
   const messagesForChat = conversation.messages.map((m) => ({
     role: m.role,
     content: m.content,
   }));
-
   messagesForChat.push({
     role: "system",
     content: `
@@ -204,24 +190,22 @@ Return valid JSON of the form:
 }
     `.trim(),
   });
-
   const rawOutput = await callDeepSeekChat(messagesForChat, 0.7);
   return parseAiResponse(rawOutput);
 }
 
 /**
- * Generate a short "off-topic" reply that gently redirects the user back to real estate.
+ * Generate an off-topic reply that gently redirects the conversation back to real estate.
  */
 export async function generateOffTopicReply(conversation, language) {
   const messagesForChat = conversation.messages.map((m) => ({
     role: m.role,
     content: m.content,
   }));
-
   messagesForChat.push({
     role: "system",
     content: `
-User's message is off-topic. Please guide the user back to discussing their real estate needs.
+User's message is off-topic. Please guide the conversation back to discussing your real estate needs.
 Return valid JSON of the form:
 {
   "reply": "...",
@@ -229,13 +213,13 @@ Return valid JSON of the form:
 }
     `.trim(),
   });
-
   const rawOutput = await callDeepSeekChat(messagesForChat, 0.7);
   return parseAiResponse(rawOutput);
 }
 
 /**
- * Generate a short introduction reply in the user's preferred language.
+ * Generate an introduction reply in the user's preferred language.
+ * Introduces the bot as "Sasha" and asks for the user's name if not known.
  */
 export async function generateIntroReply(language) {
   const messagesForChat = [
@@ -246,29 +230,28 @@ export async function generateIntroReply(language) {
     {
       role: "system",
       content: `
-Respond in ${language} with a short introduction about our real estate services.
-Offer a couple of suggestions for what the user can ask next, in valid JSON:
+Hello, I'm Sasha, your friendly real estate assistant. Welcome to our service!
+Before we begin, could you please tell me your name? If you’re a returning user, I’d love to greet you by name.
+Return valid JSON of the form:
 {
   "reply": "...",
-  "suggestions": ["Browse properties", "Schedule a consultation"]
+  "suggestions": ["My name is [Name]", "Continue without name"]
 }
       `.trim(),
     },
   ];
-
   const rawOutput = await callDeepSeekChat(messagesForChat, 0.7);
   return parseAiResponse(rawOutput);
 }
 
 /**
- * Generate a short summary of the conversation so far.
+ * Generate a summary of the conversation so far.
  */
 export async function generateConversationSummary(conversation, language) {
   const messagesForChat = conversation.messages.map((m) => ({
     role: m.role,
     content: m.content,
   }));
-
   messagesForChat.push({
     role: "system",
     content: `
@@ -276,7 +259,6 @@ Please provide a short summary in ${language} of the conversation so far,
 focusing on property interests, location, and budget.
     `.trim(),
   });
-
   try {
     const rawOutput = await callDeepSeekChat(messagesForChat, 0.5);
     return rawOutput.trim();

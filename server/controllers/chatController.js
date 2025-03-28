@@ -37,7 +37,15 @@ export async function chat(req, res) {
         messages: [{ role: "system", content: process.env.SYSTEM_PROMPT || "Default system prompt" }],
       });
 
-      const introData = await generateIntroReply("en");
+      // Generate introduction reply from Sasha.
+      let introData = await generateIntroReply("en");
+
+      // If the user profile has a saved name, personalize the greeting.
+      const user = await User.findById(userId);
+      if (user && user.profileInfo && user.profileInfo.name) {
+        introData.reply = `Welcome back, ${user.profileInfo.name}! ${introData.reply}`;
+      }
+
       conversation.messages.push({
         role: "assistant",
         content: introData.reply,
