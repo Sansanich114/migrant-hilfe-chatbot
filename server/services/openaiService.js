@@ -55,15 +55,15 @@ async function callDeepSeekChat(messages, temperature = 0.8) {
 }
 
 /**
- * Hugging Face-based function to generate embeddings
- * using the "sentence-transformers/all-MiniLM-L6-v2" model.
- * Sends a payload in the form: { inputs: text }
+ * Hugging Face-based function to generate embeddings using the 
+ * "sentence-transformers/all-MiniLM-L6-v2" model.
+ * Now sends the payload as { inputs: [text] } to ensure correct format.
  */
 export async function getQueryEmbedding(text) {
   try {
     const response = await axios.post(
       "https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2",
-      { inputs: text },
+      { inputs: [text] },
       {
         headers: {
           Authorization: `Bearer ${hfApiKey}`,
@@ -91,22 +91,21 @@ function cosineSimilarity(vecA, vecB) {
 }
 
 /**
- * Generate a real estate-related reply:
- * 1) Get the embedding for the user message from Hugging Face.
- * 2) Compare with your precomputed property embeddings.
- * 3) Provide the best match property snippet.
- * 4) Call the chat model to build a final answer.
+ * Generate a qualified real estate reply:
+ * - Uses the embedding to find the best matching property,
+ * - Provides the best offer,
+ * - And suggests moving to scheduling a meeting.
  */
-export async function generateRealEstateReply(conversation, message, language) {
-  // 1) Get user query embedding
+export async function generateQualifiedReply(conversation, message, language) {
+  // Get user query embedding
   const queryEmbedding = await getQueryEmbedding(message);
   let bestProperty = null;
   let bestScore = -Infinity;
 
-  // 2) Retrieve all properties from MongoDB
+  // Retrieve all properties from MongoDB
   const properties = await Property.find({});
 
-  // 3) Compare query embedding to each property’s stored embedding
+  // Compare query embedding to each property’s stored embedding
   if (queryEmbedding) {
     for (const property of properties) {
       if (property.embedding && Array.isArray(property.embedding)) {
@@ -121,12 +120,12 @@ export async function generateRealEstateReply(conversation, message, language) {
 
   let propertySnippet;
   if (bestProperty) {
-    propertySnippet = `Best match: ${bestProperty.title} - ${bestProperty.price} located at ${bestProperty.address}.`;
+    propertySnippet = `Our best match is: ${bestProperty.title} priced at ${bestProperty.price}, located at ${bestProperty.address}.`;
   } else {
-    propertySnippet = "No matching property found.";
+    propertySnippet = "We couldn't find a property that matches your criteria.";
   }
 
-  // 4) Build prompt for the chat model
+  // Build prompt for a qualified reply
   const messagesForChat = conversation.messages.map((m) => ({
     role: m.role,
     content: m.content,
@@ -134,7 +133,7 @@ export async function generateRealEstateReply(conversation, message, language) {
 
   messagesForChat.push({
     role: "system",
-    content: `Based on the query, the most relevant property is: ${propertySnippet}`,
+    content: `Based on your preferences, ${propertySnippet} Would you like to schedule a meeting with our agent to view this property?`,
   });
 
   messagesForChat.push({
@@ -143,12 +142,44 @@ export async function generateRealEstateReply(conversation, message, language) {
 Return valid JSON of the form:
 {
   "reply": "...",
-  "suggestions": ["...", "..."]
+  "suggestions": ["Yes, schedule a meeting", "No, show me more options"]
 }
     `.trim(),
   });
 
-  // 5) Generate final answer using OpenRouter
+  const rawOutput = await callDeepSeekChat(messagesForChat, 0.8);
+  return parseAiResponse(rawOutput);
+}
+
+/**
+ * Generate an exploratory real estate reply:
+ * - Provides property options,
+ * - And asks follow-up questions to clarify user preferences.
+ */
+export async function generateExploratoryReply(conversation, message, language) {
+  // You might still use the embedding here for context,
+  // but the prompt will encourage further details.
+  const messagesForChat = conversation.messages.map((m) => ({
+    role: m.role,
+    content: m.content,
+  }));
+
+  messagesForChat.push({
+    role: "system",
+    content: `I understand you're exploring real estate options. Could you please tell me more about your preferred location, budget, or property type?`,
+  });
+
+  messagesForChat.push({
+    role: "system",
+    content: `
+Return valid JSON of the form:
+{
+  "reply": "...",
+  "suggestions": ["Tell me more about your budget", "Specify a preferred location", "I need more guidance"]
+}
+    `.trim(),
+  });
+
   const rawOutput = await callDeepSeekChat(messagesForChat, 0.8);
   return parseAiResponse(rawOutput);
 }
@@ -165,10 +196,11 @@ export async function generatePolitenessReply(conversation, language) {
   messagesForChat.push({
     role: "system",
     content: `
-The user is greeting or being polite. Respond briefly and politely, then offer 1 or 2 short suggestions about real estate, in valid JSON:
+The user is greeting or being polite. Respond briefly and politely, then offer a couple of real estate-related suggestions.
+Return valid JSON of the form:
 {
   "reply": "...",
-  "suggestions": ["...", "..."]
+  "suggestions": ["View properties", "Schedule a consultation"]
 }
     `.trim(),
   });
@@ -189,10 +221,11 @@ export async function generateOffTopicReply(conversation, language) {
   messagesForChat.push({
     role: "system",
     content: `
-User's message is off-topic. Politely guide them back to real estate topics. Return valid JSON:
+User's message is off-topic. Please guide the user back to discussing their real estate needs.
+Return valid JSON of the form:
 {
   "reply": "...",
-  "suggestions": ["...", "..."]
+  "suggestions": ["View listings", "Contact an agent"]
 }
     `.trim(),
   });
@@ -213,11 +246,11 @@ export async function generateIntroReply(language) {
     {
       role: "system",
       content: `
-Respond in ${language} with a short introduction about real estate assistance.
-Offer 1 or 2 suggestions for what they can ask next, in valid JSON:
+Respond in ${language} with a short introduction about our real estate services.
+Offer a couple of suggestions for what the user can ask next, in valid JSON:
 {
   "reply": "...",
-  "suggestions": ["...", "..."]
+  "suggestions": ["Browse properties", "Schedule a consultation"]
 }
       `.trim(),
     },

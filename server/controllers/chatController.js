@@ -1,13 +1,14 @@
-// redemo/server/controllers/chatController.js
+// server/controllers/chatController.js
 import Conversation from "../models/Conversation.js";
 import User from "../models/User.js";
 import { classifyMessage } from "../services/classificationService.js";
 import { 
   generatePolitenessReply, 
-  generateRealEstateReply, 
+  generateQualifiedReply, 
+  generateExploratoryReply, 
   generateOffTopicReply, 
   generateIntroReply,
-  generateConversationSummary  // <-- Added this function import
+  generateConversationSummary 
 } from "../services/openaiService.js";
 
 export async function chat(req, res) {
@@ -61,8 +62,10 @@ export async function chat(req, res) {
     let replyData;
     if (classification.category === "politeness") {
       replyData = await generatePolitenessReply(conversation, classification.language);
-    } else if (classification.category === "realestate") {
-      replyData = await generateRealEstateReply(conversation, message, classification.language);
+    } else if (classification.category === "realestate_exploratory") {
+      replyData = await generateExploratoryReply(conversation, message, classification.language);
+    } else if (classification.category === "realestate_qualified") {
+      replyData = await generateQualifiedReply(conversation, message, classification.language);
     } else {
       replyData = await generateOffTopicReply(conversation, classification.language);
     }
@@ -73,7 +76,7 @@ export async function chat(req, res) {
       timestamp: new Date(),
     });
 
-    // Now generate a summary for the conversation
+    // Generate a summary for the conversation
     conversation.summary = await generateConversationSummary(conversation, classification.language);
     await conversation.save();
 

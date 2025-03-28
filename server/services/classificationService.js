@@ -1,10 +1,13 @@
-// classificationService.js
+// server/services/classificationService.js
 import { OpenAI } from "openai";
 import dotenv from "dotenv";
 dotenv.config();
 
 export async function classifyMessage(conversationMessages, currentUserMessage) {
-  const apiKey = process.env.OPENROUTER_API_KEY || "DUMMY_PLACEHOLDER";
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) {
+    throw new Error("Missing OPENROUTER_API_KEY in environment variables");
+  }
   
   const openai = new OpenAI({
     apiKey,
@@ -19,20 +22,17 @@ export async function classifyMessage(conversationMessages, currentUserMessage) 
     .join("\n");
 
   const classificationPrompt = `
-You are a strict classifier that identifies three things about the user's newest message:
-
-1) Determine the language (like "en", "de", or "es").
-2) Identify the category. It can be:
-   - "realestate" if the message is about property inquiries, market trends, or real estate financing. If the message contains location or property-related keywords such as "Berlin", "apartment", "house", "property", "rent", or "buy", classify it as "realestate".
-   - "politeness" if the user is just being polite (e.g., greetings).
-   - "other" if it's off-topic.
-
+You are a strict classifier that analyzes both the current user message and any available profile or conversation history to determine the user's stage in the real estate inquiry process.
+1) Determine the language (e.g., "en", "de", "es").
+2) Identify the category as follows:
+   - "realestate_exploratory": if the user’s message is general or exploratory.
+   - "realestate_qualified": if the user's message, combined with known preferences (e.g. specific location, price range, property type), indicates readiness for scheduling a meeting.
+   - "politeness": if the user is simply greeting or being polite.
+   - "other": if the message is off-topic.
 Return ONLY raw JSON (no markdown) in the following format:
 {
   "language": "...",
-  "category": "...",
-  "requiresWebsearch": false,
-  "websearchExplanation": ""
+  "category": "..."
 }
 
 Conversation so far:
@@ -40,7 +40,7 @@ ${conversationText}
 
 User's New Message:
 "${currentUserMessage}"
-  `.trim();
+`.trim();
 
   try {
     const response = await openai.chat.completions.create({
@@ -61,40 +61,24 @@ User's New Message:
       return {
         language: "en",
         category: "other",
-        requiresWebsearch: false,
-        websearchExplanation: "",
       };
     }
 
-    let { language, category, requiresWebsearch, websearchExplanation } = parsed;
-    const validCategories = ["realestate", "politeness", "other"];
+    const { language, category } = parsed;
+    const validCategories = ["realestate_exploratory", "realestate_qualified", "politeness", "other"];
 
     if (!language || !validCategories.includes(category)) {
       return {
         language: "en",
         category: "other",
-        requiresWebsearch: false,
-        websearchExplanation: "",
       };
     }
-
-    // If not real estate, no web search needed
-    if (category !== "realestate") {
-      requiresWebsearch = false;
-      websearchExplanation = "";
-    } else if (typeof requiresWebsearch !== "boolean") {
-      requiresWebsearch = false;
-      websearchExplanation = "";
-    }
-
-    return { language, category, requiresWebsearch, websearchExplanation };
+    return { language, category };
   } catch (err) {
     console.error("Classification error:", err);
     return {
       language: "en",
       category: "other",
-      requiresWebsearch: false,
-      websearchExplanation: "",
     };
   }
 }
