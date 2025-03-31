@@ -4,7 +4,7 @@ import path from 'path';
 let propertiesCache = null;
 let agencyCache = null;
 
-const isValidEmbedding = (emb) => 
+const isValidEmbedding = (emb) =>
   Array.isArray(emb) && emb.every(v => typeof v === 'number');
 
 export async function loadPropertiesData() {
@@ -12,7 +12,7 @@ export async function loadPropertiesData() {
   
   try {
     const data = await fs.readFile(
-      path.join(process.cwd(), 'scripts/properties/propertiesWithEmbeddings.json'), 
+      path.join(process.cwd(), 'scripts/properties/propertiesWithEmbeddings.json'),
       'utf8'
     );
     
