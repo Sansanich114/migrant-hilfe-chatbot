@@ -1,12 +1,6 @@
-﻿import fs from 'fs';
-import path from 'path';
-
-let propertiesCache = null;
-let agencyCache = null;
-
-export function loadPropertiesData() {
+﻿export function loadPropertiesData() {
   if (!propertiesCache) {
-    const dataPath = path.resolve('scripts/properties/propertiesWithEmbeddings.json');
+    const dataPath = path.resolve('scripts/properties/propertiesWithEmbeddings.json'); // Correct already
     try {
       propertiesCache = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
     } catch (err) {
@@ -19,7 +13,7 @@ export function loadPropertiesData() {
 
 export function loadAgencyData() {
   if (!agencyCache) {
-    const dataPath = path.resolve('scripts/agency/agencyWithEmbedding.json');
+    const dataPath = path.resolve('scripts/agency/agencyWithEmbeddings.json'); // FIXED here
     try {
       agencyCache = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
     } catch (err) {
