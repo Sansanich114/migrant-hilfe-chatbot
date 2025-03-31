@@ -1,4 +1,3 @@
-// server/services/classificationService.js
 import { OpenAI } from "openai";
 import dotenv from "dotenv";
 dotenv.config();
@@ -22,13 +21,12 @@ export async function classifyMessage(conversationMessages, currentUserMessage) 
     .join("\n");
 
   const classificationPrompt = `
-You are a strict classifier that analyzes both the current user message and any available profile or conversation history to determine the user's stage in the real estate inquiry process.
-1) Determine the language (e.g., "en", "de", "es").
-2) Identify the category as follows:
-   - "realestate_exploratory": if the user’s message is general or exploratory.
-   - "realestate_qualified": if the user's message, combined with known preferences (e.g. specific location, price range, property type), indicates readiness for scheduling a meeting.
-   - "politeness": if the user is simply greeting or being polite.
-   - "other": if the message is off-topic.
+You are a strict classifier that analyzes the current user message along with conversation history and profile info to determine the user's intent. Identify the language and categorize the intent into one of the following:
+  - "realestate_exploratory": if the user is exploring options.
+  - "realestate_qualified": if the user is ready to schedule a meeting.
+  - "politeness": if the user is simply greeting or being polite.
+  - "general_advice": if the user seeks concise, general real estate advice.
+  - "other": if the message is off-topic.
 Return ONLY raw JSON (no markdown) in the following format:
 {
   "language": "...",
@@ -65,7 +63,7 @@ User's New Message:
     }
 
     const { language, category } = parsed;
-    const validCategories = ["realestate_exploratory", "realestate_qualified", "politeness", "other"];
+    const validCategories = ["realestate_exploratory", "realestate_qualified", "politeness", "general_advice", "other"];
 
     if (!language || !validCategories.includes(category)) {
       return {

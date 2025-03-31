@@ -4,9 +4,8 @@ dotenv.config();
 import { OpenAI } from 'openai';
 import axios from 'axios';
 import { parseAiResponse } from '../utils/helpers.js';
-import { loadPropertiesData } from '../utils/staticData.js';  // Use static properties data
+import { loadPropertiesData } from '../utils/staticData.js';
 
-// 1) Load environment variables
 const openRouterApiKey = process.env.OPENROUTER_API_KEY;
 const hfApiKey = process.env.HF_API_KEY;
 
@@ -17,7 +16,6 @@ if (!hfApiKey) {
   throw new Error('Missing environment variable: HF_API_KEY');
 }
 
-// 2) Configure the OpenAI wrapper for OpenRouter (chat usage)
 const openai = new OpenAI({
   apiKey: openRouterApiKey,
   baseURL: 'https://openrouter.ai/api/v1',
@@ -26,12 +24,10 @@ const openai = new OpenAI({
   },
 });
 
-// Minimal fallback system prompt including agency identity
 const fallbackSystemPrompt = "You are Sasha, a friendly sales agent at Beispiel Immobilien GMBH.";
 
 /**
- * Helper function to call the DeepSeek Chat model via OpenRouter.
- * Injects the system message if not already present.
+ * Calls the DeepSeek Chat model via OpenRouter.
  */
 async function callDeepSeekChat(messages, temperature = 0.8) {
   const hasSystem = messages.some(m => m.role === 'system');
@@ -51,7 +47,7 @@ async function callDeepSeekChat(messages, temperature = 0.8) {
 }
 
 /**
- * Generate an embedding using the Hugging Face "intfloat/multilingual-e5-large-instruct" model.
+ * Uses Hugging Face to generate an embedding for a given text.
  */
 export async function getQueryEmbedding(text) {
   try {
@@ -99,7 +95,18 @@ export async function getQueryEmbedding(text) {
 }
 
 /**
- * Generate a qualified reply using static property data.
+ * Cosine similarity between two vectors.
+ */
+function cosineSimilarity(vecA, vecB) {
+  const dotProduct = vecA.reduce((sum, a, idx) => sum + a * vecB[idx], 0);
+  const normA = Math.sqrt(vecA.reduce((sum, a) => sum + a * a, 0));
+  const normB = Math.sqrt(vecB.reduce((sum, b) => sum + b * b, 0));
+  return dotProduct / (normA * normB);
+}
+
+/**
+ * Generate a qualified reply by using semantic search over property embeddings.
+ * If similarity is below a threshold, ask a follow-up for more details.
  */
 export async function generateQualifiedReply(conversation, message, language) {
   const queryEmbedding = await getQueryEmbedding(message);
@@ -117,36 +124,42 @@ export async function generateQualifiedReply(conversation, message, language) {
       }
     }
   }
-  let propertySnippet;
-  if (bestProperty) {
+  
+  const threshold = 0.3;
+  let propertySnippet = "";
+  if (bestProperty && bestScore >= threshold) {
     propertySnippet = `Our best match is: ${bestProperty.title}, priced at ${bestProperty.price}, located at ${bestProperty.address}.`;
   } else {
-    propertySnippet = "We couldn't find a property that matches your criteria.";
+    propertySnippet = "I’m having trouble finding a perfect match. Could you please provide more details about your preferred location, budget, or property type?";
   }
+  
   const messagesForChat = conversation.messages.map(m => ({
     role: m.role,
     content: m.content,
   }));
+  
   messagesForChat.push({
     role: "system",
     content: `Based on your preferences, ${propertySnippet} Would you like to schedule a meeting with our agent?`
   });
+  
   messagesForChat.push({
     role: "system",
     content: `
 Return valid JSON of the form:
 {
   "reply": "...",
-  "suggestions": ["Yes, schedule a meeting", "No, show me more options"]
+  "suggestions": ["Yes, schedule a meeting", "No, show me more options", "I’d like to provide more details"]
 }
     `.trim(),
   });
+  
   const rawOutput = await callDeepSeekChat(messagesForChat, 0.8);
   return parseAiResponse(rawOutput);
 }
 
 /**
- * Generate an exploratory reply.
+ * Generate an exploratory reply when the user's message is general.
  */
 export async function generateExploratoryReply(conversation, message, language) {
   const messagesForChat = conversation.messages.map(m => ({
@@ -195,7 +208,7 @@ Return valid JSON of the form:
 }
 
 /**
- * Generate an off-topic reply.
+ * Generate an off-topic reply that steers conversation back on track.
  */
 export async function generateOffTopicReply(conversation, language) {
   const messagesForChat = conversation.messages.map(m => ({
@@ -218,7 +231,31 @@ Return valid JSON of the form:
 }
 
 /**
- * Generate an introduction reply.
+ * Generate a general advice reply.
+ * Provide a concise and direct answer without extraneous details.
+ */
+export async function generateGeneralAdviceReply(conversation, language) {
+  const messagesForChat = conversation.messages.map(m => ({
+    role: m.role,
+    content: m.content,
+  }));
+  messagesForChat.push({
+    role: "system",
+    content: `
+The user is seeking general advice. Provide a concise and direct answer (no token limit instructions needed).
+Return valid JSON of the form:
+{
+  "reply": "...",
+  "suggestions": ["Option 1", "Option 2"]
+}
+    `.trim(),
+  });
+  const rawOutput = await callDeepSeekChat(messagesForChat, 0.7);
+  return parseAiResponse(rawOutput);
+}
+
+/**
+ * Generate an introduction reply for new conversations.
  */
 export async function generateIntroReply(language) {
   const messagesForChat = [
@@ -264,12 +301,6 @@ export async function generateConversationSummary(conversation, language) {
   }
 }
 
-/**
- * Helper: cosine similarity between two vectors.
- */
-function cosineSimilarity(vecA, vecB) {
-  const dotProduct = vecA.reduce((sum, a, idx) => sum + a * vecB[idx], 0);
-  const normA = Math.sqrt(vecA.reduce((sum, a) => sum + a * a, 0));
-  const normB = Math.sqrt(vecB.reduce((sum, b) => sum + b * b, 0));
-  return dotProduct / (normA * normB);
-}
+export {
+  callDeepSeekChat
+};
