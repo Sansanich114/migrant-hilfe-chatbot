@@ -27,7 +27,9 @@ const openai = new OpenAI({
 
 const fallbackSystemPrompt = "You are Sasha, a friendly sales agent at Beispiel Immobilien GMBH.";
 
-// Helper function: poolEmbeddings for token-level responses
+// Modified: Added extra logging for debugging purposes
+console.log("OpenAI Service initialized with OpenRouter and HuggingFace API keys.");
+
 function poolEmbeddings(tokenEmbeddings) {
   const embeddingDim = tokenEmbeddings[0].length;
   const pooledEmbedding = new Array(embeddingDim).fill(0);
@@ -103,6 +105,7 @@ function fallbackReply() {
 }
 
 export async function generateQualifiedReply(conversation, message, language) {
+  console.log('Generating qualified reply for message:', message, 'in language:', language);
   const queryEmbedding = await getQueryEmbedding(message);
   if (!queryEmbedding) {
     console.error("Failed to generate query embedding");
@@ -173,5 +176,3 @@ function cosineSimilarity(vecA, vecB) {
   const normB = Math.sqrt(vecB.reduce((sum, b) => sum + b * b, 0));
   return normA && normB ? dotProduct / (normA * normB) : 0;
 }
-
-// (Additional reply functions can be added here if needed)
