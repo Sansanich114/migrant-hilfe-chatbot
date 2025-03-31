@@ -3,7 +3,7 @@ dotenv.config();
 
 import { OpenAI } from 'openai';
 import axios from 'axios';
-import { parseAiResponse } from '../utils/helpers.js';
+import { parseAiResponse } from '../../server/utils/helpers.js'; // Adjusted path
 import { loadPropertiesData } from '../../server/utils/staticData.js'; // note the adjusted relative path
 
 // Load environment variables
