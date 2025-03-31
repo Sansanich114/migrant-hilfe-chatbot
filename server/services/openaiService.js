@@ -1,8 +1,8 @@
-// server/services/openaiService.js
-import { OpenAI } from "openai";
 import dotenv from "dotenv";
-import axios from "axios";
 dotenv.config();
+
+import { OpenAI } from "openai";
+import axios from "axios";
 
 import { parseAiResponse } from "../utils/helpers.js";
 import Property from "../models/Property.js";
@@ -11,7 +11,6 @@ import Property from "../models/Property.js";
 const openRouterApiKey = process.env.OPENROUTER_API_KEY;
 const hfApiKey = process.env.HF_API_KEY;
 
-// 2) Ensure both are present
 if (!openRouterApiKey) {
   throw new Error("Missing environment variable: OPENROUTER_API_KEY");
 }
@@ -19,7 +18,7 @@ if (!hfApiKey) {
   throw new Error("Missing environment variable: HF_API_KEY");
 }
 
-// 3) Configure the OpenAI wrapper for OpenRouter (chat usage)
+// 2) Configure the OpenAI wrapper for OpenRouter (chat usage)
 const openai = new OpenAI({
   apiKey: openRouterApiKey,
   baseURL: "https://openrouter.ai/api/v1",
@@ -28,7 +27,7 @@ const openai = new OpenAI({
   },
 });
 
-// Minimal fallback system prompt for chat
+// Minimal fallback system prompt
 const fallbackSystemPrompt = "You are a helpful real estate assistant.";
 
 /**
@@ -56,38 +55,60 @@ async function callDeepSeekChat(messages, temperature = 0.8) {
 
 /**
  * Hugging Face-based function to generate embeddings using the 
- * "sentence-transformers/all-MiniLM-L6-v2" model.
- * Sends the payload as { inputs: [text] } to ensure the proper format.
+ * "intfloat/multilingual-e5-large-instruct" model.
+ *
+ * This function sends the input text to the Hugging Face Inference API
+ * using the models endpoint. We add the "query: " prefix (required for best performance)
+ * and then check the response format. If a 2D array is returned, we mean pool the token-level embeddings.
  */
 export async function getQueryEmbedding(text) {
   try {
     const response = await axios.post(
-      "https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2",
-      { inputs: [text] },
+      "https://api-inference.huggingface.co/models/intfloat/multilingual-e5-large-instruct",
+      {
+        inputs: "query: " + text,
+        options: { wait_for_model: true }
+      },
       {
         headers: {
           Authorization: `Bearer ${hfApiKey}`,
-          "Content-Type": "application/json",
+          "Content-Type": "application/json"
         },
       }
     );
-    // The HF API returns an array with a single embedding, e.g. [[0.123, 0.456, ...]]
-    const [embedding] = response.data;
-    return embedding;
+
+    const data = response.data;
+    console.log("Raw data from HF:", data);
+
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      console.error("No embeddings returned:", data);
+      return null;
+    }
+    // Check if the first element is an array (indicating token-level embeddings)
+    if (Array.isArray(data[0])) {
+      // data is a 2D array: perform mean pooling across tokens.
+      const tokenEmbeddings = data;
+      const embeddingDim = tokenEmbeddings[0].length;
+      const pooledEmbedding = new Array(embeddingDim).fill(0);
+      tokenEmbeddings.forEach(tokenVec => {
+        if (Array.isArray(tokenVec)) {
+          tokenVec.forEach((val, i) => {
+            pooledEmbedding[i] += val;
+          });
+        }
+      });
+      for (let i = 0; i < embeddingDim; i++) {
+        pooledEmbedding[i] /= tokenEmbeddings.length;
+      }
+      return pooledEmbedding;
+    } else {
+      // Otherwise, assume the response is already a pooled embedding (1D array)
+      return data;
+    }
   } catch (error) {
     console.error("Error computing query embedding:", error.response?.data || error.message);
     return null;
   }
-}
-
-/**
- * Helper: Compute cosine similarity between two vectors of the same length.
- */
-function cosineSimilarity(vecA, vecB) {
-  const dotProduct = vecA.reduce((sum, a, idx) => sum + a * vecB[idx], 0);
-  const normA = Math.sqrt(vecA.reduce((sum, a) => sum + a * a, 0));
-  const normB = Math.sqrt(vecB.reduce((sum, b) => sum + b * b, 0));
-  return dotProduct / (normA * normB);
 }
 
 /**
@@ -125,6 +146,7 @@ export async function generateQualifiedReply(conversation, message, language) {
     role: m.role,
     content: m.content,
   }));
+
   messagesForChat.push({
     role: "system",
     content: `Based on your preferences, ${propertySnippet} Would you like to schedule a meeting with our agent?`,
@@ -153,6 +175,7 @@ export async function generateExploratoryReply(conversation, message, language) 
     role: m.role,
     content: m.content,
   }));
+
   messagesForChat.push({
     role: "system",
     content: `I understand you're exploring real estate options. Could you please tell me more about your preferred location, budget, or property type?`,
@@ -167,6 +190,7 @@ Return valid JSON of the form:
 }
     `.trim(),
   });
+
   const rawOutput = await callDeepSeekChat(messagesForChat, 0.8);
   return parseAiResponse(rawOutput);
 }
@@ -179,6 +203,7 @@ export async function generatePolitenessReply(conversation, language) {
     role: m.role,
     content: m.content,
   }));
+
   messagesForChat.push({
     role: "system",
     content: `
@@ -190,6 +215,7 @@ Return valid JSON of the form:
 }
     `.trim(),
   });
+
   const rawOutput = await callDeepSeekChat(messagesForChat, 0.7);
   return parseAiResponse(rawOutput);
 }
@@ -202,6 +228,7 @@ export async function generateOffTopicReply(conversation, language) {
     role: m.role,
     content: m.content,
   }));
+
   messagesForChat.push({
     role: "system",
     content: `
@@ -213,6 +240,7 @@ Return valid JSON of the form:
 }
     `.trim(),
   });
+
   const rawOutput = await callDeepSeekChat(messagesForChat, 0.7);
   return parseAiResponse(rawOutput);
 }
@@ -240,18 +268,20 @@ Return valid JSON of the form:
       `.trim(),
     },
   ];
+
   const rawOutput = await callDeepSeekChat(messagesForChat, 0.7);
   return parseAiResponse(rawOutput);
 }
 
 /**
- * Generate a summary of the conversation so far.
+ * Generate a short summary of the conversation so far.
  */
 export async function generateConversationSummary(conversation, language) {
   const messagesForChat = conversation.messages.map((m) => ({
     role: m.role,
     content: m.content,
   }));
+
   messagesForChat.push({
     role: "system",
     content: `
@@ -259,6 +289,7 @@ Please provide a short summary in ${language} of the conversation so far,
 focusing on property interests, location, and budget.
     `.trim(),
   });
+
   try {
     const rawOutput = await callDeepSeekChat(messagesForChat, 0.5);
     return rawOutput.trim();
@@ -266,4 +297,14 @@ focusing on property interests, location, and budget.
     console.error("Error generating conversation summary:", err);
     return "";
   }
+}
+
+/**
+ * Helper function to compute cosine similarity between two vectors.
+ */
+function cosineSimilarity(vecA, vecB) {
+  const dotProduct = vecA.reduce((sum, a, idx) => sum + a * vecB[idx], 0);
+  const normA = Math.sqrt(vecA.reduce((sum, a) => sum + a * a, 0));
+  const normB = Math.sqrt(vecB.reduce((sum, b) => sum + b * b, 0));
+  return dotProduct / (normA * normB);
 }
