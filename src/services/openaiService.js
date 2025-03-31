@@ -3,8 +3,9 @@ dotenv.config();
 
 import { OpenAI } from 'openai';
 import axios from 'axios';
-import { parseAiResponse } from '../utils/helpers.js';
-import { loadPropertiesData } from '../../server/utils/staticData.js'; // note the adjusted relative path
+// Updated the relative path for helpers.js to point to the server utils folder
+import { parseAiResponse } from '../../server/utils/helpers.js';
+import { loadPropertiesData } from '../../server/utils/staticData.js'; // this is already adjusted
 
 // Load environment variables
 const openRouterApiKey = process.env.OPENROUTER_API_KEY;
@@ -27,9 +28,7 @@ const openai = new OpenAI({
 
 const fallbackSystemPrompt = "You are Sasha, a friendly sales agent at Beispiel Immobilien GMBH.";
 
-// Modified: Added extra logging for debugging purposes
-console.log("OpenAI Service initialized with OpenRouter and HuggingFace API keys.");
-
+// Helper function: poolEmbeddings for token-level responses
 function poolEmbeddings(tokenEmbeddings) {
   const embeddingDim = tokenEmbeddings[0].length;
   const pooledEmbedding = new Array(embeddingDim).fill(0);
@@ -105,7 +104,6 @@ function fallbackReply() {
 }
 
 export async function generateQualifiedReply(conversation, message, language) {
-  console.log('Generating qualified reply for message:', message, 'in language:', language);
   const queryEmbedding = await getQueryEmbedding(message);
   if (!queryEmbedding) {
     console.error("Failed to generate query embedding");
@@ -176,3 +174,5 @@ function cosineSimilarity(vecA, vecB) {
   const normB = Math.sqrt(vecB.reduce((sum, b) => sum + b * b, 0));
   return normA && normB ? dotProduct / (normA * normB) : 0;
 }
+
+// (Additional reply functions can be added here if needed)
