@@ -1,0 +1,15 @@
+﻿{
+  "name": "Beispiel Immobilien GMBH",
+  "location": "Berlin",
+  "founded": 2000,
+  "employees": 50,
+  "website": "https://beispiel-immobilien.de",
+  "contact": "contact@beispiel-immobilien.de",
+  "history": "Our company has been serving Berlin's real estate market since 2000.",
+  "officeAddress": "Musterstraße 1, 10115 Berlin",
+  "officeHours": "Mon-Fri 9:00-18:00",
+  "salesTeam": "John Doe, Jane Doe",
+  "faq": "Frequently asked questions go here.",
+  "whyChooseUs": "We have a proven track record in Berlin.",
+  "closing": "Thank you for considering us."
+}

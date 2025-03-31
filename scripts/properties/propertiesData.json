@@ -1,0 +1,26 @@
+﻿[
+  {
+    "title": "Luxury Apartment in Mitte",
+    "price": "1,200,000 EUR",
+    "size": "120 sqm",
+    "rooms": "4",
+    "features": ["balcony", "modern kitchen", "city view"],
+    "address": "Mitte, Berlin",
+    "contactAgent": "agent1@beispiel-immobilien.de",
+    "builtYear": 2015,
+    "monthlyCosts": "500 EUR",
+    "specialNote": "Recently renovated."
+  },
+  {
+    "title": "Family Home in Charlottenburg",
+    "price": "850,000 EUR",
+    "size": "150 sqm",
+    "rooms": "5",
+    "features": ["garden", "garage", "renovated"],
+    "address": "Charlottenburg, Berlin",
+    "contactAgent": "agent2@beispiel-immobilien.de",
+    "builtYear": 2008,
+    "monthlyCosts": "400 EUR",
+    "specialNote": "Spacious and sunny."
+  }
+]
