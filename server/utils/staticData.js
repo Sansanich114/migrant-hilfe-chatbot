@@ -1,25 +1,44 @@
-﻿export function loadPropertiesData() {
-  if (!propertiesCache) {
-    const dataPath = path.resolve('scripts/properties/propertiesWithEmbeddings.json'); // Correct already
-    try {
-      propertiesCache = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
-    } catch (err) {
-      console.error('Error reading properties data:', err);
-      propertiesCache = [];
-    }
+﻿import fs from 'fs/promises';
+import path from 'path';
+
+let propertiesCache = null;
+let agencyCache = null;
+
+const isValidEmbedding = (emb) => 
+  Array.isArray(emb) && emb.every(v => typeof v === 'number');
+
+export async function loadPropertiesData() {
+  if (propertiesCache) return propertiesCache;
+  
+  try {
+    const data = await fs.readFile(
+      path.join(process.cwd(), 'scripts/properties/propertiesWithEmbeddings.json'), 
+      'utf8'
+    );
+    
+    propertiesCache = JSON.parse(data)
+      .filter(p => p?.embedding && isValidEmbedding(p.embedding));
+      
+    return propertiesCache;
+  } catch (err) {
+    console.error('Properties load failed:', err);
+    return [];
   }
-  return propertiesCache;
 }
 
-export function loadAgencyData() {
-  if (!agencyCache) {
-    const dataPath = path.resolve('scripts/agency/agencyWithEmbeddings.json'); // FIXED here
-    try {
-      agencyCache = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
-    } catch (err) {
-      console.error('Error reading agency data:', err);
-      agencyCache = {};
-    }
+export async function loadAgencyData() {
+  if (agencyCache) return agencyCache;
+  
+  try {
+    const data = await fs.readFile(
+      path.join(process.cwd(), 'scripts/agency/agencyWithEmbedding.json'),
+      'utf8'
+    );
+    
+    agencyCache = JSON.parse(data);
+    return agencyCache?.embedding ? agencyCache : {};
+  } catch (err) {
+    console.error('Agency load failed:', err);
+    return {};
   }
-  return agencyCache;
 }
