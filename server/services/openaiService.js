@@ -215,6 +215,29 @@ Return valid JSON of the form:
 }
 
 /**
+ * Generate a general advice reply.
+ */
+export async function generateGeneralAdviceReply(conversation, language) {
+  const messagesForChat = conversation.messages.map(m => ({
+    role: m.role,
+    content: m.content,
+  }));
+  messagesForChat.push({
+    role: "system",
+    content: `
+The user is asking for general advice. Respond concisely with actionable real estate advice. Do not include long-winded text.
+Return valid JSON of the form:
+{
+  "reply": "Your concise general advice here.",
+  "suggestions": ["Ask for more info", "Request contact details"]
+}
+    `.trim(),
+  });
+  const rawOutput = await callDeepSeekChat(messagesForChat, 0.7);
+  return parseAiResponse(rawOutput);
+}
+
+/**
  * Generate an introduction reply.
  */
 export async function generateIntroReply(language) {
