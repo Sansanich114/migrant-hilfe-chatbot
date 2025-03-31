@@ -1,4 +1,4 @@
-﻿import dotenv from 'dotenv';
+import dotenv from 'dotenv';
 dotenv.config();
 
 import { OpenAI } from 'openai';
@@ -123,7 +123,6 @@ export async function generateQualifiedReply(conversation, message, language) {
   } else {
     propertySnippet = "We couldn't find a property that matches your criteria.";
   }
-  
   const messagesForChat = conversation.messages.map(m => ({
     role: m.role,
     content: m.content,
