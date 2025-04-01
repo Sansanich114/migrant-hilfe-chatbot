@@ -5,7 +5,8 @@ import { OpenAI } from 'openai';
 import axios from 'axios';
 import { parseAiResponse } from '../../server/utils/helpers.js';
 import { loadPropertiesData } from '../../server/utils/staticData.js';
-import agencyWithEmbeddings from '../../scripts/agency/agencyWithEmbeddings.json';
+const agencyWithEmbeddingsModule = await import('../../scripts/agency/agencyWithEmbeddings.json', { assert: { type: "json" } });
+const agencyWithEmbeddings = agencyWithEmbeddingsModule.default;
 
 const openRouterApiKey = process.env.OPENROUTER_API_KEY;
 const hfApiKey = process.env.HF_API_KEY;
