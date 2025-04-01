@@ -5,8 +5,7 @@ import { OpenAI } from 'openai';
 import axios from 'axios';
 import { parseAiResponse } from '../../server/utils/helpers.js';
 import { loadPropertiesData } from '../../server/utils/staticData.js';
-const agencyWithEmbeddingsModule = await import('../../scripts/agency/agencyWithEmbeddings.json', { assert: { type: "json" } });
-const agencyWithEmbeddings = agencyWithEmbeddingsModule.default;
+import agencyWithEmbeddings from '../../scripts/agency/agencyWithEmbeddings.json';
 
 const openRouterApiKey = process.env.OPENROUTER_API_KEY;
 const hfApiKey = process.env.HF_API_KEY;
@@ -197,6 +196,28 @@ Based on your preferences (similarity score: ${bestMatch?.score?.toFixed(2) || '
     const rawOutput = await callDeepSeekChat(messagesForChat, 0.8);
     return parseAiResponse(rawOutput);
   } catch (error) {
+    return fallbackReply();
+  }
+}
+
+// Added function to support exploratory replies
+export async function generateExploratoryReply(conversation, message, language) {
+  const messagesForChat = conversation.messages.map(m => ({
+    role: m.role,
+    content: m.content,
+  }));
+
+  // Append a system prompt to instruct the AI for an exploratory reply
+  messagesForChat.push({
+    role: "system",
+    content: `Please provide an exploratory reply in ${language}. Return valid JSON in the format: {"reply": "...", "suggestions": ["Option 1", "Option 2"]}`
+  });
+
+  try {
+    const rawOutput = await callDeepSeekChat(messagesForChat, 0.8);
+    return parseAiResponse(rawOutput);
+  } catch (error) {
+    console.error("Error generating exploratory reply:", error);
     return fallbackReply();
   }
 }
