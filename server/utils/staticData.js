@@ -30,8 +30,9 @@ export async function loadAgencyData() {
   if (agencyCache) return agencyCache;
   
   try {
+    // Updated file name from agencyWithEmbedding.json to agencyWithEmbeddings.json
     const data = await fs.readFile(
-      path.join(process.cwd(), 'scripts/agency/agencyWithEmbedding.json'),
+      path.join(process.cwd(), 'scripts/agency/agencyWithEmbeddings.json'),
       'utf8'
     );
     

@@ -6,7 +6,10 @@ import axios from 'axios';
 import { parseAiResponse } from '../../server/utils/helpers.js';
 import { loadPropertiesData } from '../../server/utils/staticData.js';
 
-const agencyWithEmbeddingsModule = await import('../../scripts/agency/agencyWithEmbeddings.json', { assert: { type: "json" } });
+// Updated import path:
+// Previously: '../../scripts/agency/agencyWithEmbeddings.json'
+// Now using the new correct relative location:
+const agencyWithEmbeddingsModule = await import('../scripts/agency/agencyWithEmbeddings.json', { assert: { type: "json" } });
 const agencyWithEmbeddings = agencyWithEmbeddingsModule.default;
 
 const openRouterApiKey = process.env.OPENROUTER_API_KEY;
