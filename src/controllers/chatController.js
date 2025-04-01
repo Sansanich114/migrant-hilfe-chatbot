@@ -6,7 +6,6 @@ import {
   generateQualifiedReply, 
   generateExploratoryReply, 
   generateOffTopicReply, 
-  generateIntroReply,
   generateConversationSummary,
   generateGeneralAdviceReply
 } from "../services/openaiService.js";
@@ -36,27 +35,18 @@ export async function chat(req, res) {
         conversationName: "Default Conversation",
         messages: [{ role: "system", content: process.env.SYSTEM_PROMPT || "Default system prompt" }],
       });
-
-      // Generate introduction reply from Sasha.
-      let introData = await generateIntroReply("en");
-
-      // If the user profile has a saved name, personalize the greeting.
-      const user = await User.findById(userId);
-      if (user && user.profileInfo && user.profileInfo.name) {
-        introData.reply = `Welcome back, ${user.profileInfo.name}! ${introData.reply}`;
-      }
-
+      // Instead of generating an intro reply, add a default welcome message.
       conversation.messages.push({
         role: "assistant",
-        content: introData.reply,
+        content: "Welcome to the chat. How can I help you with your real estate needs today?",
         timestamp: new Date(),
       });
-
       await conversation.save();
-
-      introData.conversationId = conversation._id.toString();
-      introData.userId = userId;
-      return res.status(200).json(introData);
+      return res.status(200).json({
+        reply: "Welcome to the chat. How can I help you with your real estate needs today?",
+        conversationId: conversation._id.toString(),
+        userId: userId
+      });
     }
 
     conversation.messages.push({
