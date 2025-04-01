@@ -4,9 +4,9 @@ dotenv.config();
 import { OpenAI } from 'openai';
 import axios from 'axios';
 import { parseAiResponse } from '../../server/utils/helpers.js';
-import { loadPropertiesData } from '../../server/utils/staticData.js'; // note the adjusted relative path
+import { loadPropertiesData } from '../../server/utils/staticData.js';
+import agencyWithEmbeddings from '../../scripts/agency/agencyWithEmbeddings.json';
 
-// Load environment variables
 const openRouterApiKey = process.env.OPENROUTER_API_KEY;
 const hfApiKey = process.env.HF_API_KEY;
 
@@ -27,7 +27,6 @@ const openai = new OpenAI({
 
 const fallbackSystemPrompt = "You are Sasha, a friendly sales agent at Beispiel Immobilien GMBH.";
 
-// Helper function: poolEmbeddings for token-level responses
 function poolEmbeddings(tokenEmbeddings) {
   const embeddingDim = tokenEmbeddings[0].length;
   const pooledEmbedding = new Array(embeddingDim).fill(0);
@@ -60,7 +59,6 @@ async function callDeepSeekChat(messages, temperature = 0.8) {
 
 export async function getQueryEmbedding(text) {
   try {
-    console.log("Sending query to HF API:", text);
     const response = await axios.post(
       "https://api-inference.huggingface.co/models/intfloat/multilingual-e5-large-instruct",
       {
@@ -75,19 +73,14 @@ export async function getQueryEmbedding(text) {
       }
     );
 
-    console.log("Full API response structure:", JSON.stringify(response.data, null, 2));
-
     if (Array.isArray(response.data)) {
       if (Array.isArray(response.data[0]) && !Array.isArray(response.data[0][0])) {
-        console.log("Received single vector embedding");
         return response.data[0];
       } else if (Array.isArray(response.data[0][0])) {
-        console.warn("Received token-level embeddings - pooling required");
         return poolEmbeddings(response.data);
       }
     }
 
-    console.error("Unexpected response format:", response.data);
     return null;
   } catch (error) {
     console.error("Error computing query embedding:", error.response?.data || error.message);
@@ -97,34 +90,73 @@ export async function getQueryEmbedding(text) {
 
 function fallbackReply() {
   return {
-    reply: "I'm having trouble accessing our property database. Let me connect you with a human agent.",
+    reply: "I'm having trouble accessing our database. Let me connect you with a human agent.",
     suggestions: ["Contact an agent", "Try again later"]
   };
+}
+
+export async function getAgencyContext(queryText) {
+  const queryEmbedding = await getQueryEmbedding(queryText);
+  if (!queryEmbedding) {
+    return "";
+  }
+
+  const MIN_SIMILARITY_THRESHOLD = 0.5;
+  const validAgencies = agencyWithEmbeddings.filter(agency =>
+    agency.embedding &&
+    Array.isArray(agency.embedding) &&
+    agency.embedding.length === queryEmbedding.length
+  );
+
+  const matches = validAgencies
+    .map(agency => ({
+      agency,
+      score: cosineSimilarity(queryEmbedding, agency.embedding)
+    }))
+    .filter(match => match.score >= MIN_SIMILARITY_THRESHOLD)
+    .sort((a, b) => b.score - a.score);
+
+  const bestMatch = matches[0];
+
+  if (bestMatch) {
+    return `Company background: ${bestMatch.agency.name}, established ${bestMatch.agency.founded}. ${bestMatch.agency.whyChooseUs}`;
+  }
+
+  return "Beispiel Immobilien GMBH, your trusted real estate partner.";
+}
+
+export async function generateConversationSummary(conversation, language) {
+  const summaryPrompt = conversation.messages.map(m => ({
+    role: m.role,
+    content: m.content,
+  }));
+
+  summaryPrompt.push({
+    role: "system",
+    content: `Summarize briefly the conversation in ${language}. Return valid JSON: {"summary": "..."}.`
+  });
+
+  try {
+    const rawOutput = await callDeepSeekChat(summaryPrompt, 0.5);
+    const parsedOutput = parseAiResponse(rawOutput);
+    return parsedOutput.summary || "";
+  } catch (error) {
+    return "";
+  }
 }
 
 export async function generateQualifiedReply(conversation, message, language) {
   const queryEmbedding = await getQueryEmbedding(message);
   if (!queryEmbedding) {
-    console.error("Failed to generate query embedding");
     return fallbackReply();
   }
 
-  console.log(`Generated embedding dimensions: ${queryEmbedding.length}`);
-
-  // Await the async data load
   const properties = await loadPropertiesData();
   const validProperties = properties.filter(p =>
     p.embedding &&
     Array.isArray(p.embedding) &&
     p.embedding.length === queryEmbedding.length
   );
-
-  console.log(`Matching against ${validProperties.length} valid properties`);
-
-  if (validProperties.length === 0) {
-    console.error("No valid properties with matching embedding dimensions");
-    return fallbackReply();
-  }
 
   const MIN_SIMILARITY_THRESHOLD = 0.5;
   const matches = validProperties
@@ -140,29 +172,30 @@ export async function generateQualifiedReply(conversation, message, language) {
     ? `Our best match is: ${bestMatch.property.title}, priced at ${bestMatch.property.price}, located at ${bestMatch.property.address}.`
     : "We couldn't find a property that matches your criteria.";
 
+  const agencyContext = await getAgencyContext(message);
+  const conversationSummary = await generateConversationSummary(conversation, language);
+
   const messagesForChat = conversation.messages.map(m => ({
     role: m.role,
     content: m.content,
   }));
 
-  messagesForChat.push({
-    role: "system",
-    content: `Based on your preferences (similarity score: ${bestMatch?.score?.toFixed(2) || 'N/A'}), ${propertySnippet} Would you like to schedule a meeting?`
-  });
+  const enhancedSystemPrompt = `
+${agencyContext}
+${conversationSummary ? `Summary so far: ${conversationSummary}` : ""}
+Based on your preferences (similarity score: ${bestMatch?.score?.toFixed(2) || 'N/A'}), ${propertySnippet} Would you like to schedule a meeting?
+  `.trim();
 
+  messagesForChat.push({ role: "system", content: enhancedSystemPrompt });
   messagesForChat.push({
     role: "system",
-    content: `Return valid JSON: {
-      "reply": "...",
-      "suggestions": ["Yes, schedule meeting", "Show more options"]
-    }`.trim(),
+    content: `Return valid JSON: {"reply": "...","suggestions": ["Yes, schedule meeting", "Show more options"]}`,
   });
 
   try {
     const rawOutput = await callDeepSeekChat(messagesForChat, 0.8);
     return parseAiResponse(rawOutput);
   } catch (error) {
-    console.error("Error generating reply:", error);
     return fallbackReply();
   }
 }
@@ -172,30 +205,4 @@ function cosineSimilarity(vecA, vecB) {
   const normA = Math.sqrt(vecA.reduce((sum, a) => sum + a * a, 0));
   const normB = Math.sqrt(vecB.reduce((sum, b) => sum + b * b, 0));
   return normA && normB ? dotProduct / (normA * normB) : 0;
-}
-
-// New function: generateExploratoryReply
-export async function generateExploratoryReply(conversation, message, language) {
-  // Prepare messages for context summary and exploratory reply
-  const messagesForChat = conversation.messages.map(m => ({
-    role: m.role,
-    content: m.content,
-  }));
-
-  // Append a system prompt to generate an exploratory reply along with a summary
-  messagesForChat.push({
-    role: "system",
-    content: `Please summarize the conversation so far and generate an exploratory reply in ${language}. Return valid JSON in the format: {
-      "reply": "Your reply here",
-      "suggestions": ["Suggestion 1", "Suggestion 2"]
-    }`
-  });
-
-  try {
-    const rawOutput = await callDeepSeekChat(messagesForChat, 0.8);
-    return parseAiResponse(rawOutput);
-  } catch (error) {
-    console.error("Error generating exploratory reply:", error);
-    return fallbackReply();
-  }
 }
