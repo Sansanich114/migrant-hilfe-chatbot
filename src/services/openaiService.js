@@ -4,13 +4,10 @@ dotenv.config();
 
 import { OpenAI } from 'openai';
 import axios from 'axios';
+import fs from 'fs/promises';           // <-- import fs/promises
+import path from 'path';                // <-- import path
 import { parseAiResponse } from '../../server/utils/helpers.js';
 import { loadPropertiesData } from '../../server/utils/staticData.js';
-
-// Updated import path:
-// (was '../scripts/agency/agencyWithEmbeddings.json', now '../../scripts/agency/agencyWithEmbeddings.json')
-const agencyWithEmbeddingsModule = await import('../../scripts/agency/agencyWithEmbeddings.json', { assert: { type: "json" } });
-const agencyWithEmbeddings = agencyWithEmbeddingsModule.default;
 
 const openRouterApiKey = process.env.OPENROUTER_API_KEY;
 const hfApiKey = process.env.HF_API_KEY;
@@ -31,6 +28,26 @@ const openai = new OpenAI({
 });
 
 const fallbackSystemPrompt = "You are Sasha, a friendly sales agent at Beispiel Immobilien GMBH.";
+
+// --------------------------------------------------------------------
+// Instead of import assertions, read the JSON file manually via fs.
+//
+// Adjust the path.join(...) if needed, depending on your folder layout.
+// According to your project tree, scripts/agency is at project root.
+// For example, if openaiService.js is in src/services, you want two '..'
+// to go from src/services -> src -> (up) -> scripts. So path is:
+// ../../scripts/agency/agencyWithEmbeddings.json
+// --------------------------------------------------------------------
+let agencyWithEmbeddings = [];
+try {
+  const agencyPath = path.join(process.cwd(), 'scripts', 'agency', 'agencyWithEmbeddings.json');
+  const data = await fs.readFile(agencyPath, 'utf8');
+  agencyWithEmbeddings = JSON.parse(data);
+} catch (err) {
+  console.error("Error reading agencyWithEmbeddings.json:", err);
+  // Fallback to empty array or however you want to handle it
+  agencyWithEmbeddings = [];
+}
 
 // Pool token-level embeddings into a single vector.
 function poolEmbeddings(tokenEmbeddings) {
@@ -81,8 +98,10 @@ export async function getQueryEmbedding(text) {
 
     if (Array.isArray(response.data)) {
       if (Array.isArray(response.data[0]) && !Array.isArray(response.data[0][0])) {
+        // Single embedding vector
         return response.data[0];
       } else if (Array.isArray(response.data[0][0])) {
+        // Token-level embeddings => pool them
         return poolEmbeddings(response.data);
       }
     }
