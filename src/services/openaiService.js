@@ -1,3 +1,4 @@
+// src/services/openaiService.js
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -7,9 +8,8 @@ import { parseAiResponse } from '../../server/utils/helpers.js';
 import { loadPropertiesData } from '../../server/utils/staticData.js';
 
 // Updated import path:
-// Previously: '../../scripts/agency/agencyWithEmbeddings.json'
-// Now using the new correct relative location:
-const agencyWithEmbeddingsModule = await import('../scripts/agency/agencyWithEmbeddings.json', { assert: { type: "json" } });
+// (was '../scripts/agency/agencyWithEmbeddings.json', now '../../scripts/agency/agencyWithEmbeddings.json')
+const agencyWithEmbeddingsModule = await import('../../scripts/agency/agencyWithEmbeddings.json', { assert: { type: "json" } });
 const agencyWithEmbeddings = agencyWithEmbeddingsModule.default;
 
 const openRouterApiKey = process.env.OPENROUTER_API_KEY;
