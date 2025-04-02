@@ -1,5 +1,8 @@
+// server/services/classificationService.js
+
 import { OpenAI } from "openai";
 import dotenv from "dotenv";
+import { parseAiResponse } from "../../server/utils/helpers.js";
 dotenv.config();
 
 export async function classifyMessage(conversationMessages, currentUserMessage) {
@@ -49,17 +52,7 @@ User's New Message:
     const rawOutput = response.choices[0].message.content.trim();
     console.log("Raw classification output:", rawOutput);
 
-    let parsed;
-    try {
-      parsed = JSON.parse(rawOutput);
-    } catch (err) {
-      console.error("Failed to parse classification JSON:", err);
-      return {
-        language: "en",
-        category: "other",
-      };
-    }
-
+    const parsed = parseAiResponse(rawOutput);
     const { language, category } = parsed;
     const validCategories = ["salesman", "politeness", "other"];
 
