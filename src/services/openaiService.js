@@ -1,11 +1,10 @@
-// src/services/openaiService.js
 import dotenv from 'dotenv';
 dotenv.config();
 
 import { OpenAI } from 'openai';
 import axios from 'axios';
-import fs from 'fs/promises';           // <-- import fs/promises
-import path from 'path';                // <-- import path
+import fs from 'fs/promises';
+import path from 'path';
 import { parseAiResponse } from '../../server/utils/helpers.js';
 import { loadPropertiesData } from '../../server/utils/staticData.js';
 
@@ -30,14 +29,7 @@ const openai = new OpenAI({
 const fallbackSystemPrompt = "You are Sasha, a friendly sales agent at Beispiel Immobilien GMBH.";
 
 // --------------------------------------------------------------------
-// Instead of import assertions, read the JSON file manually via fs.
-//
-// Adjust the path.join(...) if needed, depending on your folder layout.
-// According to your project tree, scripts/agency is at project root.
-// For example, if openaiService.js is in src/services, you want two '..'
-// to go from src/services -> src -> (up) -> scripts. So path is:
-// ../../scripts/agency/agencyWithEmbeddings.json
-// --------------------------------------------------------------------
+// Read the agencyWithEmbeddings.json file from the scripts folder.
 let agencyWithEmbeddings = [];
 try {
   const agencyPath = path.join(process.cwd(), 'scripts', 'agency', 'agencyWithEmbeddings.json');
@@ -45,7 +37,6 @@ try {
   agencyWithEmbeddings = JSON.parse(data);
 } catch (err) {
   console.error("Error reading agencyWithEmbeddings.json:", err);
-  // Fallback to empty array or however you want to handle it
   agencyWithEmbeddings = [];
 }
 
@@ -170,70 +161,45 @@ export async function generateConversationSummary(conversation, language) {
   }
 }
 
-// Generate a qualified reply based on property search and context.
-export async function generateQualifiedReply(conversation, message, language) {
-  const queryEmbedding = await getQueryEmbedding(message);
-  if (!queryEmbedding) {
-    return fallbackReply();
-  }
-  const properties = await loadPropertiesData();
-  const validProperties = properties.filter(p =>
-    p.embedding &&
-    Array.isArray(p.embedding) &&
-    p.embedding.length === queryEmbedding.length
-  );
-  const MIN_SIMILARITY_THRESHOLD = 0.5;
-  const matches = validProperties
-    .map(property => ({
-      property,
-      score: cosineSimilarity(queryEmbedding, property.embedding)
-    }))
-    .filter(match => match.score >= MIN_SIMILARITY_THRESHOLD)
-    .sort((a, b) => b.score - a.score);
-  const bestMatch = matches[0];
-  const propertySnippet = bestMatch
-    ? `Our best match is: ${bestMatch.property.title}, priced at ${bestMatch.property.price}, located at ${bestMatch.property.address}.`
-    : "We couldn't find a property that matches your criteria.";
-
+// Generate a salesman mode reply that guides the conversation and extracts valuable info.
+export async function generateSalesmanReply(conversation, message, language) {
   const agencyContext = await getAgencyContext(message);
   const conversationSummary = await generateConversationSummary(conversation, language);
-  const messagesForChat = conversation.messages.map(m => ({
-    role: m.role,
-    content: m.content,
-  }));
-  const enhancedSystemPrompt = `
-${agencyContext}
-${conversationSummary ? `Summary so far: ${conversationSummary}` : ""}
-Based on your preferences (similarity score: ${bestMatch?.score?.toFixed(2) || 'N/A'}), ${propertySnippet} Would you like to schedule a meeting?
-  `.trim();
-  messagesForChat.push({ role: "system", content: enhancedSystemPrompt });
-  messagesForChat.push({
-    role: "system",
-    content: `Return valid JSON: {"reply": "...","suggestions": ["Yes, schedule meeting", "Show more options"]}`,
-  });
-  try {
-    const rawOutput = await callDeepSeekChat(messagesForChat, 0.8);
-    return parseAiResponse(rawOutput);
-  } catch (error) {
-    return fallbackReply();
-  }
-}
 
-// Generate an exploratory reply for users exploring options.
-export async function generateExploratoryReply(conversation, message, language) {
+  const salesmanSystemPrompt = `
+You are Sasha, a friendly sales agent at Beispiel Immobilien GMBH.
+Your goal is to assist users with real estate inquiries and naturally guide the conversation to gather valuable information for lead capturing.
+When a user asks about properties or expresses interest, ask one follow-up question at a time to collect details such as usage (private or business), location preferences, budget, property type, and personal contact information (name, email, phone) if mentioned.
+Extract any valuable information from the user's response.
+Keep your tone friendly and natural.
+${agencyContext ? agencyContext : ""}
+${conversationSummary ? "Summary so far: " + conversationSummary : ""}
+Return valid JSON in the following format:
+{
+  "reply": "Your response text here",
+  "extractedInfo": {
+      "usage": "...",
+      "location": "...",
+      "budget": "...",
+      "propertyType": "...",
+      "contact": {"name": "...", "email": "...", "phone": "..."}
+  },
+  "suggestions": ["Follow-up option 1", "Follow-up option 2"]
+}
+  `.trim();
+
   const messagesForChat = conversation.messages.map(m => ({
     role: m.role,
     content: m.content,
   }));
-  messagesForChat.push({
-    role: "system",
-    content: `Please provide an exploratory reply in ${language}. Return valid JSON in the format: {"reply": "...", "suggestions": ["Option 1", "Option 2"]}`
-  });
+
+  messagesForChat.push({ role: "system", content: salesmanSystemPrompt });
+  messagesForChat.push({ role: "user", content: message });
+
   try {
     const rawOutput = await callDeepSeekChat(messagesForChat, 0.8);
     return parseAiResponse(rawOutput);
   } catch (error) {
-    console.error("Error generating exploratory reply:", error);
     return fallbackReply();
   }
 }
@@ -252,45 +218,24 @@ export async function generatePolitenessReply(conversation, language) {
     const rawOutput = await callDeepSeekChat(messagesForChat, 0.8);
     return parseAiResponse(rawOutput);
   } catch (error) {
-    console.error("Error generating politeness reply:", error);
     return fallbackReply();
   }
 }
 
-// Generate an off-topic reply that brings the conversation back on track.
-export async function generateOffTopicReply(conversation, language) {
+// Generate an "other" reply to gently steer the conversation back to real estate.
+export async function generateOtherReply(conversation, language) {
   const messagesForChat = conversation.messages.map(m => ({
     role: m.role,
     content: m.content,
   }));
   messagesForChat.push({
     role: "system",
-    content: `The conversation is strictly about real estate. Please provide a response that reminds the user of this focus and avoids answering unrelated questions. Return valid JSON in the format: {"reply": "I'm here to help with real estate inquiries. Let's focus on that.", "suggestions": ["Show properties", "Schedule meeting"]}`
+    content: `The conversation should focus on real estate inquiries. Please provide a response that gently steers the conversation back to real estate. Return valid JSON in the format: {"reply": "I'm here to help with real estate inquiries. Let's focus on that.", "suggestions": ["Show properties", "Schedule meeting"]}`
   });
   try {
     const rawOutput = await callDeepSeekChat(messagesForChat, 0.8);
     return parseAiResponse(rawOutput);
   } catch (error) {
-    console.error("Error generating off-topic reply:", error);
-    return fallbackReply();
-  }
-}
-
-// Generate a general advice reply with a concise answer.
-export async function generateGeneralAdviceReply(conversation, language) {
-  const messagesForChat = conversation.messages.map(m => ({
-    role: m.role,
-    content: m.content,
-  }));
-  messagesForChat.push({
-    role: "system",
-    content: `Please provide concise general real estate advice in ${language} (under 50 words). Return valid JSON in the format: {"reply": "...", "suggestions": ["Option 1", "Option 2"]}`
-  });
-  try {
-    const rawOutput = await callDeepSeekChat(messagesForChat, 0.8);
-    return parseAiResponse(rawOutput);
-  } catch (error) {
-    console.error("Error generating general advice reply:", error);
     return fallbackReply();
   }
 }

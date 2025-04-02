@@ -22,11 +22,9 @@ export async function classifyMessage(conversationMessages, currentUserMessage) 
 
   const classificationPrompt = `
 You are a strict classifier that analyzes the current user message along with conversation history and profile info to determine the user's intent. Identify the language and categorize the intent into one of the following:
-  - "realestate_exploratory": if the user is exploring options.
-  - "realestate_qualified": if the user is ready to schedule a meeting.
-  - "politeness": if the user is simply greeting or being polite.
-  - "general_advice": if the user seeks concise, general real estate advice.
-  - "other": if the message is off-topic.
+  - "salesman": if the user is inquiring about properties and you need to guide the conversation to gather more details.
+  - "politeness": if the user is greeting or engaging in simple politeness.
+  - "other": if the message is off-topic or unrelated to real estate.
 Return ONLY raw JSON (no markdown) in the following format:
 {
   "language": "...",
@@ -63,7 +61,7 @@ User's New Message:
     }
 
     const { language, category } = parsed;
-    const validCategories = ["realestate_exploratory", "realestate_qualified", "politeness", "general_advice", "other"];
+    const validCategories = ["salesman", "politeness", "other"];
 
     if (!language || !validCategories.includes(category)) {
       return {
