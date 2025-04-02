@@ -1,6 +1,13 @@
-{
-  "embeddings": [
-    [
+[
+  {
+    "title": "Luxury Apartment in Mitte",
+    "features": [
+      "balcony",
+      "modern kitchen",
+      "city view"
+    ],
+    "specialNote": "Recently renovated.",
+    "embedding": [
       -0.04109818860888481,
       -0.02195505052804947,
       0.01378142461180687,
@@ -769,8 +776,17 @@
       -0.029634373262524605,
       -0.022945918142795563,
       -0.0305318720638752
+    ]
+  },
+  {
+    "title": "Family Home in Charlottenburg",
+    "features": [
+      "garden",
+      "garage",
+      "renovated"
     ],
-    [
+    "specialNote": "Spacious and sunny.",
+    "embedding": [
       -0.010188287124037743,
       0.033230010420084,
       -0.017509236931800842,
@@ -1539,8 +1555,17 @@
       0.002098844153806567,
       -0.0030071905348449945,
       -0.03046060912311077
+    ]
+  },
+  {
+    "title": "Modern Loft in Kreuzberg",
+    "features": [
+      "open space",
+      "industrial design",
+      "city skyline view"
     ],
-    [
+    "specialNote": "Ideal for young professionals.",
+    "embedding": [
       -0.021431440487504005,
       -0.00766754150390625,
       0.020213358104228973,
@@ -2309,8 +2334,17 @@
       -0.021591074764728546,
       0.015382854267954826,
       -0.019309956580400467
+    ]
+  },
+  {
+    "title": "Suburban House in Spandau",
+    "features": [
+      "garden",
+      "garage",
+      "spacious"
     ],
-    [
+    "specialNote": "Great for families.",
+    "embedding": [
       -0.029294462874531746,
       -0.028602411970496178,
       -0.011715593747794628,
@@ -3079,8 +3113,17 @@
       -0.002089518355205655,
       -0.0061909109354019165,
       -0.01932142674922943
+    ]
+  },
+  {
+    "title": "Penthouse in Charlottenburg",
+    "features": [
+      "panoramic view",
+      "private terrace",
+      "luxury finishes"
     ],
-    [
+    "specialNote": "Exclusive penthouse with city views.",
+    "embedding": [
       0.02511548064649105,
       0.04674740135669708,
       0.01706063747406006,
@@ -3849,8 +3892,17 @@
       0.002737581031396985,
       -0.010424284264445305,
       -0.03538786247372627
+    ]
+  },
+  {
+    "title": "Studio Apartment in Neuk\u00f6lln",
+    "features": [
+      "compact",
+      "urban vibe",
+      "accessible location"
     ],
-    [
+    "specialNote": "Perfect for singles or students.",
+    "embedding": [
       0.0011678308947011828,
       -0.011259160004556179,
       0.016826866194605827,
@@ -4619,8 +4671,17 @@
       -0.009411487728357315,
       -0.0019514550222083926,
       -0.05875883996486664
+    ]
+  },
+  {
+    "title": "Country Villa near Berlin",
+    "features": [
+      "large garden",
+      "pool",
+      "serene environment"
     ],
-    [
+    "specialNote": "A luxurious escape from the city.",
+    "embedding": [
       -0.02568131685256958,
       0.0033138247672468424,
       0.01981803961098194,
@@ -5389,8 +5450,17 @@
       -0.018485642969608307,
       0.0015085871564224362,
       -0.0017840216169133782
+    ]
+  },
+  {
+    "title": "Modern Condo in Friedrichshain",
+    "features": [
+      "modern design",
+      "gym",
+      "balcony"
     ],
-    [
+    "specialNote": "Condo in a vibrant neighborhood.",
+    "embedding": [
       -0.012857475318014622,
       0.059173211455345154,
       0.01583836041390896,
@@ -6159,8 +6229,17 @@
       -0.014396925456821918,
       -0.009636986069381237,
       -0.026391154155135155
+    ]
+  },
+  {
+    "title": "Historic Apartment in Mitte",
+    "features": [
+      "high ceilings",
+      "original details",
+      "central location"
     ],
-    [
+    "specialNote": "Unique charm with modern upgrades.",
+    "embedding": [
       -0.044425174593925476,
       0.01748368889093399,
       0.020894017070531845,
@@ -6929,8 +7008,17 @@
       -0.01856718584895134,
       -0.0029889296274632215,
       -0.004761446733027697
+    ]
+  },
+  {
+    "title": "Eco-friendly Home in Zehlendorf",
+    "features": [
+      "solar panels",
+      "energy efficient",
+      "sustainable materials"
     ],
-    [
+    "specialNote": "Sustainable living in a prestigious area.",
+    "embedding": [
       0.017717575654387474,
       -0.014253123663365841,
       -0.007165259215980768,
@@ -7699,8 +7787,17 @@
       -0.0019700173288583755,
       0.00020306689839344472,
       -0.00026917943614535034
+    ]
+  },
+  {
+    "title": "Loft Apartment in Kreuzberg",
+    "features": [
+      "open plan",
+      "exposed brick",
+      "loft style"
     ],
-    [
+    "specialNote": "Ideal for creative professionals.",
+    "embedding": [
       -0.0058106351643800735,
       -0.001633310574106872,
       0.015130025334656239,
@@ -8469,8 +8566,17 @@
       -0.037171028554439545,
       -0.012502683326601982,
       -0.028485149145126343
+    ]
+  },
+  {
+    "title": "Family House in Lichtenberg",
+    "features": [
+      "spacious garden",
+      "quiet neighborhood",
+      "affordable"
     ],
-    [
+    "specialNote": "Great starter home.",
+    "embedding": [
       -0.05510642006993294,
       0.03263679891824722,
       0.020100394263863564,
@@ -9240,5 +9346,5 @@
       0.040583573281764984,
       0.0009369234903715551
     ]
-  ]
-}
+  }
+]

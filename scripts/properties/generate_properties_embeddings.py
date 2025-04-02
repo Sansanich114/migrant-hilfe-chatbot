@@ -1,6 +1,7 @@
-from sentence_transformers import SentenceTransformer
+#!/usr/bin/env python3
 import json
 import os
+from sentence_transformers import SentenceTransformer
 
 def main():
     # Determine the base directory (where the script is located)
@@ -12,39 +13,48 @@ def main():
     # Load the properties data (a list of property dictionaries)
     with open(properties_data_path, "r", encoding="utf-8-sig") as f:
         properties_data = json.load(f)
-    
+
     # Initialize the SentenceTransformer model
     model = SentenceTransformer("all-mpnet-base-v2")
-    
-    # Prepare a list to hold the embeddings for each property
-    embeddings = []
-    
+
+    # Prepare a list to hold the new output data, each item with property info + "embedding"
+    output_data = []
+
     # Process each property in the list
     for property_item in properties_data:
         # Extract relevant fields
         title = property_item.get("title", "")
         features = property_item.get("features", [])
-        # If features is a list, join them into a single string
         if isinstance(features, list):
             features_text = " ".join(features)
         else:
-            features_text = features
+            features_text = str(features)
         special_note = property_item.get("specialNote", "")
-        
+
         # Create a text representation by combining the fields
         text_representation = f"{title}. {features_text}. {special_note}"
-        
+
         # Generate the embedding for this property's text representation
         embedding = model.encode(text_representation)
-        embeddings.append(embedding.tolist())
-    
+
+        # Convert the embedding to a Python list (JSON-serializable)
+        embedding_list = embedding.tolist()
+
+        # Build an output dictionary for this property
+        output_data.append({
+            "title": title,
+            "features": features,
+            "specialNote": special_note,
+            "embedding": embedding_list
+        })
+
     # Define the output file path for the embeddings JSON
     output_path = os.path.join(base_dir, "propertiesWithEmbeddings.json")
-    
-    # Save the list of embeddings to the output file
+
+    # Save our new output array
     with open(output_path, "w", encoding="utf-8") as f:
-        json.dump({"embeddings": embeddings}, f, indent=2)
-    
+        json.dump(output_data, f, indent=2)
+
     print("Properties embeddings generated and saved to", output_path)
 
 if __name__ == "__main__":
