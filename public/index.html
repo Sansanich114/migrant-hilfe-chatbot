@@ -65,7 +65,17 @@
   <section class="demo scroll-anchor scroll-reveal" id="demo">
     <h2>Try It Yourself.</h2>
     <p>Ask it about properties, pricing, or viewings.<br />Your next qualified lead might be just a message away.</p>
-    <div class="demo-box" id="chatbot-container"></div>
+    <!-- Chatbot UI -->
+    <div class="single-column-container">
+      <div class="chat-container" id="chatContainer"></div>
+      <div class="suggestions" id="suggestions"></div>
+      <div class="input-bar">
+        <textarea id="chatInput" placeholder="Nachricht eingeben..."></textarea>
+        <button id="sendBtn" class="send-btn" title="Senden">
+          <img id="sendIcon" src="images/accent-icons/send-accent.svg" alt="Send Icon" />
+        </button>
+    </div>
+</div>
     <p class="try-glow">Try asking: “Do you have 3-bedroom homes under €500k in Berlin?”</p>
   </section>
 
