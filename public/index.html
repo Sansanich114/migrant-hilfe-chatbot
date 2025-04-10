@@ -67,14 +67,35 @@
     <p>Ask it about properties, pricing, or viewings.<br />Your next qualified lead might be just a message away.</p>
     <!-- Chatbot UI -->
     <div class="single-column-container">
-      <div class="chat-container" id="chatContainer"></div>
-      <div class="suggestions" id="suggestions"></div>
-      <div class="input-bar">
-        <textarea id="chatInput" placeholder="Nachricht eingeben..."></textarea>
-        <button id="sendBtn" class="send-btn" title="Senden">
-          <img id="sendIcon" src="images/accent-icons/send-accent.svg" alt="Send Icon" />
-        </button>
+      <div class="chatbot-window">
+        <!-- Header with logo and online status -->
+        <div class="chatbot-header">
+          <img id="agencyLogo" src="agency/logo.svg" class="chatbot-logo" alt="Agency Logo" />
+          <div class="chatbot-title" id="agencyName">Beispiel Immobilien GMBH</div>
+          <div class="online-status">
+            <span class="online-dot"></span>
+            Online
+          </div>
+        </div>
+    
+        <!-- Chat Body -->
+        <div class="chatbot-body" id="chatContainer">
+          <!-- Messages will be injected here -->
+        </div>
+    
+        <!-- Suggestions -->
+        <div class="chatbot-suggestions suggestions" id="suggestions"></div>
+    
+        <!-- Input Bar -->
+        <div class="chatbot-input-bar">
+          <textarea id="chatInput" placeholder="Nachricht eingeben..."></textarea>
+          <button id="sendBtn" class="send-btn" title="Senden">
+            <img id="sendIcon" src="images/accent-icons/send-accent.svg" alt="Send Icon" />
+          </button>
+        </div>
+      </div>
     </div>
+    
 </div>
     <p class="try-glow">Try asking: “Do you have 3-bedroom homes under €500k in Berlin?”</p>
   </section>
