@@ -1,0 +1,13 @@
+html, body {
+  scroll-behavior: smooth;
+  scroll-padding-top: 80px;
+}
+@supports not ((-webkit-backdrop-filter: blur(10px)) or (backdrop-filter: blur(10px))) {
+  .glass-header, .modal-overlay {
+    background-color: rgba(26, 18, 11, 0.92) !important;
+  }
+}
+body.modal-open {
+  position: fixed;
+  width: 100%;
+}

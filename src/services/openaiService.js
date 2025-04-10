@@ -30,11 +30,11 @@ const openai = new OpenAI({
   },
 });
 
-// Fallback system prompt (instructing plain JSON without markdown)
+// Fallback system prompt
 const fallbackSystemPrompt = "You are Sasha, a friendly sales agent at Beispiel Immobilien GMBH. Respond only with plain JSON without any markdown formatting.";
 
 // --------------------------------------------------------------------
-// 1) Load chunked agency data from JSON (pre-calculated embeddings with text chunks)
+// Load chunked agency data
 let chunkedAgencyData = [];
 try {
   const agencyPath = path.join(process.cwd(), 'scripts', 'agency', 'agencyWithEmbeddings.json');
@@ -45,7 +45,7 @@ try {
   chunkedAgencyData = [];
 }
 
-// 2) Load the property embeddings from JSON
+// Load property embeddings
 let propertiesWithEmbeddings = [];
 try {
   const propertiesPath = path.join(process.cwd(), 'scripts', 'properties', 'propertiesWithEmbeddings.json');
@@ -57,11 +57,11 @@ try {
   propertiesWithEmbeddings = [];
 }
 
-// 3) Load the actual property data to align with the embeddings
+// Load actual property data
 const allProperties = loadPropertiesData();
 
 // --------------------------------------------------------------------
-// Utility: Cosine similarity between two vectors
+// Utility: Cosine similarity
 function cosineSimilarity(vecA, vecB) {
   const dotProduct = vecA.reduce((sum, a, idx) => sum + a * vecB[idx], 0);
   const normA = Math.sqrt(vecA.reduce((sum, a) => sum + a * a, 0));
@@ -69,7 +69,7 @@ function cosineSimilarity(vecA, vecB) {
   return normA && normB ? dotProduct / (normA * normB) : 0;
 }
 
-// Utility: Pool token-level embeddings into one vector
+// Utility: Pool token embeddings
 function poolEmbeddings(tokenEmbeddings) {
   const embeddingDim = tokenEmbeddings[0].length;
   const pooled = new Array(embeddingDim).fill(0);
@@ -82,14 +82,11 @@ function poolEmbeddings(tokenEmbeddings) {
 }
 
 // --------------------------------------------------------------------
-// Call the chat API with the provided messages
+// Chat API call
 async function callDeepSeekChat(messages, temperature = 0.8) {
   const hasSystem = messages.some(m => m.role === 'system');
   if (!hasSystem) {
-    messages.unshift({
-      role: 'system',
-      content: fallbackSystemPrompt,
-    });
+    messages.unshift({ role: 'system', content: fallbackSystemPrompt });
   }
   const response = await openai.chat.completions.create({
     model: 'deepseek/deepseek-chat:free',
@@ -101,7 +98,7 @@ async function callDeepSeekChat(messages, temperature = 0.8) {
 }
 
 // --------------------------------------------------------------------
-// Get the query embedding using HuggingFace's E5 model
+// Query embedding via HuggingFace
 export async function getQueryEmbedding(text) {
   try {
     const response = await axios.post(
@@ -114,17 +111,15 @@ export async function getQueryEmbedding(text) {
         headers: {
           Authorization: "Bearer " + hfApiKey,
           "Content-Type": "application/json"
-        },
+        }
       }
     );
 
     if (Array.isArray(response.data)) {
       if (Array.isArray(response.data[0]) && !Array.isArray(response.data[0][0])) {
-        // Single embedding vector
-        return response.data[0];
+        return response.data[0]; // Single embedding vector
       } else if (Array.isArray(response.data[0][0])) {
-        // Token-level embeddings => pool them
-        return poolEmbeddings(response.data);
+        return poolEmbeddings(response.data); // Token-level => pool
       }
     }
     return null;
@@ -135,7 +130,7 @@ export async function getQueryEmbedding(text) {
 }
 
 // --------------------------------------------------------------------
-// Fallback reply in case of errors
+// Fallback reply
 function fallbackReply() {
   return {
     reply: "I'm having trouble accessing our database. Let me connect you with a human agent.",
@@ -144,7 +139,7 @@ function fallbackReply() {
 }
 
 // --------------------------------------------------------------------
-// Get agency snippet using multi-chunk approach
+// Agency snippet from best-matching chunk
 export async function getAgencySnippet(userMessage) {
   const queryEmbedding = await getQueryEmbedding(userMessage);
   if (!queryEmbedding) return "";
@@ -162,19 +157,19 @@ export async function getAgencySnippet(userMessage) {
     }
   }
 
-  if (bestScore >= THRESH && bestChunk) {
-    return bestChunk.text;
-  }
-  return "Beispiel Immobilien GMBH, your trusted real estate partner. (General snippet...)";
+  return (bestScore >= THRESH && bestChunk)
+    ? bestChunk.text
+    : "Beispiel Immobilien GMBH, your trusted real estate partner. (General snippet...)";
 }
 
 // --------------------------------------------------------------------
-// Retrieve the best-fitting property from the lead data
+// Find best-fitting property
 export async function getBestProperty(leadData) {
   const usage = leadData.usage || "";
   const location = leadData.location || "";
   const budget = leadData.budget || "";
   const propertyType = leadData.propertyType || "";
+
   const queryText = `usage: ${usage}, location: ${location}, budget: ${budget}, propertyType: ${propertyType}`;
   const queryEmbedding = await getQueryEmbedding(queryText);
   if (!queryEmbedding) return null;
@@ -192,24 +187,22 @@ export async function getBestProperty(leadData) {
       }
     }
   }
+
   const THRESH = 0.5;
-  if (bestScore >= THRESH && bestIdx >= 0 && bestIdx < allProperties.length) {
-    return allProperties[bestIdx];
-  }
-  return null;
+  return (bestScore >= THRESH && bestIdx >= 0 && bestIdx < allProperties.length)
+    ? allProperties[bestIdx]
+    : null;
 }
 
 // --------------------------------------------------------------------
 // Generate conversation summary
 export async function generateConversationSummary(conversation, language) {
-  const messages4 = conversation.messages.map(m => ({
-    role: m.role,
-    content: m.content
-  }));
+  const messages4 = conversation.messages.map(m => ({ role: m.role, content: m.content }));
   messages4.push({
     role: "system",
     content: `Summarize briefly the conversation in ${language}. Return valid JSON: {"summary": "..."}. Please output plain JSON without markdown formatting.`
   });
+
   try {
     const rawOutput = await callDeepSeekChat(messages4, 0.5);
     const parsed = parseAiResponse(rawOutput);
@@ -221,24 +214,17 @@ export async function generateConversationSummary(conversation, language) {
 }
 
 // --------------------------------------------------------------------
-// Generate a "salesman" mode reply
+// Generate salesman reply
 export async function generateSalesmanReply(conversation, message, language, leadData) {
-  const agencySnippet = await getAgencySnippet(message);
   const convSummary = await generateConversationSummary(conversation, language);
+  const enhancedMessage = `${message} ${convSummary}`;
+  const agencySnippet = await getAgencySnippet(enhancedMessage);
 
   let propertySnippet = "";
   if (leadData) {
     const prop = await getBestProperty(leadData);
     if (prop) {
-      propertySnippet = `
-Best Fitting Property:
-Title: ${prop.title}
-Price: ${prop.price}
-Size: ${prop.size}
-Rooms: ${prop.rooms}
-Features: ${prop.features.join(", ")}
-Address: ${prop.address}
-...`;
+      propertySnippet = `Best Fitting Property: Title: ${prop.title} Price: ${prop.price} Size: ${prop.size} Rooms: ${prop.rooms} Features: ${prop.features.join(", ")} Address: ${prop.address} ...`;
     }
   }
 
@@ -262,7 +248,7 @@ Return valid JSON in the following format:
   },
   "suggestions": ["Follow-up option 1", "Follow-up option 2"]
 }
-  `.trim();
+`.trim();
 
   const finalMsgArr = conversation.messages.map(m => ({ role: m.role, content: m.content }));
   finalMsgArr.push({ role: "system", content: salesmanPrompt });
@@ -278,13 +264,14 @@ Return valid JSON in the following format:
 }
 
 // --------------------------------------------------------------------
-// Generate a polite reply
+// Polite reply
 export async function generatePolitenessReply(conversation, language) {
   const msgs = conversation.messages.map(m => ({ role: m.role, content: m.content }));
   msgs.push({
     role: "system",
     content: `Please provide a polite response in ${language}. Return plain JSON in the format: {"reply": "...", "suggestions": ["Option 1", "Option 2"]}.`
   });
+
   try {
     const raw = await callDeepSeekChat(msgs, 0.8);
     return parseAiResponse(raw);
@@ -294,13 +281,14 @@ export async function generatePolitenessReply(conversation, language) {
 }
 
 // --------------------------------------------------------------------
-// Generate an "other" reply to steer conversation back to real estate
+// "Other" reply to redirect
 export async function generateOtherReply(conversation, language) {
   const msgs = conversation.messages.map(m => ({ role: m.role, content: m.content }));
   msgs.push({
     role: "system",
     content: `The conversation should focus on real estate inquiries. Provide a response that gently steers the conversation back to real estate. Return plain JSON in the format: {"reply": "I'm here to help with real estate inquiries. Let's focus on that.", "suggestions": ["Show properties", "Schedule meeting"]}.`
   });
+
   try {
     const raw = await callDeepSeekChat(msgs, 0.8);
     return parseAiResponse(raw);

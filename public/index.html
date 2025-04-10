@@ -1,61 +1,253 @@
 ﻿<!DOCTYPE html>
-<html lang="de">
+<html lang="en">
+
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title id="pageTitle">Beispiel Immobilien GMBH Chatbot</title>
-  <!-- Montserrat Font -->
-  <link
-    href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap"
-    rel="stylesheet"
-  />
-  <!-- Our CSS files -->
-  <link rel="stylesheet" href="css/base.css" />
-  <link rel="stylesheet" href="css/layout.css" />
-  <link rel="stylesheet" href="css/components.css" />
-  <link rel="stylesheet" href="css/themes.css" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI for Real Estate</title>
+
+  <link rel="stylesheet" href="style.css" media="screen and (min-width: 769px)">
+  <link rel="stylesheet" href="style-mobile.css" media="screen and (max-width: 768px)">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet" />
+  <script defer src="chat.js"></script>
 </head>
+
 <body>
-  <!-- Minimal Top Navigation -->
-  <nav class="top-nav single-column-nav">
-    <div class="nav-center">
-      <!-- Agency Logo & Name are set dynamically in main.js -->
-      <img id="agencyLogo" src="agency/logo.svg" alt="Agency Logo" class="nav-logo" />
-      <span class="nav-title" id="agencyName">Beispiel Immobilien GMBH</span>
+  <div class="section-indicator" id="sectionIndicator"></div>
+  <div id="backToTop">↑ Try Demo</div>
 
-      <!-- Online Indicator -->
-      <span class="online-status">
-        <span class="online-dot"></span>
-        Online
-      </span>
+  <header class="glass-header" id="navbar">
+    <nav>
+      <ul>
+        <li class="nav-home"><a class="nav-link active" href="#home">Home</a></li>
+        <li><a class="nav-link" href="#gap">Why You're Losing Leads</a></li>
+        <li><a class="nav-link" href="#solution">How It Works</a></li>
+        <li class="sub-link"><a class="nav-link" href="#demo">Demo</a></li>
+        <li><a class="nav-link" href="#pricing">Pricing & Tiers</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <section class="hero section-dark-transition scroll-anchor scroll-reveal" id="home">
+    <img src="images/frontend-images/section1.png" alt="AI Real Estate">
+    <div class="hero-content">
+      <h1>AI for Real Estate.<br /><span>Powered by Precision.</span></h1>
+      <p>Capture more leads. Qualify buyers instantly.</p>
+      <a class="button" href="#demo">Try the Demo</a>
     </div>
-    <!-- (No dark mode toggle button) -->
-  </nav>
+  </section>
 
-  <!-- Single Column Container -->
-  <div class="single-column-container">
-    <!-- Chat Container -->
-    <div class="chat-container" id="chatContainer"></div>
+  <section class="pain-section section-dark-transition scroll-anchor scroll-reveal" id="gap">
+    <div class="pain-wrapper">
+      <div class="pain-text">
+        <h2>You're Losing Money While You Sleep</h2>
+        <p>Every visitor that lands on your site but doesn't talk to you is lost revenue.
+          Forms get ignored. Follow-ups come too late.
+          While your competitors sleep, our AI qualifies leads instantly — 24/7.</p>
+        <p><strong style="color:#facc15;">98% of traffic = wasted budget.</strong></p>
+      </div>
+    </div>
+  </section>
 
-    <!-- Suggestions row (optional) -->
-    <div class="suggestions" id="suggestions"></div>
+  <section class="solution scroll-anchor scroll-reveal" id="solution">
+    <h2>Meet the Smart Chatbot That Works While You Close Deals.</h2>
+    <p>Built for real estate. Trained to convert. Always online. Always polite. Always ready.</p>
+    <div class="features">
+      <div><strong>Instant Property Answers</strong><br />Answers pricing, availability, and filters in real time.</div>
+      <div><strong>Lead Capture</strong><br />Collects names, emails, phone numbers effortlessly.</div>
+      <div><strong>Weekly Reports</strong><br />Stay informed with summaries and conversion metrics.</div>
+      <div><strong>Effortless Setup</strong><br />Get started in days with branded design and property data.</div>
+    </div>
+    <a class="button" href="#demo">Talk to the Bot Now</a>
+  </section>
 
-    <!-- Input Bar -->
-    <div class="input-bar">
-      <textarea id="chatInput" placeholder="Nachricht eingeben..."></textarea>
-      <button id="sendBtn" class="send-btn" title="Senden">
-        <!-- Updated icon reference below: was send.svg, now send-accent.svg -->
-        <img
-          id="sendIcon"
-          src="images/accent-icons/send-accent.svg"
-          alt="Send Icon"
-        />
-      </button>
+  <section class="demo scroll-anchor scroll-reveal" id="demo">
+    <h2>Try It Yourself.</h2>
+    <p>Ask it about properties, pricing, or viewings.<br />Your next qualified lead might be just a message away.</p>
+    <div class="demo-box" id="chatbot-container"></div>
+    <p class="try-glow">Try asking: “Do you have 3-bedroom homes under €500k in Berlin?”</p>
+  </section>
+
+  <section class="pricing scroll-anchor scroll-reveal" id="pricing">
+    <h2>Choose Your Plan</h2>
+    <div class="pricing-grid">
+      <div class="plan country" onclick="openPlanDetail('country')">
+        <img src="images/frontend-images/tier1.png" alt="Country House" class="plan-thumb" />
+        <h3>Country House</h3>
+        <p class="price">€2900/mo</p>
+      </div>
+      <div class="plan penthouse" onclick="openPlanDetail('penthouse')">
+        <img src="images/frontend-images/tier2.png" alt="Penthouse" class="plan-thumb" />
+        <h3>Penthouse</h3>
+        <p class="price">€4900/mo</p>
+      </div>
+      <div class="plan mansion" onclick="openPlanDetail('mansion')">
+        <img src="images/frontend-images/tier3.png" alt="Mansion" class="plan-thumb" />
+        <h3>Mansion</h3>
+        <p class="price">€6900/mo</p>
+      </div>
+    </div>
+    <p class="skyscraper-cta" onclick="openPlanDetail('skyscraper')">
+      Can't settle for "normal"? Your company needs something <strong class="glow-ultimate">TRULY custom</strong>? Let
+      us show you our ultimate plan.
+    </p>
+  </section>
+
+  <section class="final-cta section-dark-transition scroll-anchor scroll-reveal">
+    <h2>Let’s Make Your Website Work Smarter.</h2>
+    <p>Launch your AI chatbot today and never miss a lead again.</p>
+    <a class="button" href="YOUR_CALENDLY_LINK_HERE" target="_blank">Get Started Now</a>
+    <p style="margin-top: 60px; font-size: 0.8rem; color: #aaa;">© 2025 AI Real Estate Solutions. All rights reserved.</p>
+  </section>
+
+  <div id="modalOverlay" class="modal-overlay" onclick="closePlanDetail()">
+    <div class="full-plan-view" id="fullPlanView" onclick="event.stopPropagation()">
+      <button class="close-btn" onclick="closePlanDetail()">✕</button>
+      <div class="full-content-box">
+        <div class="left">
+          <h3 id="fullTitle"></h3>
+          <h4 id="fullTier" style="color:#888; margin-top: -12px;"></h4>
+          <p id="fullTarget" class="plan-target"></p>
+          <ul id="fullDescription"></ul>
+        </div>
+        <div class="right">
+          <img alt="Plan Image" id="fullImage" src="" />
+          <p class="glowing-price" id="fullPrice"></p>
+          <a href="YOUR_CALENDLY_LINK_HERE" class="button book-meeting-button" style="margin-top: 20px;">Book a Meeting</a>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- Our JS files -->
-  <script src="js/main.js"></script>
-  <script src="js/chat.js"></script>
+  <script>
+    const fullPlans = {
+      "country": {
+        title: "Country House", tier: "Tier 1", image: "images/frontend-images/tier1.png", price: "€2900/mo",
+        features: [
+          "Fully branded interface with your logo & colors",
+          "Seamless property import via CSV/feed",
+          "Smart lead capture system",
+          "Basic analytics dashboard",
+          "Priority email support"
+        ],
+        target: "If you're a small agency owner just starting out, this plan is perfect for you."
+      },
+      "penthouse": {
+        title: "Penthouse", tier: "Tier 2", image: "images/frontend-images/tier2.png", price: "€4900/mo",
+        features: [
+          "Intelligent multilingual support",
+          "Seamless CRM integration",
+          "Advanced appointment scheduling",
+          "Detailed conversation analytics",
+          "24/7 priority support"
+        ],
+        target: "For mid-sized agencies looking to scale and improve client experience, this is the perfect fit."
+      },
+      "mansion": {
+        title: "Mansion", tier: "Tier 3", image: "images/frontend-images/tier3.png", price: "€6900/mo",
+        features: [
+          "Voice mode (Whisper + ElevenLabs)",
+          "Real-time dashboard with analytics",
+          "Lead scoring & traffic behavior mapping",
+          "Advanced AI response tuning"
+        ],
+        target: "This plan is designed for larger agencies with complex needs and multiple offices."
+      },
+      "skyscraper": {
+        title: "Skyscraper", tier: "Tier 4", image: "images/frontend-images/tier4.png", price: "€10,000+/mo",
+        features: [
+          "Custom AI workflows for your funnel",
+          "Private server & enterprise-grade hosting",
+          "Slack/Email/WhatsApp alerts",
+          "Voice + multilingual + CRM + dashboards",
+          "Bespoke onboarding, analytics & training"
+        ],
+        target: "For enterprise-level real estate companies requiring a fully customized solution."
+      }
+    };
+
+    function openPlanDetail(planKey) {
+      const data = fullPlans[planKey];
+      document.getElementById("fullImage").src = data.image;
+      document.getElementById("fullTitle").innerText = data.title;
+      document.getElementById("fullTier").innerText = data.tier;
+      document.getElementById("fullPrice").innerText = data.price;
+      document.getElementById("fullDescription").innerHTML = data.features.map(f => `<li>${f}</li>`).join('');
+      document.getElementById("fullTarget").innerText = data.target;
+
+      document.getElementById("modalOverlay").classList.add("active");
+      document.getElementById("fullPlanView").classList.add("active");
+      document.body.classList.add("modal-open");
+
+      const modal = document.getElementById("fullPlanView");
+      if (planKey === 'skyscraper') {
+        modal.classList.add("skyscraper-layout");
+      } else {
+        modal.classList.remove("skyscraper-layout");
+      }
+    }
+
+    function closePlanDetail() {
+      document.getElementById("modalOverlay").classList.remove("active");
+      document.getElementById("fullPlanView").classList.remove("active");
+      document.body.classList.remove("modal-open");
+    }
+
+    document.querySelectorAll('a.nav-link').forEach(link => {
+      link.addEventListener('click', e => {
+        e.preventDefault();
+        const targetId = link.getAttribute('href');
+        const section = document.querySelector(targetId);
+        if (section) {
+          const headerOffset = document.querySelector('.glass-header').offsetHeight;
+          const elementPosition = section.getBoundingClientRect().top;
+          const offsetPosition = elementPosition + window.pageYOffset - headerOffset + 20;
+          window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+        }
+      });
+    });
+
+    document.getElementById('backToTop').onclick = () => {
+      const sectionDemo = document.getElementById('demo');
+      const headerOffset = document.querySelector('.glass-header').offsetHeight;
+      const elementPosition = sectionDemo.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - headerOffset + 20;
+      window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+    };
+
+    const links = document.querySelectorAll(".nav-link");
+    const sections = document.querySelectorAll("section");
+    window.addEventListener("scroll", () => {
+      let current = "";
+      sections.forEach(section => {
+        if (pageYOffset >= section.offsetTop - 40) {
+          current = section.getAttribute("id");
+        }
+      });
+
+      links.forEach(link => {
+        link.classList.remove("active");
+        if (link.getAttribute("href").includes(current)) {
+          link.classList.add("active");
+        }
+      });
+
+      document.querySelectorAll(".scroll-reveal").forEach(el => {
+        const pos = el.getBoundingClientRect().top;
+        if (pos < window.innerHeight - 100) {
+          el.classList.add("visible");
+        }
+      });
+
+      const indicator = document.getElementById("sectionIndicator");
+      indicator.innerHTML = "";
+      sections.forEach(section => {
+        const dot = document.createElement("div");
+        if (current === section.id) dot.classList.add("active");
+        indicator.appendChild(dot);
+      });
+    });
+  </script>
 </body>
+
 </html>
