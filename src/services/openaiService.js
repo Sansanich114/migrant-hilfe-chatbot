@@ -236,20 +236,40 @@ export async function generateConversationSummary(conversation, language) {
 // --------------------------------------------------------------------
 // Salesman reply with full RAG logic
 export async function generateSalesmanReply(conversation, message, language) {
-  const summary = await generateConversationSummary(conversation, language);
-  const intent = await extractIntent(message, summary);
-  const extracted = intent?.extractedInfo || {};
-  const agencySnippet = await getAgencySnippetFromIntent(intent);
+  console.log("🔹 [START] generateSalesmanReply");
 
+  // Step 1: Summary
+  const summary = await generateConversationSummary(conversation, language);
+  console.log("📝 Conversation Summary:", summary);
+
+  // Step 2: Intent extraction
+  const intent = await extractIntent(message, summary);
+  console.log("🧠 Extracted Intent:", JSON.stringify(intent, null, 2));
+
+  const extracted = intent?.extractedInfo || {};
+  console.log("📦 Extracted Info:", extracted);
+
+  // Step 3: Agency RAG from intent
+  const agencySnippet = await getAgencySnippetFromIntent(intent);
+  console.log("🏢 Agency Snippet:", agencySnippet);
+
+  // Step 4: Decide whether property search is triggered
   let propertySnippet = "";
   const hasEnoughInfo = extracted.usage && extracted.location && extracted.budget && extracted.propertyType;
+  console.log("✅ Has Enough Info for Property?", hasEnoughInfo);
+
   if (hasEnoughInfo) {
     const prop = await getBestProperty(extracted);
+    console.log("🏠 Best Property Found:", prop);
+
     if (prop) {
       propertySnippet = `Best-Fitting Property:\nTitle: ${prop.title}\nPrice: ${prop.price}\nSize: ${prop.size}\nRooms: ${prop.rooms}\nFeatures: ${prop.features.join(", ")}\nAddress: ${prop.address}`;
+    } else {
+      console.log("⚠️ No matching property found.");
     }
   }
 
+  // Step 5: Build final prompt
   const salesmanPrompt = `
 You are Sasha, a friendly and professional real estate agent at Beispiel Immobilien GMBH. Speak like a real human.
 
@@ -281,15 +301,21 @@ Return JSON like:
 }
 `.trim();
 
+  console.log("🧱 Final Prompt:\n", salesmanPrompt);
+
   const finalMsgArr = conversation.messages.map(m => ({ role: m.role, content: m.content }));
   finalMsgArr.push({ role: "system", content: salesmanPrompt });
   finalMsgArr.push({ role: "user", content: message });
 
   try {
     const rawOutput = await callDeepSeekChat(finalMsgArr, 0.8);
-    return parseAiResponse(rawOutput);
+    console.log("🧠 Raw Output from DeepSeek:", rawOutput);
+
+    const parsed = parseAiResponse(rawOutput);
+    console.log("✅ Parsed Response:", parsed);
+    return parsed;
   } catch (err) {
-    console.error("generateSalesmanReply error:", err);
+    console.error("❌ generateSalesmanReply error:", err);
     return fallbackReply();
   }
 }
