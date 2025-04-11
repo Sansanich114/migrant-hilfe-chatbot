@@ -1,15 +1,17 @@
 ﻿{
-  "name": "Beispiel Immobilien GMBH",
-  "location": "Berlin",
-  "founded": 2000,
-  "employees": 50,
-  "website": "https://beispiel-immobilien.de",
-  "contact": "contact@beispiel-immobilien.de",
-  "history": "Our company has been serving Berlin's real estate market since 2000.",
-  "officeAddress": "Musterstraße 1, 10115 Berlin",
-  "officeHours": "Mon-Fri 9:00-18:00",
-  "salesTeam": "John Doe, Jane Doe",
-  "faq": "Frequently asked questions go here.",
-  "whyChooseUs": "We have a proven track record in Berlin.",
-  "closing": "Thank you for considering us."
+  "About Us": "Beispiel Immobilien GMBH is a boutique real estate agency based in Berlin since the year 2000. We specialize in high-quality residential and investment properties across Berlin’s most desirable neighborhoods. Our mission is to provide tailored, human-first real estate advice in a market full of noise.",
+  
+  "Services Offered": "We assist individuals, families, and investors in buying, selling, and renting properties in Berlin. Whether you're relocating from abroad or looking for your first property in Mitte, Kreuzberg, or Charlottenburg, we’ve got you covered. We also provide valuation services, relocation assistance, and personalized property tours.",
+  
+  "Why Clients Choose Us": "Clients trust us for our transparency, speed, and deep knowledge of the Berlin housing market. With over 20 years of experience, we understand the nuances of each district. We don't push listings — we match people to homes.",
+  
+  "Service Areas": "We actively operate in Mitte, Prenzlauer Berg, Kreuzberg, Neukölln, Charlottenburg, Schöneberg, and beyond. Looking for a balcony view in Friedrichshain or a quiet Altbau in Wilmersdorf? Our listings are constantly updated.",
+  
+  "How We Work": "Our agents listen carefully, ask the right questions, and guide you like a local friend — not a script. We respond within 24 hours and tailor every search to your lifestyle and budget.",
+  
+  "Who We Help": "Beispiel Immobilien GMBH proudly serves first-time buyers, expats relocating to Berlin, luxury investors, and families in search of long-term homes. Whether you're German or international, we speak your language — and your priorities.",
+  
+  "Recent Highlights": "In Q1, we successfully closed 27 transactions across central Berlin. Three featured penthouses in Mitte, five lake-view villas near Grunewald, and several mid-range flats for young professionals.",
+  
+  "Contact Info": "📧 Email: contact@beispiel-immobilien.de | 🌐 Website: https://beispiel-immobilien.de | 📍 Office: Musterstraße 1, 10115 Berlin | ⏰ Hours: Mon–Fri 09:00–18:00"
 }
