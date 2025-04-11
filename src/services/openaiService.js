@@ -293,3 +293,36 @@ Return JSON like:
     return fallbackReply();
   }
 }
+
+// --------------------------------------------------------------------
+// Optional fallback replies
+
+export async function generatePolitenessReply(conversation, language) {
+  const msgs = conversation.messages.map(m => ({ role: m.role, content: m.content }));
+  msgs.push({
+    role: "system",
+    content: `Please provide a polite response in ${language}. Return plain JSON in the format: {"reply": "...", "suggestions": ["Option 1", "Option 2"]}.`
+  });
+
+  try {
+    const raw = await callDeepSeekChat(msgs, 0.8);
+    return parseAiResponse(raw);
+  } catch (err) {
+    return fallbackReply();
+  }
+}
+
+export async function generateOtherReply(conversation, language) {
+  const msgs = conversation.messages.map(m => ({ role: m.role, content: m.content }));
+  msgs.push({
+    role: "system",
+    content: `The conversation should focus on real estate inquiries. Provide a response that gently steers the conversation back to real estate. Return plain JSON in the format: {"reply": "I'm here to help with real estate inquiries. Let's focus on that.", "suggestions": ["Show properties", "Schedule meeting"]}.`
+  });
+
+  try {
+    const raw = await callDeepSeekChat(msgs, 0.8);
+    return parseAiResponse(raw);
+  } catch (err) {
+    return fallbackReply();
+  }
+}
