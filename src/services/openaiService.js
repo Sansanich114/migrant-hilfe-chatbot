@@ -77,18 +77,30 @@ function poolEmbeddings(tokenEmbeddings) {
   return pooled.map(v => v / tokenEmbeddings.length);
 }
 
-async function callDeepSeekChat(messages, temperature = 0.8) {
+export async function callDeepSeekChat(messages, temperature = 0.8) {
   const hasSystem = messages.some(m => m.role === 'system');
   if (!hasSystem) {
     messages.unshift({ role: 'system', content: fallbackSystemPrompt });
   }
-  const response = await openai.chat.completions.create({
-    model: 'deepseek/deepseek-chat:free',
-    messages,
-    temperature,
-    max_tokens: 500,
-  });
-  return response.choices[0].message.content;
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'deepseek/deepseek-chat:free',
+      messages,
+      temperature,
+      max_tokens: 500,
+    });
+
+    if (!response?.choices?.[0]?.message?.content) {
+      console.error("❌ DeepSeek returned no message. Full response:", response);
+      return "I'm sorry, I couldn’t generate a response right now.";
+    }
+
+    return response.choices[0].message.content;
+  } catch (err) {
+    console.error("❌ DeepSeek API error:", err.message);
+    return "I'm sorry, something went wrong while contacting the assistant.";
+  }
 }
 
 export async function getQueryEmbedding(text) {
@@ -166,9 +178,13 @@ Format:
 // Snippet retrieval
 export async function getAgencySnippetFromIntent(intent) {
   const { location, usage } = intent?.extractedInfo || {};
-  const queryText = `real estate agent info for ${usage} in ${location}`;
+  let queryText = `real estate agency for ${usage || "buyers"} in ${location || "Berlin"}`;
   const queryEmbedding = await getQueryEmbedding(queryText);
-  if (!queryEmbedding) return "";
+
+  if (!queryEmbedding) {
+    console.warn("⚠️ Query embedding failed. Using fallback snippet.");
+    return "Beispiel Immobilien GMBH is a trusted Berlin-based real estate agency serving families, expats, and investors with personalized service.";
+  }
 
   const THRESH = 0.5;
   let bestScore = -1;
@@ -185,9 +201,11 @@ export async function getAgencySnippetFromIntent(intent) {
 
   return (bestScore >= THRESH && bestChunk)
     ? bestChunk.text
-    : "Beispiel Immobilien GMBH, your trusted real estate partner.";
+    : "Beispiel Immobilien GMBH is your Berlin-based partner for buying and selling homes.";
 }
 
+// --------------------------------------------------------------------
+// Best-matching property
 export async function getBestProperty(leadData) {
   const { usage, location, budget, propertyType } = leadData || {};
   const queryText = `usage: ${usage}, location: ${location}, budget: ${budget}, propertyType: ${propertyType}`;
@@ -234,42 +252,35 @@ export async function generateConversationSummary(conversation, language) {
 }
 
 // --------------------------------------------------------------------
-// Salesman reply with full RAG logic
+// Main sales reply logic
 export async function generateSalesmanReply(conversation, message, language) {
   console.log("🔹 [START] generateSalesmanReply");
 
-  // Step 1: Summary
   const summary = await generateConversationSummary(conversation, language);
-  console.log("📝 Conversation Summary:", summary);
+  console.log("📝 Summary:", summary);
 
-  // Step 2: Intent extraction
   const intent = await extractIntent(message, summary);
-  console.log("🧠 Extracted Intent:", JSON.stringify(intent, null, 2));
+  console.log("🧠 Extracted Intent:", intent);
 
   const extracted = intent?.extractedInfo || {};
   console.log("📦 Extracted Info:", extracted);
 
-  // Step 3: Agency RAG from intent
   const agencySnippet = await getAgencySnippetFromIntent(intent);
   console.log("🏢 Agency Snippet:", agencySnippet);
 
-  // Step 4: Decide whether property search is triggered
   let propertySnippet = "";
   const hasEnoughInfo = extracted.usage && extracted.location && extracted.budget && extracted.propertyType;
   console.log("✅ Has Enough Info for Property?", hasEnoughInfo);
 
   if (hasEnoughInfo) {
     const prop = await getBestProperty(extracted);
-    console.log("🏠 Best Property Found:", prop);
-
     if (prop) {
       propertySnippet = `Best-Fitting Property:\nTitle: ${prop.title}\nPrice: ${prop.price}\nSize: ${prop.size}\nRooms: ${prop.rooms}\nFeatures: ${prop.features.join(", ")}\nAddress: ${prop.address}`;
     } else {
-      console.log("⚠️ No matching property found.");
+      console.log("⚠️ No property matched.");
     }
   }
 
-  // Step 5: Build final prompt
   const salesmanPrompt = `
 You are Sasha, a friendly and professional real estate agent at Beispiel Immobilien GMBH. Speak like a real human.
 
@@ -301,16 +312,13 @@ Return JSON like:
 }
 `.trim();
 
-  console.log("🧱 Final Prompt:\n", salesmanPrompt);
-
   const finalMsgArr = conversation.messages.map(m => ({ role: m.role, content: m.content }));
   finalMsgArr.push({ role: "system", content: salesmanPrompt });
   finalMsgArr.push({ role: "user", content: message });
 
   try {
     const rawOutput = await callDeepSeekChat(finalMsgArr, 0.8);
-    console.log("🧠 Raw Output from DeepSeek:", rawOutput);
-
+    console.log("🧠 Raw Output:", rawOutput);
     const parsed = parseAiResponse(rawOutput);
     console.log("✅ Parsed Response:", parsed);
     return parsed;
@@ -321,8 +329,7 @@ Return JSON like:
 }
 
 // --------------------------------------------------------------------
-// Optional fallback replies
-
+// Other fallback paths
 export async function generatePolitenessReply(conversation, language) {
   const msgs = conversation.messages.map(m => ({ role: m.role, content: m.content }));
   msgs.push({

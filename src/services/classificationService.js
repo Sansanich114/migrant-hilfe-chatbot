@@ -3,6 +3,8 @@
 import { OpenAI } from "openai";
 import dotenv from "dotenv";
 import { parseAiResponse } from "../../server/utils/helpers.js";
+import { extractIntent, generateConversationSummary } from "./openaiService.js";
+
 dotenv.config();
 
 export async function classifyMessage(conversationMessages, currentUserMessage) {
@@ -10,7 +12,7 @@ export async function classifyMessage(conversationMessages, currentUserMessage) 
   if (!apiKey) {
     throw new Error("Missing OPENROUTER_API_KEY in environment variables");
   }
-  
+
   const openai = new OpenAI({
     apiKey,
     baseURL: "https://openrouter.ai/api/v1",
@@ -19,55 +21,52 @@ export async function classifyMessage(conversationMessages, currentUserMessage) 
     },
   });
 
-  const conversationText = conversationMessages
-    .map((m) => `${m.role}: ${m.content}`)
-    .join("\n");
-
-  const classificationPrompt = `
-You are a strict classifier that analyzes the current user message along with conversation history and profile info to determine the user's intent. Identify the language and categorize the intent into one of the following:
-  - "salesman": if the user is inquiring about properties and you need to guide the conversation to gather more details.
-  - "politeness": if the user is greeting or engaging in simple politeness.
-  - "other": if the message is off-topic or unrelated to real estate.
-Return ONLY raw JSON (no markdown) in the following format:
-{
-  "language": "...",
-  "category": "..."
-}
-
-Conversation so far:
-${conversationText}
-
-User's New Message:
-"${currentUserMessage}"
-`.trim();
-
-  try {
-    const response = await openai.chat.completions.create({
-      model: "deepseek/deepseek-chat:free",
-      messages: [{ role: "system", content: classificationPrompt }],
-      temperature: 0,
-      max_tokens: 150,
-    });
-
-    const rawOutput = response.choices[0].message.content.trim();
-    console.log("Raw classification output:", rawOutput);
-
-    const parsed = parseAiResponse(rawOutput);
-    const { language, category } = parsed;
-    const validCategories = ["salesman", "politeness", "other"];
-
-    if (!language || !validCategories.includes(category)) {
-      return {
-        language: "en",
-        category: "other",
-      };
-    }
-    return { language, category };
-  } catch (err) {
-    console.error("Classification error:", err);
-    return {
-      language: "en",
-      category: "other",
-    };
+  // 🔍 Step 1: Block known AI test/bait questions
+  const baitPatterns = [
+    /what('?s| is) (2\s*\+\s*2|the capital of \w+)/i,
+    /define [\w\s]+/i,
+    /who (is|was) (the president|ceo|author|founder)/i,
+    /translate [\w\s]+/i,
+    /explain [\w\s]+/i,
+    /tell me a (joke|fact)/i
+  ];
+  if (baitPatterns.some(p => p.test(currentUserMessage))) {
+    console.log("🚫 Detected AI bait question – forcing category 'other'");
+    return { language: "en", category: "other" };
   }
+
+  // 🧠 Step 2: Get summary
+  const summary = await generateConversationSummary({ messages: conversationMessages }, "English");
+  console.log("📝 Summary for classification:", summary);
+
+  // 🧠 Step 3: Extract intent
+  const intent = await extractIntent(currentUserMessage, summary);
+  const extracted = intent?.extractedInfo || {};
+  const missing = intent?.missingInfo || [];
+  const mood = intent?.userMood || "";
+
+  console.log("🧠 Intent:", intent);
+
+  // 🧮 Step 4: Rule-based classification
+  const hasRealEstateSignal =
+    extracted.usage || extracted.location || extracted.propertyType || extracted.budget;
+
+  const isSoftPoliteness =
+    mood === "positive" &&
+    Object.values(extracted).every(val =>
+      typeof val === "string" ? !val : Object.values(val).every(v => !v)
+    ) &&
+    missing.length === 0;
+
+  let finalCategory = "other";
+  if (hasRealEstateSignal) {
+    finalCategory = "salesman";
+  } else if (isSoftPoliteness) {
+    finalCategory = "politeness";
+  }
+
+  return {
+    language: "en",
+    category: finalCategory
+  };
 }
