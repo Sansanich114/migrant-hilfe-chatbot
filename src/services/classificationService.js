@@ -21,7 +21,7 @@ export async function classifyMessage(conversationMessages, currentUserMessage) 
     },
   });
 
-  // 🔍 Step 1: Block known AI test/bait questions
+  // 🔍 Step 1: Block known AI test / bait patterns
   const baitPatterns = [
     /what('?s| is) (2\s*\+\s*2|the capital of \w+)/i,
     /define [\w\s]+/i,
@@ -29,10 +29,10 @@ export async function classifyMessage(conversationMessages, currentUserMessage) 
     /translate [\w\s]+/i,
     /explain [\w\s]+/i,
     /tell me a (joke|fact)/i,
-    /\b(2\s*\+\s*2|9\s*x\s*9|capital of)/i,
+    /\b(2\s*\+\s*2|9\s*x\s*9|capital of)\b/i,
   ];
   if (baitPatterns.some(p => p.test(currentUserMessage))) {
-    console.log("🚫 Detected AI bait question – forcing category 'other'");
+    console.log("🚫 Detected AI bait or joke question – forcing category 'other'");
     return { language: "en", category: "other" };
   }
 
@@ -40,7 +40,7 @@ export async function classifyMessage(conversationMessages, currentUserMessage) 
   const summary = await generateConversationSummary({ messages: conversationMessages }, "English");
   console.log("📝 Summary for classification:", summary);
 
-  // 🧠 Step 3: Extract intent using smart extraction
+  // 🧠 Step 3: Extract intent using semantic analysis
   const intent = await extractIntent(currentUserMessage, summary);
   const extracted = intent?.extractedInfo || {};
   const missing = intent?.missingInfo || [];
@@ -64,32 +64,27 @@ export async function classifyMessage(conversationMessages, currentUserMessage) 
     finalCategory = "politeness";
   }
 
-  // 🧪 Step 5: Redundant classifier (optional fallback)
+  // 🧪 Step 5: Optional fallback classifier
   if (finalCategory === "other") {
     const conversationText = conversationMessages
       .map((m) => `${m.role}: ${m.content}`)
       .join("\n");
 
     const classificationPrompt = `
-You are a strict classifier analyzing user messages directed at Sasha, a real estate assistant working for Beispiel Immobilien GMBH.
-
-Sasha helps clients with real estate needs: buying, renting, and selling property in Berlin.
+You are a classifier for Sasha, a real estate assistant from Beispiel Immobilien GMBH (Berlin).
 
 Classify the intent of the user message:
-- "salesman": if it is about real estate
-- "politeness": if it's just greeting or thanking Sasha
-- "other": if it's off-topic or irrelevant
+- "salesman" = real estate request
+- "politeness" = greeting / gratitude
+- "other" = unrelated / vague / test-like
 
-Return ONLY JSON (no markdown), like:
-{
-  "language": "...",
-  "category": "..."
-}
+Return plain JSON only:
+{ "language": "...", "category": "..." }
 
-Conversation so far:
+Conversation:
 ${conversationText}
 
-User message:
+Message:
 "${currentUserMessage}"
 `.trim();
 
@@ -98,7 +93,7 @@ User message:
         model: "deepseek/deepseek-chat:free",
         messages: [{ role: "system", content: classificationPrompt }],
         temperature: 0,
-        max_tokens: 200,
+        max_tokens: 150,
       });
 
       const rawOutput = response.choices?.[0]?.message?.content?.trim();
@@ -113,7 +108,7 @@ User message:
 
       console.warn("⚠️ Invalid fallback classification, defaulting to 'other'");
     } catch (err) {
-      console.error("⚠️ Error during fallback classification:", err.message);
+      console.error("⚠️ Fallback classifier error:", err.message);
     }
   }
 
