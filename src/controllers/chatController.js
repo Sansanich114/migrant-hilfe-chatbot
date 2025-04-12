@@ -7,17 +7,15 @@ import {
   generatePolitenessReply,
   generateOtherReply,
   generateConversationSummary,
+  extractIntent,
 } from "../services/openaiService.js";
 
 export async function chat(req, res) {
   try {
     const { conversationId, message, userId: clientUserId } = req.body;
+    if (!message) return res.status(400).json({ error: "Message is required." });
 
-    if (!message) {
-      return res.status(400).json({ error: "Message is required." });
-    }
-
-    // If no userId is provided, create an anonymous user.
+    // Handle user creation
     let userId = clientUserId;
     if (!userId) {
       const newUser = new User({
@@ -28,7 +26,7 @@ export async function chat(req, res) {
       userId = newUser._id.toString();
     }
 
-    // Find or create a conversation.
+    // Load or create conversation
     let conversation = await Conversation.findById(conversationId);
     if (!conversation) {
       conversation = new Conversation({
@@ -36,13 +34,8 @@ export async function chat(req, res) {
         conversationName: "Default Conversation",
         messages: [
           { role: "system", content: process.env.SYSTEM_PROMPT || "Default system prompt" },
+          { role: "assistant", content: "Welcome to the chat. How can I help you with your real estate needs today?", timestamp: new Date() }
         ],
-      });
-      // Add a default welcome message.
-      conversation.messages.push({
-        role: "assistant",
-        content: "Welcome to the chat. How can I help you with your real estate needs today?",
-        timestamp: new Date(),
       });
       await conversation.save();
       return res.status(200).json({
@@ -52,43 +45,46 @@ export async function chat(req, res) {
       });
     }
 
-    // Append the new user message.
-    conversation.messages.push({
-      role: "user",
-      content: message,
-      timestamp: new Date(),
-    });
+    // Append user message
+    conversation.messages.push({ role: "user", content: message, timestamp: new Date() });
 
-    // Classify the user's message.
+    // Step 1: Summary
+    const summary = await generateConversationSummary(conversation, "English");
+
+    // Step 2: Classification
     const classification = await classifyMessage(conversation.messages, message);
+    const language = classification.language || "English";
 
+    // Step 3: Intent extraction
+    const intent = await extractIntent(message, summary);
+
+    // Step 4: Generate response
     let replyData;
-    // Use new functions based on the category.
-    if (classification.category === "politeness") {
-      replyData = await generatePolitenessReply(conversation, classification.language);
-    } else if (classification.category === "salesman") {
-      replyData = await generateSalesmanReply(conversation, message, classification.language);
+    if (classification.category === "salesman") {
+      replyData = await generateSalesmanReply(conversation, message, language, intent, summary);
+    } else if (classification.category === "politeness") {
+      replyData = await generatePolitenessReply(conversation, language);
     } else {
-      replyData = await generateOtherReply(conversation, classification.language);
+      replyData = await generateOtherReply(conversation, language);
     }
 
-    // Append the assistant's reply.
+    // Append assistant response
     conversation.messages.push({
       role: "assistant",
       content: replyData.reply,
       timestamp: new Date(),
     });
 
-    // Update the conversation summary.
-    conversation.summary = await generateConversationSummary(conversation, classification.language);
+    // Save updated summary
+    conversation.summary = summary;
     await conversation.save();
 
-    // Return response with conversation and user IDs.
+    // Return reply
     replyData.conversationId = conversation._id.toString();
     replyData.userId = userId;
     return res.status(200).json(replyData);
   } catch (err) {
-    console.error("Error in /chat:", err);
+    console.error("💥 Error in /chat:", err);
     return res.status(500).json({ error: "Unable to process request." });
   }
 }
