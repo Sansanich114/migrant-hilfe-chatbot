@@ -265,7 +265,10 @@ export async function generateSalesmanReply(conversation, message, language) {
   const extracted = intent?.extractedInfo || {};
   console.log("📦 Extracted Info:", extracted);
 
-  const agencySnippet = await getAgencySnippetFromIntent(intent);
+  let agencySnippet = await getAgencySnippetFromIntent(intent);
+  if (!agencySnippet || agencySnippet.length < 10) {
+    agencySnippet = "Beispiel Immobilien GMBH is a full-service agency located in Berlin, helping families, professionals, and investors since 2000.";
+  }
   console.log("🏢 Agency Snippet:", agencySnippet);
 
   let propertySnippet = "";
