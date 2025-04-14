@@ -70,7 +70,6 @@ export async function callDeepSeekChat(messages, temperature = 0.8) {
       model: 'deepseek/deepseek-chat:free',
       messages,
       temperature,
-      max_tokens: 500,
     });
     return res.choices?.[0]?.message?.content || "Sorry, couldn't generate a response.";
   } catch (err) {

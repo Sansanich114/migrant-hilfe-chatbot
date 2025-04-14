@@ -93,7 +93,6 @@ Message:
         model: "deepseek/deepseek-chat:free",
         messages: [{ role: "system", content: classificationPrompt }],
         temperature: 0,
-        max_tokens: 150,
       });
 
       const rawOutput = response.choices?.[0]?.message?.content?.trim();
