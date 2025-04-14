@@ -4,38 +4,43 @@
 export function stripFormatting(text) {
   // Remove markdown code fences like ```json or ```
   text = text.replace(/```[\s\S]*?```/g, (match) => {
-    // Remove the starting and ending triple backticks and any language tags
     return match.replace(/```/g, "").trim();
   });
-  // Remove other markdown formatting characters
   return text.replace(/\*\*|- |# /g, "").trim();
 }
 
-// Attempt to extract and parse JSON from the raw response text.
-// It looks for the first "{" and the last "}" and extracts that substring.
+// Safe JSON parser with fallback
 export function parseAiResponse(raw) {
   let jsonString = raw.trim();
 
-  // Remove code fences if present
-  jsonString = jsonString.replace(/```(json)?/gi, "").replace(/```/g, "").trim();
+  // Remove markdown code fences and extra garbage
+  jsonString = jsonString
+    .replace(/```(json)?/gi, '')
+    .replace(/```/g, '')
+    .replace(/[\r\n]+/g, ' ')
+    .replace(/,\s*}/g, '}')
+    .replace(/,\s*]/g, ']')
+    .trim();
 
-  const firstBrace = jsonString.indexOf("{");
-  const lastBrace = jsonString.lastIndexOf("}");
-  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-    jsonString = jsonString.substring(firstBrace, lastBrace + 1);
-  }
-  let parsed;
+  // Try full parse
   try {
-    parsed = JSON.parse(jsonString);
-  } catch (e) {
-    // Fallback: return the raw text stripped of formatting as the reply.
-    parsed = { reply: stripFormatting(raw), suggestions: [] };
+    return JSON.parse(jsonString);
+  } catch (e1) {
+    // Try extracting inner JSON block
+    const match = jsonString.match(/{[\s\S]+}/);
+    if (match) {
+      try {
+        return JSON.parse(match[0]);
+      } catch (e2) {
+        console.error("⚠️ Nested JSON parse failed:", e2.message);
+      }
+    }
+    console.error("❌ Failed to parse AI response:", raw);
   }
-  if (!parsed.reply || !parsed.reply.trim()) {
-    parsed.reply = "Sorry, I don't have an answer right now.";
-  }
-  if (!Array.isArray(parsed.suggestions)) {
-    parsed.suggestions = [];
-  }
-  return parsed;
+
+  // Fallback structure
+  return {
+    reply: stripFormatting(raw),
+    suggestions: [],
+  };
 }

@@ -1,4 +1,3 @@
-// server/services/openaiService.js
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -71,7 +70,15 @@ export async function callDeepSeekChat(messages, temperature = 0.8) {
       messages,
       temperature,
     });
-    return res.choices?.[0]?.message?.content || "Sorry, couldn't generate a response.";
+
+    const content = res.choices?.[0]?.message?.content?.trim();
+    if (!content || typeof content !== 'string') {
+      console.warn("⚠️ DeepSeek returned empty or invalid content.");
+      return "Sorry, couldn't generate a response.";
+    }
+
+    console.log("🧠 DeepSeek Raw Output:", content);
+    return content;
   } catch (err) {
     console.error("❌ DeepSeek API error:", err.message);
     return "I'm sorry, something went wrong while contacting the assistant.";
@@ -180,7 +187,7 @@ export async function generateConversationSummary(conversation, language) {
   const messages = [...conversation.messages.map(m => ({ role: m.role, content: m.content }))];
   messages.push({
     role: "system",
-    content: `Summarize this chat in ${language}. Return plain JSON: {"summary": "..."}`,
+    content: `Summarize this chat in ${language}. Return plain JSON: {"summary": "..."}`
   });
   try {
     const raw = await callDeepSeekChat(messages, 0.5);
