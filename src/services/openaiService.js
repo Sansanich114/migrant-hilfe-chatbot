@@ -271,7 +271,6 @@ function fallbackJson(text = "Sorry, something went wrong.") {
   };
 }
 export {
-  generateSalesmanReply,
+  generateSalesmanReply as generateConversationSummary,
   extractIntent,
-  generateConversationSummary as generateConversationSummary
 };
