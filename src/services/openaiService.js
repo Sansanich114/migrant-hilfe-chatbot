@@ -8,24 +8,20 @@ import path from 'path';
 import { parseAiResponse } from '../../server/utils/helpers.js';
 import { loadPropertiesData } from '../../server/utils/staticData.js';
 
-// ENV Checks
 const openRouterApiKey = process.env.OPENROUTER_API_KEY;
 const hfApiKey = process.env.HF_API_KEY;
 
 if (!openRouterApiKey) throw new Error('Missing OPENROUTER_API_KEY');
 if (!hfApiKey) throw new Error('Missing HF_API_KEY');
 
-// OpenAI Initialization
 const openai = new OpenAI({
   apiKey: openRouterApiKey,
   baseURL: 'https://openrouter.ai/api/v1',
   defaultHeaders: { 'X-OpenRouter-Api-Key': openRouterApiKey },
 });
 
-// System fallback identity
 const fallbackSystemPrompt = "You are Sasha, a friendly sales agent at Beispiel Immobilien GMBH. Respond only with plain JSON.";
 
-// Embedding data
 let chunkedAgencyData = [];
 let propertiesWithEmbeddings = [];
 const allProperties = loadPropertiesData();
@@ -45,7 +41,6 @@ try {
   console.error("Error reading propertiesWithEmbeddings.json:", err);
 }
 
-// Cosine similarity
 function cosineSimilarity(a, b) {
   const dot = a.reduce((sum, v, i) => sum + v * b[i], 0);
   const normA = Math.sqrt(a.reduce((sum, v) => sum + v * v, 0));
@@ -93,9 +88,15 @@ export async function getQueryEmbedding(text) {
       { headers: { Authorization: "Bearer " + hfApiKey, "Content-Type": "application/json" } }
     );
     if (Array.isArray(res.data)) {
-      if (Array.isArray(res.data[0][0])) return poolEmbeddings(res.data);
-      if (Array.isArray(res.data[0])) return res.data[0];
+      const vector = Array.isArray(res.data[0][0])
+        ? poolEmbeddings(res.data)
+        : Array.isArray(res.data[0])
+        ? res.data[0]
+        : null;
+
+      if (Array.isArray(vector) && vector.length === 768) return vector;
     }
+    console.warn("❌ Invalid embedding vector structure:", res.data);
     return null;
   } catch (err) {
     console.error("Embedding error:", err.response?.data || err.message);
@@ -214,6 +215,21 @@ export async function generateSalesmanReply(conversation, message, language) {
     }
   }
 
+  const formatExample = `
+Example JSON:
+{
+  "reply": "Great! I'd love to help you find a property in Berlin. What's your budget and preferred type of property?",
+  "extractedInfo": {
+    "usage": "residential",
+    "location": "Berlin",
+    "budget": "",
+    "propertyType": "",
+    "contact": { "name": "", "email": "", "phone": "" }
+  },
+  "suggestions": ["2-bedroom flats", "Schedule meeting"]
+}
+`;
+
   const prompt = `
 You are Sasha, a professional real estate agent at Beispiel Immobilien GMBH.
 
@@ -233,12 +249,9 @@ Instructions:
 - Always act as Sasha from the agency
 - Ask for one missing field at a time
 - Only suggest property if enough info
-Return JSON:
-{
-  "reply": "...",
-  "extractedInfo": { ... },
-  "suggestions": ["...", "..."]
-}
+${formatExample}
+
+Now respond in the **exact** JSON format as shown above. No commentary, no prefix.
 `.trim();
 
   const finalMessages = [
@@ -251,15 +264,16 @@ Return JSON:
   const raw = await callDeepSeekChat(finalMessages, 0.8);
   const parsed = parseAiResponse(raw);
 
-  if (parsed && parsed.reply) {
-    return {
-      reply: parsed.reply,
-      extractedInfo: extracted,
-      suggestions: parsed.suggestions || [],
-    };
+  if (!parsed || !parsed.reply) {
+    console.warn("❌ Parsed response is invalid:", parsed);
+    return fallbackJson("Sorry, I couldn't generate a response.");
   }
 
-  return fallbackJson("Sorry, I couldn't generate a full response.");
+  return {
+    reply: parsed.reply,
+    extractedInfo: extracted,
+    suggestions: parsed.suggestions || [],
+  };
 }
 
 function fallbackJson(message = "Let me connect you with a human agent.") {
