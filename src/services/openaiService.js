@@ -54,6 +54,14 @@ function poolEmbeddings(embs) {
   return pooled.map(v => v / embs.length);
 }
 
+function isPoliteMessage(intent) {
+  const emptyInfo = !intent.extractedInfo?.usage &&
+                    !intent.extractedInfo?.location &&
+                    !intent.extractedInfo?.budget &&
+                    !intent.extractedInfo?.propertyType;
+  return intent.userMood === "casual" && emptyInfo;
+}
+
 // --- Core services ---
 
 async function callLLM(messages, temperature = 0.8) {
@@ -145,7 +153,9 @@ export async function generateSalesmanReply(convo, message, language = "en") {
   const intent = await extractIntent(message, summary);
 
   if (!intent) return fallbackJson("Sorry, I couldn't understand your request.");
-
+	if (isPoliteMessage(intent)) {
+  return fallbackJson("I'm doing great, thank you! Let me know how I can help with real estate.");
+	}
   const { extractedInfo, missingInfo } = intent;
   const hasEnough = extractedInfo.usage && extractedInfo.location && extractedInfo.budget && extractedInfo.propertyType;
 
