@@ -22,7 +22,7 @@ const openai = new OpenAI({
   defaultHeaders: { 'X-OpenRouter-Api-Key': openRouterApiKey },
 });
 
-// Fallback system prompt
+// System fallback identity
 const fallbackSystemPrompt = "You are Sasha, a friendly sales agent at Beispiel Immobilien GMBH. Respond only with plain JSON.";
 
 // Embedding data
@@ -74,14 +74,14 @@ export async function callDeepSeekChat(messages, temperature = 0.8) {
     const content = res.choices?.[0]?.message?.content?.trim();
     if (!content || typeof content !== 'string') {
       console.warn("⚠️ DeepSeek returned empty or invalid content.");
-      return "Sorry, couldn't generate a response.";
+      return null;
     }
 
     console.log("🧠 DeepSeek Raw Output:", content);
     return content;
   } catch (err) {
     console.error("❌ DeepSeek API error:", err.message);
-    return "I'm sorry, something went wrong while contacting the assistant.";
+    return null;
   }
 }
 
@@ -103,14 +103,6 @@ export async function getQueryEmbedding(text) {
   }
 }
 
-function fallbackReply() {
-  return {
-    reply: "I'm having trouble accessing our database. Let me connect you with a human agent.",
-    suggestions: ["Contact an agent", "Try again later"]
-  };
-}
-
-// Intent
 export async function extractIntent(message, summary) {
   const messages = [{
     role: "system",
@@ -142,11 +134,27 @@ Return JSON:
   }
 }
 
+export async function generateConversationSummary(conversation, language) {
+  const messages = [...conversation.messages.map(m => ({ role: m.role, content: m.content }))];
+  messages.push({
+    role: "system",
+    content: `Summarize this chat in ${language}. Return plain JSON: {"summary": "..."}`
+  });
+  try {
+    const raw = await callDeepSeekChat(messages, 0.5);
+    return parseAiResponse(raw)?.summary || "";
+  } catch (err) {
+    console.error("Summary error:", err);
+    return "";
+  }
+}
+
 export async function getAgencySnippetFromIntent(intent) {
   const { location, usage } = intent?.extractedInfo || {};
   const queryText = `real estate agency for ${usage || "buyers"} in ${location || "Berlin"}`;
   const embedding = await getQueryEmbedding(queryText);
   if (!embedding) {
+    console.warn("⚠️ Embedding failed. Using fallback snippet.");
     return chunkedAgencyData?.[0]?.text || "Beispiel Immobilien GMBH – your trusted Berlin real estate partner.";
   }
 
@@ -183,36 +191,20 @@ export async function getBestProperty(data) {
   return (bestScore >= THRESH && bestIndex >= 0) ? allProperties[bestIndex] : null;
 }
 
-export async function generateConversationSummary(conversation, language) {
-  const messages = [...conversation.messages.map(m => ({ role: m.role, content: m.content }))];
-  messages.push({
-    role: "system",
-    content: `Summarize this chat in ${language}. Return plain JSON: {"summary": "..."}`
-  });
-  try {
-    const raw = await callDeepSeekChat(messages, 0.5);
-    return parseAiResponse(raw).summary || "";
-  } catch (err) {
-    console.error("Summary error:", err);
-    return "";
-  }
-}
-
-// 🔹 Main reply generator
 export async function generateSalesmanReply(conversation, message, language) {
   console.log("🔹 [START] generateSalesmanReply");
 
   const summary = await generateConversationSummary(conversation, language);
   const intent = await extractIntent(message, summary);
-  const extracted = intent?.extractedInfo || {};
+  if (!intent) return fallbackJson("Intent extraction failed.");
+
+  const extracted = intent.extractedInfo || {};
   const hasEnoughInfo = extracted.usage && extracted.location && extracted.budget && extracted.propertyType;
 
   let agencySnippet = await getAgencySnippetFromIntent(intent);
   if (!agencySnippet || agencySnippet.length < 5) {
     agencySnippet = "Beispiel Immobilien GMBH – full-service agency in Berlin since 2000.";
   }
-
-  console.log("👤 Sasha's Identity Snippet:", agencySnippet);
 
   let propertySnippet = "";
   if (hasEnoughInfo) {
@@ -222,23 +214,23 @@ export async function generateSalesmanReply(conversation, message, language) {
     }
   }
 
-  const salesmanPrompt = `
-You are Sasha, a friendly and professional real estate agent at Beispiel Immobilien GMBH.
+  const prompt = `
+You are Sasha, a professional real estate agent at Beispiel Immobilien GMBH.
 
 Summary: ${summary}
-Known info:
+User Info:
 - Usage: ${extracted.usage || "unknown"}
 - Location: ${extracted.location || "unknown"}
 - Property Type: ${extracted.propertyType || "unknown"}
 - Budget: ${extracted.budget || "unknown"}
 
-Missing info: ${intent?.missingInfo?.join(", ") || "none"}
+Missing info: ${intent.missingInfo?.join(", ") || "none"}
 Agency: ${agencySnippet}
 ${propertySnippet ? "\n" + propertySnippet : ""}
 
 Instructions:
-- Be helpful and sound natural
-- Always speak as Sasha from the agency
+- Be helpful and natural
+- Always act as Sasha from the agency
 - Ask for one missing field at a time
 - Only suggest property if enough info
 Return JSON:
@@ -249,24 +241,38 @@ Return JSON:
 }
 `.trim();
 
-  const finalMsgArr = [...conversation.messages.map(m => ({ role: m.role, content: m.content }))];
-  finalMsgArr.unshift({
-    role: "system",
-    content: `You are Sasha from Beispiel Immobilien GMBH. Help users make property decisions in Berlin.`
-  });
-  finalMsgArr.push({ role: "system", content: salesmanPrompt });
-  finalMsgArr.push({ role: "user", content: message });
+  const finalMessages = [
+    { role: "system", content: fallbackSystemPrompt },
+    ...conversation.messages.map(m => ({ role: m.role, content: m.content })),
+    { role: "system", content: prompt },
+    { role: "user", content: message },
+  ];
 
-  try {
-    const raw = await callDeepSeekChat(finalMsgArr, 0.8);
-    return parseAiResponse(raw);
-  } catch (err) {
-    console.error("generateSalesmanReply error:", err);
-    return fallbackReply();
+  const raw = await callDeepSeekChat(finalMessages, 0.8);
+  const parsed = parseAiResponse(raw);
+
+  if (parsed && parsed.reply) {
+    return {
+      reply: parsed.reply,
+      extractedInfo: extracted,
+      suggestions: parsed.suggestions || [],
+    };
   }
+
+  return fallbackJson("Sorry, I couldn't generate a full response.");
 }
 
-// 🔹 Politeness reply
+function fallbackJson(message = "Let me connect you with a human agent.") {
+  return {
+    reply: message,
+    extractedInfo: {
+      usage: "", location: "", budget: "", propertyType: "",
+      contact: { name: "", email: "", phone: "" }
+    },
+    suggestions: ["Contact an agent", "Try again later"]
+  };
+}
+
 export async function generatePolitenessReply(conversation, language) {
   const agencySnippet = await getAgencySnippetFromIntent({ extractedInfo: {} });
   const politePrompt = `
@@ -278,17 +284,20 @@ Respond politely in ${language}. Avoid generic assistant tone. Make users feel w
 
 Return JSON: { "reply": "...", "suggestions": ["...", "..."] }
 `;
-  try {
-    const messages = [...conversation.messages.map(m => ({ role: m.role, content: m.content }))];
-    messages.push({ role: "system", content: politePrompt });
-    const raw = await callDeepSeekChat(messages, 0.8);
-    return parseAiResponse(raw);
-  } catch (err) {
-    return fallbackReply();
-  }
+
+  const messages = [
+    { role: "system", content: fallbackSystemPrompt },
+    ...conversation.messages.map(m => ({ role: m.role, content: m.content })),
+    { role: "system", content: politePrompt },
+  ];
+
+  const raw = await callDeepSeekChat(messages, 0.8);
+  const parsed = parseAiResponse(raw);
+  return parsed?.reply
+    ? { reply: parsed.reply, suggestions: parsed.suggestions || [] }
+    : fallbackJson();
 }
 
-// 🔹 Off-topic
 export async function generateOtherReply(conversation, language) {
   const agencySnippet = await getAgencySnippetFromIntent({ extractedInfo: {} });
   const redirectPrompt = `
@@ -303,12 +312,16 @@ Return JSON: {
   "suggestions": ["Show properties", "Schedule meeting"]
 }
 `;
-  try {
-    const messages = [...conversation.messages.map(m => ({ role: m.role, content: m.content }))];
-    messages.push({ role: "system", content: redirectPrompt });
-    const raw = await callDeepSeekChat(messages, 0.8);
-    return parseAiResponse(raw);
-  } catch (err) {
-    return fallbackReply();
-  }
+
+  const messages = [
+    { role: "system", content: fallbackSystemPrompt },
+    ...conversation.messages.map(m => ({ role: m.role, content: m.content })),
+    { role: "system", content: redirectPrompt },
+  ];
+
+  const raw = await callDeepSeekChat(messages, 0.8);
+  const parsed = parseAiResponse(raw);
+  return parsed?.reply
+    ? { reply: parsed.reply, suggestions: parsed.suggestions || [] }
+    : fallbackJson();
 }
