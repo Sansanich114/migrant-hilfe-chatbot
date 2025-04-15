@@ -271,6 +271,17 @@ function fallbackJson(text = "Sorry, something went wrong.") {
   };
 }
 export {
-  generateSalesmanReply as generateConversationSummary,
+  generateSalesmanReply,
   extractIntent,
+  generateOtherReply // ← this makes the import valid
 };
+function generateOtherReply(message) {
+  return {
+    reply: "I'm doing great, thank you! Let me know how I can help with real estate.",
+    extractedInfo: {
+      usage: "", location: "", budget: "", propertyType: "",
+      contact: { name: "", email: "", phone: "" }
+    },
+    suggestions: ["View listings", "Book a call"]
+  };
+}
