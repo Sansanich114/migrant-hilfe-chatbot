@@ -260,3 +260,8 @@ function fallbackJson(text = "Sorry, something went wrong.") {
     suggestions: ["Contact an agent", "Try again later"]
   };
 }
+export {
+  generateSalesmanReply,
+  extractIntent,
+  generateConversationSummary as generateConversationSummary
+};
