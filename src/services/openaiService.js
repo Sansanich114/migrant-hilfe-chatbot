@@ -60,18 +60,18 @@ async function callLLMWithCombinedOutput(messages, temperature = 0.7) {
 
   try {
     const res = await openai.chat.completions.create({
-      model: "nousresearch/nous-hermes2:free",
+      model: "deepseek-ai/deepseek-r1:free",
       messages,
       temperature
     });
 
     const raw = res.choices?.[0]?.message?.content?.trim();
     if (!raw || typeof raw !== "string") {
-  			console.error("❌ Empty or invalid LLM output:", res);
-  			return null;
-		}
+      console.error("❌ Empty or invalid LLM output:", res);
+      return null;
+    }
 
-    console.log("🧠 Mistral Combined Output:", raw);
+    console.log("🧠 DeepSeek Combined Output:", raw);
     return parseAiResponse(raw);
   } catch (e) {
     console.error("LLM call failed:", e.message);
@@ -181,7 +181,6 @@ ${formatPriming}
 
   const parsed = await callLLMWithCombinedOutput(finalMessages);
 
-  console.warn("⚠️ Unified call failed or returned no reply:", parsed);
   if (!parsed || !parsed.reply) return fallbackJson("I’m not sure I understood that. Could you rephrase?");
 
   const { extractedInfo, suggestions } = parsed;
@@ -192,7 +191,8 @@ ${formatPriming}
   return {
     reply: parsed.reply + (property ? `\n\nHere's a suggestion: ${property.title}` : ""),
     extractedInfo,
-    suggestions: suggestions || []
+    suggestions: suggestions || [],
+    summary: parsed.summary || ""
   };
 }
 
@@ -237,6 +237,7 @@ Return JSON: { "reply": "...", "suggestions": ["...", "..."] }`;
   return raw || fallbackJson();
 }
 
+// --- Fallback ---
 function fallbackJson(text = "⚠️ Fallback reply – no structured data.") {
   return {
     reply: text,
