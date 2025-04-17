@@ -87,18 +87,19 @@ async function callLLM(messages, temperature = 0.8) {
 async function getQueryEmbedding(text) {
   try {
     const res = await axios.post(
-      "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-v0.1",
-      { inputs: text },
-      { headers: { Authorization: `Bearer ${process.env.HF_API_KEY}` } }
+      "https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2",
+      { inputs: text, options: { wait_for_model: true } },
+      { headers: { Authorization: `Bearer ${hfApiKey}` } }
     );
 
-    const vector = res.data?.[0]?.embedding;
-    if (Array.isArray(vector) && vector.length > 100) return vector;
+    const vector = res.data?.[0];
 
-    console.warn("❌ Invalid embedding vector:", res.data);
+    if (Array.isArray(vector) && vector.length === 384) return vector;
+
+    console.warn("❌ Invalid embedding vector structure:", res.data);
     return null;
   } catch (e) {
-    console.error("Embedding error:", e.message);
+    console.error("Embedding API error:", e.message);
     return null;
   }
 }
