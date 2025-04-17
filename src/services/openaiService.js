@@ -316,7 +316,6 @@ function fallbackJson(text = "Sorry, something went wrong.") {
 export {
   extractIntent,
   generateConversationSummary,
-  generateSalesmanReply,
   generatePolitenessReply,
   generateOtherReply
 };
