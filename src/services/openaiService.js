@@ -53,14 +53,6 @@ function poolEmbeddings(embs) {
   return pooled.map(v => v / embs.length);
 }
 
-function isPoliteMessage(intent) {
-  const emptyInfo = !intent.extractedInfo?.usage &&
-                    !intent.extractedInfo?.location &&
-                    !intent.extractedInfo?.budget &&
-                    !intent.extractedInfo?.propertyType;
-  return intent.userMood === "casual" && emptyInfo;
-}
-
 async function callLLMWithCombinedOutput(messages, temperature = 0.7) {
   if (!messages.some(m => m.role === "system")) {
     messages.unshift({ role: "system", content: fallbackSystemPrompt });
@@ -144,7 +136,7 @@ async function getBestProperty(info) {
   return bestScore >= threshold ? allProperties[bestIndex] : null;
 }
 
-// --- Unified response generator ---
+// --- Main unified reply for 'salesman' only ---
 async function generateSalesmanReply(convo, message, language = "en") {
   const formatPriming = `
 Return JSON like:
@@ -188,7 +180,7 @@ ${formatPriming}
 
   if (!parsed || !parsed.reply) return fallbackJson("I’m not sure I understood that. Could you rephrase?");
 
-  const { extractedInfo, missingInfo } = parsed;
+  const { extractedInfo, suggestions } = parsed;
   const hasEnough = extractedInfo?.usage && extractedInfo?.location && extractedInfo?.budget && extractedInfo?.propertyType;
   const agencySnippet = await getBestAgencySnippet(extractedInfo || {});
   const property = hasEnough ? await getBestProperty(extractedInfo) : null;
@@ -196,11 +188,11 @@ ${formatPriming}
   return {
     reply: parsed.reply + (property ? `\n\nHere's a suggestion: ${property.title}` : ""),
     extractedInfo,
-    suggestions: parsed.suggestions || []
+    suggestions: suggestions || []
   };
 }
 
-// --- Other replies (no change) ---
+// --- Politeness and Other ---
 async function generatePolitenessReply(convo, language = "English") {
   const agencySnippet = await getBestAgencySnippet({});
   const prompt = `
@@ -241,7 +233,6 @@ Return JSON: { "reply": "...", "suggestions": ["...", "..."] }`;
   return raw || fallbackJson();
 }
 
-// --- Fallback ---
 function fallbackJson(text = "Sorry, something went wrong.") {
   return {
     reply: text,
@@ -254,7 +245,7 @@ function fallbackJson(text = "Sorry, something went wrong.") {
 }
 
 export {
+  generateSalesmanReply,
   generatePolitenessReply,
-  generateOtherReply,
-  generateSalesmanReply
+  generateOtherReply
 };
