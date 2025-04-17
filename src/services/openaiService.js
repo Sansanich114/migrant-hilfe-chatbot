@@ -270,11 +270,7 @@ function fallbackJson(text = "Sorry, something went wrong.") {
     suggestions: ["Contact an agent", "Try again later"]
   };
 }
-export {
-  generateSalesmanReply,
-  extractIntent,
-  generateOtherReply // ← this makes the import valid
-};
+
 function generateOtherReply(message) {
   return {
     reply: "I'm doing great, thank you! Let me know how I can help with real estate.",
@@ -285,3 +281,9 @@ function generateOtherReply(message) {
     suggestions: ["View listings", "Book a call"]
   };
 }
+
+export {
+  generateSalesmanReply,
+  extractIntent,
+  generateOtherReply // ← this makes the import valid
+};
