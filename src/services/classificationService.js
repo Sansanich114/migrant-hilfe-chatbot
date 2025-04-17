@@ -90,7 +90,7 @@ Message:
 
     try {
       const response = await openai.chat.completions.create({
-        model: "deepseek/deepseek-chat:free",
+        model: "mistralai/mistral-7b-instruct:free",
         messages: [{ role: "system", content: classificationPrompt }],
         temperature: 0,
       });
