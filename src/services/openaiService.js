@@ -265,7 +265,7 @@ Return JSON: {
 async function generateConversationSummary(convo, lang = "English") {
   const msgs = [...convo.messages, {
     role: "system",
-    content: `Summarize this chat in ${lang}. Return JSON: {"summary": "..." }`
+    content: `Summarize the following chat conversation in ${lang}. Return STRICTLY this JSON: {"summary": "..." } Do not include any greeting or extra text.`
   }];
 
   const raw = await callLLM(msgs, 0.5);
