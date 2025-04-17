@@ -1,7 +1,12 @@
 // src/controllers/chatController.js
 import Conversation from "../models/Conversation.js";
 import User from "../models/User.js";
-import { classifyAndRespond } from "../services/openaiService.js";
+import {
+  generateSalesmanReply,
+  generatePolitenessReply,
+  generateOtherReply
+} from "../services/openaiService.js";
+import { classifyMessage } from "../services/classificationService.js";
 
 export async function chat(req, res) {
   try {
@@ -50,10 +55,17 @@ export async function chat(req, res) {
     // Append user message
     conversation.messages.push({ role: "user", content: message, timestamp: new Date() });
 
-    // Generate everything in a single call
-    const replyData = await classifyAndRespond(conversation, message);
-    if (!replyData) {
-      return res.status(500).json({ error: "AI did not return a valid response." });
+    // Step 1: Classify
+    const { category, language } = await classifyMessage(conversation.messages, message);
+
+    // Step 2: Generate response based on category
+    let replyData;
+    if (category === "salesman") {
+      replyData = await generateSalesmanReply(conversation, message, language);
+    } else if (category === "politeness") {
+      replyData = await generatePolitenessReply(conversation, language);
+    } else {
+      replyData = await generateOtherReply(conversation, language);
     }
 
     // Append assistant response
@@ -63,7 +75,7 @@ export async function chat(req, res) {
       timestamp: new Date(),
     });
 
-    // Save updated conversation summary
+    // Save updated conversation
     conversation.summary = replyData.summary || "";
     await conversation.save();
 
