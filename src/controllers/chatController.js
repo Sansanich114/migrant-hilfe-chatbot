@@ -15,7 +15,7 @@ export async function chat(req, res) {
       return res.status(400).json({ error: "Message is required." });
     }
 
-    // Handle user creation
+    // Step 0: Handle user creation
     let userId = clientUserId;
     if (!userId) {
       const newUser = new User({
@@ -26,7 +26,7 @@ export async function chat(req, res) {
       userId = newUser._id.toString();
     }
 
-    // Load or create conversation
+    // Step 1: Load or create conversation
     let conversation = await Conversation.findById(conversationId);
     if (!conversation) {
       conversation = new Conversation({
@@ -52,13 +52,13 @@ export async function chat(req, res) {
       });
     }
 
-    // Append user message
+    // Step 2: Append user message
     conversation.messages.push({ role: "user", content: message, timestamp: new Date() });
 
-    // Step 1: Classify
+    // Step 3: Classify the intent
     const { category, language } = await classifyMessage(conversation.messages, message);
 
-    // Step 2: Generate response based on category
+    // Step 4: Generate response using category-specific logic
     let replyData;
     if (category === "salesman") {
       replyData = await generateSalesmanReply(conversation, message, language);
@@ -68,18 +68,18 @@ export async function chat(req, res) {
       replyData = await generateOtherReply(conversation, language);
     }
 
-    // Append assistant response
+    // Step 5: Append assistant response
     conversation.messages.push({
       role: "assistant",
       content: replyData.reply,
       timestamp: new Date(),
     });
 
-    // Save updated conversation
+    // Step 6: Save conversation
     conversation.summary = replyData.summary || "";
     await conversation.save();
 
-    // Return reply
+    // Step 7: Return structured response
     return res.status(200).json({
       ...replyData,
       conversationId: conversation._id.toString(),
