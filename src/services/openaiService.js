@@ -281,9 +281,3 @@ function generateOtherReply(message) {
     suggestions: ["View listings", "Book a call"]
   };
 }
-
-export {
-  generateSalesmanReply,
-  extractIntent,
-  generateOtherReply // ← this makes the import valid
-};
