@@ -66,7 +66,10 @@ async function callLLMWithCombinedOutput(messages, temperature = 0.7) {
     });
 
     const raw = res.choices?.[0]?.message?.content?.trim();
-    if (!raw || typeof raw !== "string") return null;
+    if (!raw || typeof raw !== "string") {
+  			console.error("❌ Empty or invalid LLM output:", res);
+  			return null;
+		}
 
     console.log("🧠 Mistral Combined Output:", raw);
     return parseAiResponse(raw);
@@ -178,6 +181,7 @@ ${formatPriming}
 
   const parsed = await callLLMWithCombinedOutput(finalMessages);
 
+  console.warn("⚠️ Unified call failed or returned no reply:", parsed);
   if (!parsed || !parsed.reply) return fallbackJson("I’m not sure I understood that. Could you rephrase?");
 
   const { extractedInfo, suggestions } = parsed;
@@ -233,7 +237,7 @@ Return JSON: { "reply": "...", "suggestions": ["...", "..."] }`;
   return raw || fallbackJson();
 }
 
-function fallbackJson(text = "Sorry, something went wrong.") {
+function fallbackJson(text = "⚠️ Fallback reply – no structured data.") {
   return {
     reply: text,
     extractedInfo: {
