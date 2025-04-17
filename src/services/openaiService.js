@@ -220,7 +220,7 @@ ${formatPriming}
 
 // --- Supporting helpers ---
 
-async function getConversationSummary(convo, lang = "English") {
+async function generateConversationSummary(convo, lang = "English") {
   const msgs = [...convo.messages, {
     role: "system",
     content: `Summarize this chat in ${lang}. Return JSON: {"summary": "..." }`
