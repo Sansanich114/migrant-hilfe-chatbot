@@ -11,7 +11,14 @@ export function stripFormatting(text) {
 
 // Safe JSON parser with fallback
 export function parseAiResponse(raw) {
-  let jsonString = raw.trim();
+  if (!raw || typeof raw !== "string") return null;
+  try {
+    return JSON.parse(raw.trim());
+  } catch (err) {
+    console.error("⚠️ Failed to parse AI response:", err.message);
+    return null;
+  }
+}
 
   // Remove markdown code fences and extra garbage
   jsonString = jsonString
