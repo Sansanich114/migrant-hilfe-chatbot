@@ -26,7 +26,7 @@ export async function classifyMessage(conversationMessages, currentUserMessage) 
     return { language: "en", category: "other" };
   }
 
-  // Step 2: Ask Mistral to classify
+  // Step 2: Ask DeepSeek to classify
   const prompt = `
 You are a classifier for Sasha, a real estate assistant from Beispiel Immobilien GMBH.
 
@@ -46,7 +46,7 @@ ${conversationMessages.map(m => `${m.role}: ${m.content}`).join("\n")}
 
   try {
     const response = await openai.chat.completions.create({
-      model: "mistralai/mistral-7b-instruct:free",
+      model: "deepseek-ai/deepseek-coder:free", // This is the DeepSeek v3-compatible free model
       messages: [{ role: "system", content: prompt }],
       temperature: 0,
     });
