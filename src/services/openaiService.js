@@ -9,6 +9,7 @@ import { parseAiResponse } from '../../server/utils/helpers.js';
 
 dotenv.config();
 
+const hfApiKey = process.env.HF_API_KEY;
 const openRouterApiKey = process.env.OPENROUTER_API_KEY;
 if (!openRouterApiKey) throw new Error("Missing OPENROUTER_API_KEY");
 
