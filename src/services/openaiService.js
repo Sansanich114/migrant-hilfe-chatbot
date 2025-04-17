@@ -281,3 +281,5 @@ function generateOtherReply(message) {
     suggestions: ["View listings", "Book a call"]
   };
 }
+
+export { extractIntent }
