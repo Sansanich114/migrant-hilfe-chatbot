@@ -61,8 +61,7 @@ function isPoliteMessage(intent) {
   return intent.userMood === "casual" && emptyInfo;
 }
 
-// --- Core services ---
-async function callLLM(messages, temperature = 0.8) {
+async function callLLMWithCombinedOutput(messages, temperature = 0.7) {
   if (!messages.some(m => m.role === "system")) {
     messages.unshift({ role: "system", content: fallbackSystemPrompt });
   }
@@ -77,8 +76,8 @@ async function callLLM(messages, temperature = 0.8) {
     const raw = res.choices?.[0]?.message?.content?.trim();
     if (!raw || typeof raw !== "string") return null;
 
-    console.log("🧠 Mistral Output:", raw);
-    return raw.startsWith("{") ? raw : null;
+    console.log("🧠 Mistral Combined Output:", raw);
+    return parseAiResponse(raw);
   } catch (e) {
     console.error("LLM call failed:", e.message);
     return null;
@@ -98,7 +97,7 @@ async function getQueryEmbedding(text) {
     if (Array.isArray(vector) && typeof vector[0] === "number") {
       return vector;
     } else if (Array.isArray(vector[0])) {
-      return vector[0]; // in case it's wrapped in another array
+      return vector[0];
     }
 
     console.warn("❌ Invalid vector structure:", response.data);
@@ -145,59 +144,63 @@ async function getBestProperty(info) {
   return bestScore >= threshold ? allProperties[bestIndex] : null;
 }
 
-// --- Main replies ---
+// --- Unified response generator ---
 async function generateSalesmanReply(convo, message, language = "en") {
-  const summary = await generateConversationSummary(convo, language);
-  const intent = await extractIntent(message, summary);
-
-  if (!intent) return fallbackJson("Sorry, I couldn't understand your request.");
-  if (isPoliteMessage(intent)) {
-    return fallbackJson("I'm doing great, thank you! Let me know how I can help with real estate.");
-  }
-
-  const { extractedInfo, missingInfo } = intent;
-  const hasEnough = extractedInfo.usage && extractedInfo.location && extractedInfo.budget && extractedInfo.propertyType;
-
-  const agencySnippet = await getBestAgencySnippet(extractedInfo);
-  const property = hasEnough ? await getBestProperty(extractedInfo) : null;
-
   const formatPriming = `
-Return a strict JSON like:
+Return JSON like:
 {
+  "summary": "...",
   "reply": "...",
-  "extractedInfo": { ... },
+  "extractedInfo": {
+    "usage": "...", "location": "...", "budget": "...", "propertyType": "...",
+    "contact": { "name": "", "email": "", "phone": "" }
+  },
+  "missingInfo": ["..."],
+  "userMood": "...",
+  "urgency": "...",
   "suggestions": ["...", "..."]
 }`;
 
   const prompt = `
 You are Sasha, a professional real estate agent at Beispiel Immobilien GMBH.
 
-Summary: ${summary}
-User Info: ${JSON.stringify(extractedInfo, null, 2)}
-Missing Info: ${missingInfo.join(", ") || "none"}
-Agency: ${agencySnippet}
-${property ? `Suggested Property:\n${JSON.stringify(property, null, 2)}` : ""}
+Conversation so far:
+${convo.messages.map(m => `${m.role}: ${m.content}`).join("\n")}
+User message: "${message}"
+
+Instructions:
+- Understand the full conversation
+- Summarize it
+- Extract user intent (usage, location, budget, propertyType, contact)
+- Identify missing fields
+- Guess mood and urgency
+- Give a natural reply as Sasha
+- Provide 2 helpful suggestions
 ${formatPriming}
 `;
 
   const finalMessages = [
     { role: "system", content: fallbackSystemPrompt },
-    ...convo.messages,
-    { role: "system", content: prompt },
-    { role: "user", content: message }
+    { role: "user", content: prompt }
   ];
 
-  const raw = await callLLM(finalMessages);
-  const parsed = parseAiResponse(raw);
-  if (!parsed || !parsed.reply) return fallbackJson();
+  const parsed = await callLLMWithCombinedOutput(finalMessages);
+
+  if (!parsed || !parsed.reply) return fallbackJson("I’m not sure I understood that. Could you rephrase?");
+
+  const { extractedInfo, missingInfo } = parsed;
+  const hasEnough = extractedInfo?.usage && extractedInfo?.location && extractedInfo?.budget && extractedInfo?.propertyType;
+  const agencySnippet = await getBestAgencySnippet(extractedInfo || {});
+  const property = hasEnough ? await getBestProperty(extractedInfo) : null;
 
   return {
-    reply: parsed.reply,
+    reply: parsed.reply + (property ? `\n\nHere's a suggestion: ${property.title}` : ""),
     extractedInfo,
     suggestions: parsed.suggestions || []
   };
 }
 
+// --- Other replies (no change) ---
 async function generatePolitenessReply(convo, language = "English") {
   const agencySnippet = await getBestAgencySnippet({});
   const prompt = `
@@ -214,8 +217,8 @@ Return JSON: { "reply": "...", "suggestions": ["...", "..."] }`;
     { role: "system", content: prompt }
   ];
 
-  const raw = await callLLM(messages);
-  return parseAiResponse(raw) || fallbackJson();
+  const raw = await callLLMWithCombinedOutput(messages);
+  return raw || fallbackJson();
 }
 
 async function generateOtherReply(convo, language = "English") {
@@ -234,58 +237,11 @@ Return JSON: { "reply": "...", "suggestions": ["...", "..."] }`;
     { role: "system", content: prompt }
   ];
 
-  const raw = await callLLM(messages);
-  return parseAiResponse(raw) || fallbackJson();
+  const raw = await callLLMWithCombinedOutput(messages);
+  return raw || fallbackJson();
 }
 
-// --- Supporting helpers ---
-async function generateConversationSummary(convo, lang = "English") {
-  const msgs = [...convo.messages, {
-    role: "system",
-    content: `Summarize this chat in ${lang}. Return JSON: {"summary": "..."}`
-  }];
-  const raw = await callLLM(msgs, 0.5);
-  const parsed = parseAiResponse(raw);
-  return parsed?.summary?.trim?.() || "";
-}
-
-async function extractIntent(message, summary) {
-  const intentPrompt = [
-    {
-      role: "system",
-      content: `You are a smart intent extractor. Return JSON:
-{
-  "extractedInfo": {
-    "usage": "...", "location": "...", "budget": "...", "propertyType": "...",
-    "contact": { "name": "", "email": "", "phone": "" }
-  },
-  "missingInfo": [...],
-  "userMood": "...",
-  "urgency": "..."
-}`
-    },
-    {
-      role: "user",
-      content: `Message: "${message}"\nSummary: "${summary}"`
-    }
-  ];
-  const raw = await callLLM(intentPrompt, 0.2);
-  const parsed = parseAiResponse(raw);
-  if (!parsed?.extractedInfo) {
-    console.warn("⚠️ Intent fallback: invalid structure");
-    return {
-      extractedInfo: {
-        usage: "", location: "", budget: "", propertyType: "",
-        contact: { name: "", email: "", phone: "" }
-      },
-      missingInfo: ["usage", "location", "budget", "propertyType", "contact"],
-      userMood: "neutral",
-      urgency: "low"
-    };
-  }
-  return parsed;
-}
-
+// --- Fallback ---
 function fallbackJson(text = "Sorry, something went wrong.") {
   return {
     reply: text,
@@ -298,8 +254,8 @@ function fallbackJson(text = "Sorry, something went wrong.") {
 }
 
 export {
-  extractIntent,
-  generateConversationSummary,
+  extractIntent, // no longer used, but kept for backward compatibility
+  generateConversationSummary, // no longer used, but kept for backward compatibility
   generatePolitenessReply,
   generateOtherReply,
   generateSalesmanReply
