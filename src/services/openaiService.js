@@ -1,3 +1,4 @@
+// src/services/openaiService.js
 import dotenv from 'dotenv';
 import axios from 'axios';
 import fs from 'fs/promises';
@@ -9,10 +10,7 @@ import { parseAiResponse } from '../../server/utils/helpers.js';
 dotenv.config();
 
 const openRouterApiKey = process.env.OPENROUTER_API_KEY;
-const hfApiKey = process.env.HF_API_KEY;
-
 if (!openRouterApiKey) throw new Error("Missing OPENROUTER_API_KEY");
-if (!hfApiKey) throw new Error("Missing HF_API_KEY");
 
 const openai = new OpenAI({
   apiKey: openRouterApiKey,
@@ -70,7 +68,7 @@ async function callLLM(messages, temperature = 0.8) {
 
   try {
     const res = await openai.chat.completions.create({
-      model: "deepseek/deepseek-chat:free",
+      model: "mistralai/mistral-7b-instruct:free",
       messages,
       temperature
     });
@@ -78,7 +76,7 @@ async function callLLM(messages, temperature = 0.8) {
     const raw = res.choices?.[0]?.message?.content?.trim();
     if (!raw || typeof raw !== "string") return null;
 
-    console.log("🧠 DeepSeek Raw Output:", raw);
+    console.log("🧠 Mistral Output:", raw);
     return raw.startsWith("{") ? raw : null;
   } catch (e) {
     console.error("LLM call failed:", e.message);
@@ -89,21 +87,18 @@ async function callLLM(messages, temperature = 0.8) {
 async function getQueryEmbedding(text) {
   try {
     const res = await axios.post(
-      "https://api-inference.huggingface.co/models/intfloat/multilingual-e5-large-instruct",
-      { inputs: "query: " + text, options: { wait_for_model: true } },
-      { headers: { Authorization: `Bearer ${hfApiKey}` } }
+      "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-v0.1",
+      { inputs: text },
+      { headers: { Authorization: `Bearer ${process.env.HF_API_KEY}` } }
     );
 
-    const vector = Array.isArray(res.data?.[0][0])
-      ? poolEmbeddings(res.data)
-      : res.data?.[0];
+    const vector = res.data?.[0]?.embedding;
+    if (Array.isArray(vector) && vector.length > 100) return vector;
 
-    if (Array.isArray(vector) && vector.length === 768) return vector;
-
-    console.warn("❌ Invalid embedding vector structure:", res.data);
+    console.warn("❌ Invalid embedding vector:", res.data);
     return null;
   } catch (e) {
-    console.error("Embedding API error:", e.message);
+    console.error("Embedding error:", e.message);
     return null;
   }
 }
