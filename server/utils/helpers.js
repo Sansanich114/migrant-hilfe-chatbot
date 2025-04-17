@@ -1,12 +1,13 @@
 // server/utils/helpers.js
 
-// Remove markdown code fences and common formatting characters
+// Clean non-JSON reply for fallback display
 export function stripFormatting(text) {
-  // Remove markdown code fences like ```json or ```
-  text = text.replace(/```[\s\S]*?```/g, (match) => {
-    return match.replace(/```/g, "").trim();
-  });
-  return text.replace(/\*\*|- |# /g, "").trim();
+  if (!text || typeof text !== "string") return "";
+  return text
+    .replace(/```[\s\S]*?```/g, (match) => match.replace(/```/g, "").trim())
+    .replace(/\*\*|[-#>]/g, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
 }
 
 // Safe JSON parser with multiple fallbacks
@@ -15,21 +16,21 @@ export function parseAiResponse(raw) {
 
   let jsonString = raw.trim();
 
-  // Remove markdown-style wrappers and fix common issues
+  // Clean markdown code blocks and trailing commas
   jsonString = jsonString
-    .replace(/```(json)?/gi, '')
-    .replace(/```/g, '')
-    .replace(/[\r\n]+/g, ' ')
-    .replace(/,\s*}/g, '}')
-    .replace(/,\s*]/g, ']')
+    .replace(/```(json)?/gi, "")
+    .replace(/```/g, "")
+    .replace(/[\r\n]+/g, " ")
+    .replace(/,\s*}/g, "}")
+    .replace(/,\s*]/g, "]")
     .trim();
 
-  // Try full JSON parse
+  // Try strict full JSON parse
   try {
     return JSON.parse(jsonString);
   } catch (e1) {
-    // Try extracting inner JSON block
-    const match = jsonString.match(/{[\s\S]+}/);
+    // Try to extract and parse only the JSON block
+    const match = jsonString.match(/{[\s\S]*?}/);
     if (match) {
       try {
         return JSON.parse(match[0]);
@@ -40,7 +41,7 @@ export function parseAiResponse(raw) {
     console.error("❌ Failed to parse AI response:", raw);
   }
 
-  // Fallback to treating raw text as plain reply
+  // Fallback structure if not valid JSON
   return {
     reply: stripFormatting(raw),
     suggestions: [],
