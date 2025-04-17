@@ -268,9 +268,12 @@ async function generateConversationSummary(convo, lang = "English") {
     content: `Summarize the following chat conversation in ${lang}. Return STRICTLY this JSON: {"summary": "..." } Do not include any greeting or extra text.`
   }];
 
-  const raw = await callLLM(msgs, 0.5);
-  return parseAiResponse(raw)?.summary || "";
+  const parsed = parseAiResponse(raw);
+if (!parsed || typeof parsed.summary !== "string") {
+  console.warn("⚠️ Summary fallback: invalid or missing format");
+  return "";
 }
+return parsed.summary.trim();
 
 async function extractIntent(message, summary) {
   const intentPrompt = [
@@ -299,7 +302,20 @@ Return this JSON:
     }
   ];
   const raw = await callLLM(intentPrompt, 0.2);
-  return parseAiResponse(raw);
+  const parsed = parseAiResponse(raw);
+if (!parsed || !parsed.extractedInfo) {
+  console.warn("⚠️ Intent fallback: parsed content is null or malformed");
+  return {
+    extractedInfo: {
+      usage: "", location: "", budget: "", propertyType: "",
+      contact: { name: "", email: "", phone: "" }
+    },
+    missingInfo: ["usage", "location", "budget", "propertyType", "contact"],
+    userMood: "neutral",
+    urgency: "low"
+  };
+}
+return parsed;
 }
 
 function fallbackJson(text = "Sorry, something went wrong.") {
