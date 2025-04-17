@@ -282,4 +282,9 @@ function generateOtherReply(message) {
   };
 }
 
-export { extractIntent, generateConversationSummary }
+export {
+  extractIntent,
+  generateConversationSummary,
+  generateOtherReply,
+  generateSalesmanReply
+};
