@@ -218,6 +218,48 @@ ${formatPriming}
   };
 }
 
+async function generatePolitenessReply(convo, language = "English") {
+  const agencySnippet = await getBestAgencySnippet({});
+  const prompt = `
+You are Sasha from Beispiel Immobilien GMBH. A user greeted you politely.
+
+Agency Info: ${agencySnippet}
+Reply in ${language} and make the user feel welcome as Sasha.
+
+Return JSON: {
+  "reply": "...",
+  "suggestions": ["...", "..."]
+}`;
+  const messages = [
+    { role: "system", content: fallbackSystemPrompt },
+    ...convo.messages,
+    { role: "system", content: prompt }
+  ];
+  const raw = await callLLM(messages);
+  return parseAiResponse(raw) || fallbackJson("Hi there! Let me know how I can help with real estate.");
+}
+
+async function generateOtherReply(convo, language = "English") {
+  const agencySnippet = await getBestAgencySnippet({});
+  const prompt = `
+You are Sasha from Beispiel Immobilien GMBH. The user said something off-topic.
+
+Agency Info: ${agencySnippet}
+Gently guide them back to real estate topics. Use a friendly tone in ${language}.
+
+Return JSON: {
+  "reply": "...",
+  "suggestions": ["...", "..."]
+}`;
+  const messages = [
+    { role: "system", content: fallbackSystemPrompt },
+    ...convo.messages,
+    { role: "system", content: prompt }
+  ];
+  const raw = await callLLM(messages);
+  return parseAiResponse(raw) || fallbackJson("Let's talk about your real estate needs!");
+}
+
 // --- Supporting helpers ---
 
 async function generateConversationSummary(convo, lang = "English") {
@@ -271,20 +313,10 @@ function fallbackJson(text = "Sorry, something went wrong.") {
   };
 }
 
-function generateOtherReply(message) {
-  return {
-    reply: "I'm doing great, thank you! Let me know how I can help with real estate.",
-    extractedInfo: {
-      usage: "", location: "", budget: "", propertyType: "",
-      contact: { name: "", email: "", phone: "" }
-    },
-    suggestions: ["View listings", "Book a call"]
-  };
-}
-
 export {
   extractIntent,
   generateConversationSummary,
-  generateOtherReply,
-  generateSalesmanReply
+  generateSalesmanReply,
+  generatePolitenessReply,
+  generateOtherReply
 };
