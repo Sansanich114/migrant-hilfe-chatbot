@@ -63,7 +63,6 @@ function isPoliteMessage(intent) {
 }
 
 // --- Core services ---
-
 async function callLLM(messages, temperature = 0.8) {
   if (!messages.some(m => m.role === "system")) {
     messages.unshift({ role: "system", content: fallbackSystemPrompt });
@@ -110,7 +109,6 @@ async function getQueryEmbedding(text) {
 }
 
 // --- Data lookups ---
-
 async function getBestAgencySnippet({ location, usage }) {
   const text = `real estate for ${usage || "residential"} in ${location || "Berlin"}`;
   const emb = await getQueryEmbedding(text);
@@ -146,16 +144,16 @@ async function getBestProperty(info) {
   return bestScore >= threshold ? allProperties[bestIndex] : null;
 }
 
-// --- Main service ---
-
-export async function generateSalesmanReply(convo, message, language = "en") {
-  const summary = await getSummary(convo, language);
+// --- Main replies ---
+async function generateSalesmanReply(convo, message, language = "en") {
+  const summary = await generateConversationSummary(convo, language);
   const intent = await extractIntent(message, summary);
 
   if (!intent) return fallbackJson("Sorry, I couldn't understand your request.");
-	if (isPoliteMessage(intent)) {
-  return fallbackJson("I'm doing great, thank you! Let me know how I can help with real estate.");
-	}
+  if (isPoliteMessage(intent)) {
+    return fallbackJson("I'm doing great, thank you! Let me know how I can help with real estate.");
+  }
+
   const { extractedInfo, missingInfo } = intent;
   const hasEnough = extractedInfo.usage && extractedInfo.location && extractedInfo.budget && extractedInfo.propertyType;
 
@@ -165,35 +163,19 @@ export async function generateSalesmanReply(convo, message, language = "en") {
   const formatPriming = `
 Return a strict JSON like:
 {
-  "reply": "I'd be happy to help! What's your budget?",
-  "extractedInfo": {
-    "usage": "residential",
-    "location": "Berlin",
-    "budget": "",
-    "propertyType": "",
-    "contact": { "name": "", "email": "", "phone": "" }
-  },
-  "suggestions": ["View 2-bedroom flats", "Book a meeting"]
+  "reply": "...",
+  "extractedInfo": { ... },
+  "suggestions": ["...", "..."]
 }`;
 
   const prompt = `
 You are Sasha, a professional real estate agent at Beispiel Immobilien GMBH.
 
 Summary: ${summary}
-User Info:
-- Usage: ${extractedInfo.usage || "unknown"}
-- Location: ${extractedInfo.location || "unknown"}
-- Budget: ${extractedInfo.budget || "unknown"}
-- Property Type: ${extractedInfo.propertyType || "unknown"}
-
+User Info: ${JSON.stringify(extractedInfo, null, 2)}
+Missing Info: ${missingInfo.join(", ") || "none"}
 Agency: ${agencySnippet}
 ${property ? `Suggested Property:\n${JSON.stringify(property, null, 2)}` : ""}
-Missing Info: ${missingInfo.join(", ") || "none"}
-
-Instructions:
-- Sound natural and helpful
-- Always reply as Sasha from the agency
-- Only ask for one missing field at a time
 ${formatPriming}
 `;
 
@@ -206,10 +188,7 @@ ${formatPriming}
 
   const raw = await callLLM(finalMessages);
   const parsed = parseAiResponse(raw);
-
-  if (!parsed || !parsed.reply) {
-    return fallbackJson("I’m having trouble understanding you—can you rephrase?");
-  }
+  if (!parsed || !parsed.reply) return fallbackJson();
 
   return {
     reply: parsed.reply,
@@ -226,17 +205,16 @@ You are Sasha from Beispiel Immobilien GMBH. A user greeted you politely.
 Agency Info: ${agencySnippet}
 Reply in ${language} and make the user feel welcome as Sasha.
 
-Return JSON: {
-  "reply": "...",
-  "suggestions": ["...", "..."]
-}`;
+Return JSON: { "reply": "...", "suggestions": ["...", "..."] }`;
+
   const messages = [
     { role: "system", content: fallbackSystemPrompt },
     ...convo.messages,
     { role: "system", content: prompt }
   ];
+
   const raw = await callLLM(messages);
-  return parseAiResponse(raw) || fallbackJson("Hi there! Let me know how I can help with real estate.");
+  return parseAiResponse(raw) || fallbackJson();
 }
 
 async function generateOtherReply(convo, language = "English") {
@@ -245,50 +223,39 @@ async function generateOtherReply(convo, language = "English") {
 You are Sasha from Beispiel Immobilien GMBH. The user said something off-topic.
 
 Agency Info: ${agencySnippet}
-Gently guide them back to real estate topics. Use a friendly tone in ${language}.
+Gently guide them back to real estate topics in ${language}.
 
-Return JSON: {
-  "reply": "...",
-  "suggestions": ["...", "..."]
-}`;
+Return JSON: { "reply": "...", "suggestions": ["...", "..."] }`;
+
   const messages = [
     { role: "system", content: fallbackSystemPrompt },
     ...convo.messages,
     { role: "system", content: prompt }
   ];
+
   const raw = await callLLM(messages);
-  return parseAiResponse(raw) || fallbackJson("Let's talk about your real estate needs!");
+  return parseAiResponse(raw) || fallbackJson();
 }
 
 // --- Supporting helpers ---
-
 async function generateConversationSummary(convo, lang = "English") {
   const msgs = [...convo.messages, {
     role: "system",
-    content: `Summarize the following chat conversation in ${lang}. Return STRICTLY this JSON: {"summary": "..." } Do not include any greeting or extra text.`
+    content: `Summarize this chat in ${lang}. Return JSON: {"summary": "..."}`
   }];
-
+  const raw = await callLLM(msgs, 0.5);
   const parsed = parseAiResponse(raw);
-if (!parsed || typeof parsed.summary !== "string") {
-  console.warn("⚠️ Summary fallback: invalid or missing format");
-  return "";
+  return parsed?.summary?.trim?.() || "";
 }
-return parsed.summary.trim();
 
 async function extractIntent(message, summary) {
   const intentPrompt = [
     {
       role: "system",
-      content: `
-You are a smart intent extractor. Analyze the user message and return full structured JSON.
-
-Return this JSON:
+      content: `You are a smart intent extractor. Return JSON:
 {
   "extractedInfo": {
-    "usage": "...",
-    "location": "...",
-    "budget": "...",
-    "propertyType": "...",
+    "usage": "...", "location": "...", "budget": "...", "propertyType": "...",
     "contact": { "name": "", "email": "", "phone": "" }
   },
   "missingInfo": [...],
@@ -303,19 +270,19 @@ Return this JSON:
   ];
   const raw = await callLLM(intentPrompt, 0.2);
   const parsed = parseAiResponse(raw);
-if (!parsed || !parsed.extractedInfo) {
-  console.warn("⚠️ Intent fallback: parsed content is null or malformed");
-  return {
-    extractedInfo: {
-      usage: "", location: "", budget: "", propertyType: "",
-      contact: { name: "", email: "", phone: "" }
-    },
-    missingInfo: ["usage", "location", "budget", "propertyType", "contact"],
-    userMood: "neutral",
-    urgency: "low"
-  };
-}
-return parsed;
+  if (!parsed?.extractedInfo) {
+    console.warn("⚠️ Intent fallback: invalid structure");
+    return {
+      extractedInfo: {
+        usage: "", location: "", budget: "", propertyType: "",
+        contact: { name: "", email: "", phone: "" }
+      },
+      missingInfo: ["usage", "location", "budget", "propertyType", "contact"],
+      userMood: "neutral",
+      urgency: "low"
+    };
+  }
+  return parsed;
 }
 
 function fallbackJson(text = "Sorry, something went wrong.") {
@@ -333,5 +300,6 @@ export {
   extractIntent,
   generateConversationSummary,
   generatePolitenessReply,
-  generateOtherReply
+  generateOtherReply,
+  generateSalesmanReply
 };
