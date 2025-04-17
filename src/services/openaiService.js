@@ -254,8 +254,6 @@ function fallbackJson(text = "Sorry, something went wrong.") {
 }
 
 export {
-  extractIntent, // no longer used, but kept for backward compatibility
-  generateConversationSummary, // no longer used, but kept for backward compatibility
   generatePolitenessReply,
   generateOtherReply,
   generateSalesmanReply
