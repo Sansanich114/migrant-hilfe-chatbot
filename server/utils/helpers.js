@@ -9,18 +9,13 @@ export function stripFormatting(text) {
   return text.replace(/\*\*|- |# /g, "").trim();
 }
 
-// Safe JSON parser with fallback
+// Safe JSON parser with multiple fallbacks
 export function parseAiResponse(raw) {
   if (!raw || typeof raw !== "string") return null;
-  try {
-    return JSON.parse(raw.trim());
-  } catch (err) {
-    console.error("⚠️ Failed to parse AI response:", err.message);
-    return null;
-  }
-}
 
-  // Remove markdown code fences and extra garbage
+  let jsonString = raw.trim();
+
+  // Remove markdown-style wrappers and fix common issues
   jsonString = jsonString
     .replace(/```(json)?/gi, '')
     .replace(/```/g, '')
@@ -29,7 +24,7 @@ export function parseAiResponse(raw) {
     .replace(/,\s*]/g, ']')
     .trim();
 
-  // Try full parse
+  // Try full JSON parse
   try {
     return JSON.parse(jsonString);
   } catch (e1) {
@@ -45,7 +40,7 @@ export function parseAiResponse(raw) {
     console.error("❌ Failed to parse AI response:", raw);
   }
 
-  // Fallback structure
+  // Fallback to treating raw text as plain reply
   return {
     reply: stripFormatting(raw),
     suggestions: [],
