@@ -135,7 +135,7 @@ async function callLLMWithCombinedOutput(messages, temperature = 0.7) {
     if (!parsed) {
       console.warn("🔄 LLM JSON parse failed — retrying with strict JSON-only ask");
       const retry = await openai.chat.completions.create({
-        model: "deepseek/deepseek-chat:free",
+        model: "mistralai/mistral-nemo:free",
         messages: [
           ...messages,
           {
