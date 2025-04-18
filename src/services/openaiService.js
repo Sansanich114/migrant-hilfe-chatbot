@@ -70,17 +70,14 @@ async function callLLMWithCombinedOutput(messages, temperature = 0.7) {
     });
 
     const content = res.choices?.[0]?.message?.content;
-    console.log("🧾 Raw LLM content:", content); // LOG RAW OUTPUT
+    console.log("🧾 Raw LLM content:", content);
 
     let parsed = null;
-
     if (content) {
-      // CLEAN IT UP: strip markdown/code block wrapping
       const clean = content
         .replace(/```(?:json)?/gi, "")
         .replace(/```/g, "")
         .trim();
-
       try {
         parsed = JSON.parse(clean);
       } catch {
@@ -106,32 +103,19 @@ async function callLLMWithCombinedOutput(messages, temperature = 0.7) {
     });
 
     const retryRaw = retry.choices?.[0]?.message?.content?.trim();
-    console.log("🧾 Retry LLM content:", retryRaw); // LOG RETRY OUTPUT
+    console.log("🧾 Retry LLM content:", retryRaw);
 
     if (retryRaw) {
       const cleanRetry = retryRaw
         .replace(/```(?:json)?/gi, "")
         .replace(/```/g, "")
         .trim();
-
       try {
         parsed = JSON.parse(cleanRetry);
       } catch {
         parsed = parseAiResponse(cleanRetry);
       }
     }
-
-    if (parsed) return parsed;
-
-    console.error("❌ Both attempts failed, using fallback");
-    return fallbackJson();
-  } catch (e) {
-    console.error("LLM call failed entirely:", e.message);
-    return fallbackJson();
-  }
-}
-    const retryRaw = retry.choices?.[0]?.message?.content?.trim();
-    parsed = retryRaw ? parseAiResponse(retryRaw) : null;
 
     if (parsed) return parsed;
 
@@ -190,8 +174,8 @@ async function getBestProperty(info) {
   const emb = await getQueryEmbedding(query);
   if (!emb) return null;
 
-  let bestScore = -1,
-    bestIndex = -1;
+  let bestScore = -1;
+  let bestIndex = -1;
   for (let i = 0; i < propertyEmbeddings.length; i++) {
     const vec = propertyEmbeddings[i];
     if (!vec || vec.length !== emb.length) continue;
