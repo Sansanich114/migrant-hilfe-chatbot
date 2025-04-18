@@ -1,7 +1,7 @@
 // server/utils/helpers.js
 
-// Default import of the repair function from jsonrepair
-import repair from "jsonrepair";
+// Named import of the repair function from jsonrepair
+import { jsonrepair } from "jsonrepair";
 
 // Clean non‑JSON reply for fallback display
 export function stripFormatting(text) {
@@ -45,9 +45,9 @@ export function parseAiResponse(raw) {
   // 2. Attempt automatic repair (fix trailing commas, single quotes, etc.)
   let toParse = candidate;
   try {
-    toParse = repair(candidate);
+    toParse = jsonrepair(candidate);
   } catch (repairErr) {
-    console.warn("JSON repair failed, using raw block:", repairErr.message);
+    console.warn("jsonrepair failed, using raw block:", repairErr.message);
   }
 
   // 3. Parse
