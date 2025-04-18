@@ -1,5 +1,7 @@
 // server/utils/helpers.js
-import { repair } from 'jsonrepair';
+
+// Default import of the repair function from jsonrepair
+import repair from "jsonrepair";
 
 // Clean non‑JSON reply for fallback display
 export function stripFormatting(text) {
