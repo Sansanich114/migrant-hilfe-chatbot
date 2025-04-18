@@ -46,7 +46,7 @@ ${conversationMessages.map(m => `${m.role}: ${m.content}`).join("\n")}
 
   try {
     const response = await openai.chat.completions.create({
-      model: "meta-llama/llama-4-maverick:free", // This is the DeepSeek v3-compatible free model
+      model: "mistralai/mistral-nemo:free", // This is the DeepSeek v3-compatible free model
       messages: [{ role: "system", content: prompt }],
       temperature: 0,
     });
