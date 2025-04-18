@@ -70,19 +70,28 @@ async function callLLMWithCombinedOutput(messages, temperature = 0.7) {
     });
 
     const content = res.choices?.[0]?.message?.content;
+    console.log("🧾 Raw LLM content:", content); // LOG RAW OUTPUT
 
     let parsed = null;
+
     if (content) {
+      // CLEAN IT UP: strip markdown/code block wrapping
+      const clean = content
+        .replace(/```(?:json)?/gi, "")
+        .replace(/```/g, "")
+        .trim();
+
       try {
-        parsed = JSON.parse(content);
+        parsed = JSON.parse(clean);
       } catch {
-        parsed = parseAiResponse(content);
+        parsed = parseAiResponse(clean);
       }
     }
 
     if (parsed) return parsed;
 
     console.warn("🔄 Initial parse failed — retrying with stricter prompt");
+
     const retry = await openai.chat.completions.create({
       model: "mistralai/mistral-small-3.1-24b-instruct:free",
       messages: [
@@ -90,12 +99,37 @@ async function callLLMWithCombinedOutput(messages, temperature = 0.7) {
         {
           role: "system",
           content:
-            "The last response was not valid JSON. Please reply with ONLY the JSON object. No markdown. No text. Just JSON.",
+            "The last response was not valid JSON. Respond with only the JSON object. No markdown. No explanations. No formatting. Just the JSON.",
         },
       ],
       temperature,
     });
 
+    const retryRaw = retry.choices?.[0]?.message?.content?.trim();
+    console.log("🧾 Retry LLM content:", retryRaw); // LOG RETRY OUTPUT
+
+    if (retryRaw) {
+      const cleanRetry = retryRaw
+        .replace(/```(?:json)?/gi, "")
+        .replace(/```/g, "")
+        .trim();
+
+      try {
+        parsed = JSON.parse(cleanRetry);
+      } catch {
+        parsed = parseAiResponse(cleanRetry);
+      }
+    }
+
+    if (parsed) return parsed;
+
+    console.error("❌ Both attempts failed, using fallback");
+    return fallbackJson();
+  } catch (e) {
+    console.error("LLM call failed entirely:", e.message);
+    return fallbackJson();
+  }
+}
     const retryRaw = retry.choices?.[0]?.message?.content?.trim();
     parsed = retryRaw ? parseAiResponse(retryRaw) : null;
 
