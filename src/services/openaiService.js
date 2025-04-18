@@ -112,7 +112,7 @@ async function callLLMWithCombinedOutput(messages, temperature = 0.7) {
   try {
     // First pass: function‑calling
     const res = await openai.chat.completions.create({
-      model: "deepseek/deepseek-chat:free",
+      model: "meta-llama/llama-4-maverick:free",
       messages,
       temperature,
       functions: [PROCESS_RESPONSE_FUNCTION],
