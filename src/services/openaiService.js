@@ -20,16 +20,13 @@ const openai = new OpenAI({
   defaultHeaders: { "X-OpenRouter-Api-Key": openRouterApiKey },
 });
 
-// A minimal system prompt insisting on valid JSON
 const fallbackSystemPrompt =
   "You are Sasha, a friendly agent at Beispiel Immobilien GMBH. Always return valid JSON.";
 
-// Load our static property data
 const allProperties = loadPropertiesData();
 
 let agencyChunks = [];
 let propertyEmbeddings = [];
-// Attempt to load precomputed embeddings from disk
 try {
   const rawAgency = await fs.readFile(
     path.join(process.cwd(), "scripts/agency/agencyWithEmbeddings.json"),
@@ -43,49 +40,9 @@ try {
   );
   propertyEmbeddings = JSON.parse(rawProps);
 } catch {
-  console.warn(
-    "⚠️ Could not load precomputed embeddings; proceeding with empty arrays"
-  );
+  console.warn("⚠️ Could not load precomputed embeddings; proceeding with empty arrays");
 }
 
-// Define a function schema so we can use OpenAI function‑calling
-const PROCESS_RESPONSE_FUNCTION = {
-  name: "process_response",
-  description: "Generate structured agent reply and metadata",
-  parameters: {
-    type: "object",
-    properties: {
-      summary: { type: "string" },
-      reply: { type: "string" },
-      extractedInfo: {
-        type: "object",
-        properties: {
-          usage: { type: "string" },
-          location: { type: "string" },
-          budget: { type: "string" },
-          propertyType: { type: "string" },
-          contact: {
-            type: "object",
-            properties: {
-              name: { type: "string" },
-              email: { type: "string" },
-              phone: { type: "string" },
-            },
-            required: ["name", "email", "phone"],
-          },
-        },
-        required: ["usage", "location", "budget", "propertyType", "contact"],
-      },
-      missingInfo: { type: "array", items: { type: "string" } },
-      userMood: { type: "string" },
-      urgency: { type: "string" },
-      suggestions: { type: "array", items: { type: "string" } },
-    },
-    required: ["summary", "reply", "extractedInfo", "suggestions"],
-  },
-};
-
-// Fallback object when all parsing fails
 function fallbackJson(text = "⚠️ Fallback reply – no structured data.") {
   return {
     reply: text,
@@ -100,57 +57,50 @@ function fallbackJson(text = "⚠️ Fallback reply – no structured data.") {
   };
 }
 
-/**
- * Primary LLM caller. First tries function‑calling,
- * then repair+retry if JSON is bad, then falls back.
- */
 async function callLLMWithCombinedOutput(messages, temperature = 0.7) {
   if (!messages.some((m) => m.role === "system")) {
     messages.unshift({ role: "system", content: fallbackSystemPrompt });
   }
 
   try {
-    // First pass: function‑calling
     const res = await openai.chat.completions.create({
       model: "mistralai/mistral-small-3.1-24b-instruct:free",
       messages,
       temperature,
-      functions: [PROCESS_RESPONSE_FUNCTION],
-      function_call: { name: "process_response" },
     });
 
-    const msg = res.choices?.[0]?.message;
-    let parsed = null;
+    const content = res.choices?.[0]?.message?.content;
 
-    // If we got a function_call, try JSON.parse directly
-    if (msg.function_call?.arguments) {
+    let parsed = null;
+    if (content) {
       try {
-        parsed = JSON.parse(msg.function_call.arguments);
+        parsed = JSON.parse(content);
       } catch {
-        parsed = parseAiResponse(msg.function_call.arguments);
+        parsed = parseAiResponse(content);
       }
     }
 
-    // On parse failure, retry once with a strict JSON‑only prompt
-    if (!parsed) {
-      console.warn("🔄 LLM JSON parse failed — retrying with strict JSON-only ask");
-      const retry = await openai.chat.completions.create({
-        model: "mistralai/mistral-nemo:free",
-        messages: [
-          ...messages,
-          {
-            role: "system",
-            content:
-              "The last response was not valid JSON. Please reply with only the JSON object, no markdown or extra text.",
-          },
-        ],
-        temperature,
-      });
-      const retryRaw = retry.choices[0].message.content.trim();
-      parsed = parseAiResponse(retryRaw);
-    }
+    if (parsed) return parsed;
+
+    console.warn("🔄 Initial parse failed — retrying with stricter prompt");
+    const retry = await openai.chat.completions.create({
+      model: "mistralai/mistral-small-3.1-24b-instruct:free",
+      messages: [
+        ...messages,
+        {
+          role: "system",
+          content:
+            "The last response was not valid JSON. Please reply with ONLY the JSON object. No markdown. No text. Just JSON.",
+        },
+      ],
+      temperature,
+    });
+
+    const retryRaw = retry.choices?.[0]?.message?.content?.trim();
+    parsed = retryRaw ? parseAiResponse(retryRaw) : null;
 
     if (parsed) return parsed;
+
     console.error("❌ Both attempts failed, using fallback");
     return fallbackJson();
   } catch (e) {
@@ -159,7 +109,6 @@ async function callLLMWithCombinedOutput(messages, temperature = 0.7) {
   }
 }
 
-/** Compute cosine similarity between two vectors */
 function cosineSimilarity(a, b) {
   const dot = a.reduce((sum, v, i) => sum + v * b[i], 0);
   const normA = Math.sqrt(a.reduce((sum, v) => sum + v * v, 0));
@@ -167,7 +116,6 @@ function cosineSimilarity(a, b) {
   return normA && normB ? dot / (normA * normB) : 0;
 }
 
-/** Pool a batch of embeddings by averaging */
 function poolEmbeddings(embs) {
   const dim = embs[0].length;
   const pooled = new Array(dim).fill(0);
@@ -175,7 +123,6 @@ function poolEmbeddings(embs) {
   return pooled.map((v) => v / embs.length);
 }
 
-/** Get an embedding for a text query via HF Inference */
 async function getQueryEmbedding(text) {
   try {
     const response = await axios.post(
@@ -184,7 +131,6 @@ async function getQueryEmbedding(text) {
       { headers: { Authorization: `Bearer ${hfApiKey}` } }
     );
     const vector = response.data;
-    // Some endpoints return [ [..], [..], ... ]
     return Array.isArray(vector[0]) ? poolEmbeddings(vector) : vector;
   } catch (e) {
     console.error("❌ HF embedding failed:", e.message);
@@ -192,7 +138,6 @@ async function getQueryEmbedding(text) {
   }
 }
 
-/** Pick the best agency snippet based on cosine similarity */
 async function getBestAgencySnippet(queryText) {
   const emb = await getQueryEmbedding(queryText);
   if (!emb) return agencyChunks[0]?.text || "";
@@ -205,7 +150,6 @@ async function getBestAgencySnippet(queryText) {
   return best.text || agencyChunks[0]?.text || "";
 }
 
-/** Pick the best property based on extractedInfo */
 async function getBestProperty(info) {
   const { usage, location, budget, propertyType } = info;
   const query = `usage: ${usage}, location: ${location}, budget: ${budget}, propertyType: ${propertyType}`;
@@ -229,7 +173,6 @@ async function getBestProperty(info) {
   return allProperties[bestIndex] || null;
 }
 
-/** Generate a full JSON reply for the sales conversation */
 async function generateSalesmanReply(convo, message, language = "en") {
   const formatPriming = `
 Return JSON like:
@@ -268,7 +211,6 @@ ${formatPriming}
   return parsed || fallbackJson();
 }
 
-/** Generate a polite follow‑up or apology */
 async function generatePolitenessReply(convo, language = "English") {
   const prompt = `
 You are Sasha, a friendly agent at Beispiel Immobilien. Continue politely.
@@ -286,7 +228,6 @@ Return JSON only: { "reply": "...", "suggestions": ["...", "..."] }`;
   return parsed || fallbackJson();
 }
 
-/** Generate any other free‑form reply */
 async function generateOtherReply(convo, promptText) {
   const messages = [
     { role: "system", content: fallbackSystemPrompt },
