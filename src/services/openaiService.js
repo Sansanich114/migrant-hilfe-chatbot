@@ -1,11 +1,12 @@
 // src/services/openaiService.js
-import dotenv from 'dotenv';
-import axios from 'axios';
-import fs from 'fs/promises';
-import path from 'path';
-import { OpenAI } from 'openai';
-import { loadPropertiesData } from '../../server/utils/staticData.js';
-import { parseAiResponse } from '../../server/utils/helpers.js';
+
+import dotenv from "dotenv";
+import axios from "axios";
+import fs from "fs/promises";
+import path from "path";
+import { OpenAI } from "openai";
+import { loadPropertiesData } from "../../server/utils/staticData.js";
+import { parseAiResponse, stripFormatting } from "../../server/utils/helpers.js";
 
 dotenv.config();
 
@@ -15,30 +16,150 @@ if (!openRouterApiKey) throw new Error("Missing OPENROUTER_API_KEY");
 
 const openai = new OpenAI({
   apiKey: openRouterApiKey,
-  baseURL: 'https://openrouter.ai/api/v1',
-  defaultHeaders: { 'X-OpenRouter-Api-Key': openRouterApiKey },
+  baseURL: "https://openrouter.ai/api/v1",
+  defaultHeaders: { "X-OpenRouter-Api-Key": openRouterApiKey },
 });
 
-const fallbackSystemPrompt = "You are Sasha, a friendly agent at Beispiel Immobilien GMBH. Always return valid JSON.";
+// A minimal system prompt insisting on valid JSON
+const fallbackSystemPrompt =
+  "You are Sasha, a friendly agent at Beispiel Immobilien GMBH. Always return valid JSON.";
+
+// Load our static property data
 const allProperties = loadPropertiesData();
 
 let agencyChunks = [];
 let propertyEmbeddings = [];
-
+// Attempt to load precomputed embeddings from disk
 try {
-  agencyChunks = JSON.parse(await fs.readFile(path.join(process.cwd(), 'scripts/agency/agencyWithEmbeddings.json')));
-} catch (e) {
-  console.error("⚠️ Could not load agency embeddings:", e.message);
+  const rawAgency = await fs.readFile(
+    path.join(process.cwd(), "scripts/agency/agencyWithEmbeddings.json"),
+    "utf-8"
+  );
+  agencyChunks = JSON.parse(rawAgency);
+
+  const rawProps = await fs.readFile(
+    path.join(process.cwd(), "scripts/property/propertyEmbeddings.json"),
+    "utf-8"
+  );
+  propertyEmbeddings = JSON.parse(rawProps);
+} catch {
+  console.warn(
+    "⚠️ Could not load precomputed embeddings; proceeding with empty arrays"
+  );
 }
 
-try {
-  const propData = JSON.parse(await fs.readFile(path.join(process.cwd(), 'scripts/properties/propertiesWithEmbeddings.json')));
-  propertyEmbeddings = propData.embeddings;
-} catch (e) {
-  console.error("⚠️ Could not load property embeddings:", e.message);
+// Define a function schema so we can use OpenAI function‑calling
+const PROCESS_RESPONSE_FUNCTION = {
+  name: "process_response",
+  description: "Generate structured agent reply and metadata",
+  parameters: {
+    type: "object",
+    properties: {
+      summary: { type: "string" },
+      reply: { type: "string" },
+      extractedInfo: {
+        type: "object",
+        properties: {
+          usage: { type: "string" },
+          location: { type: "string" },
+          budget: { type: "string" },
+          propertyType: { type: "string" },
+          contact: {
+            type: "object",
+            properties: {
+              name: { type: "string" },
+              email: { type: "string" },
+              phone: { type: "string" },
+            },
+            required: ["name", "email", "phone"],
+          },
+        },
+        required: ["usage", "location", "budget", "propertyType", "contact"],
+      },
+      missingInfo: { type: "array", items: { type: "string" } },
+      userMood: { type: "string" },
+      urgency: { type: "string" },
+      suggestions: { type: "array", items: { type: "string" } },
+    },
+    required: ["summary", "reply", "extractedInfo", "suggestions"],
+  },
+};
+
+// Fallback object when all parsing fails
+function fallbackJson(text = "⚠️ Fallback reply – no structured data.") {
+  return {
+    reply: text,
+    extractedInfo: {
+      usage: "",
+      location: "",
+      budget: "",
+      propertyType: "",
+      contact: { name: "", email: "", phone: "" },
+    },
+    suggestions: [],
+  };
 }
 
-// --- Utility functions ---
+/**
+ * Primary LLM caller. First tries function‑calling,
+ * then repair+retry if JSON is bad, then falls back.
+ */
+async function callLLMWithCombinedOutput(messages, temperature = 0.7) {
+  if (!messages.some((m) => m.role === "system")) {
+    messages.unshift({ role: "system", content: fallbackSystemPrompt });
+  }
+
+  try {
+    // First pass: function‑calling
+    const res = await openai.chat.completions.create({
+      model: "deepseek/deepseek-chat:free",
+      messages,
+      temperature,
+      functions: [PROCESS_RESPONSE_FUNCTION],
+      function_call: { name: "process_response" },
+    });
+
+    const msg = res.choices?.[0]?.message;
+    let parsed = null;
+
+    // If we got a function_call, try JSON.parse directly
+    if (msg.function_call?.arguments) {
+      try {
+        parsed = JSON.parse(msg.function_call.arguments);
+      } catch {
+        parsed = parseAiResponse(msg.function_call.arguments);
+      }
+    }
+
+    // On parse failure, retry once with a strict JSON‑only prompt
+    if (!parsed) {
+      console.warn("🔄 LLM JSON parse failed — retrying with strict JSON-only ask");
+      const retry = await openai.chat.completions.create({
+        model: "deepseek/deepseek-chat:free",
+        messages: [
+          ...messages,
+          {
+            role: "system",
+            content:
+              "The last response was not valid JSON. Please reply with only the JSON object, no markdown or extra text.",
+          },
+        ],
+        temperature,
+      });
+      const retryRaw = retry.choices[0].message.content.trim();
+      parsed = parseAiResponse(retryRaw);
+    }
+
+    if (parsed) return parsed;
+    console.error("❌ Both attempts failed, using fallback");
+    return fallbackJson();
+  } catch (e) {
+    console.error("LLM call failed entirely:", e.message);
+    return fallbackJson();
+  }
+}
+
+/** Compute cosine similarity between two vectors */
 function cosineSimilarity(a, b) {
   const dot = a.reduce((sum, v, i) => sum + v * b[i], 0);
   const normA = Math.sqrt(a.reduce((sum, v) => sum + v * v, 0));
@@ -46,39 +167,15 @@ function cosineSimilarity(a, b) {
   return normA && normB ? dot / (normA * normB) : 0;
 }
 
+/** Pool a batch of embeddings by averaging */
 function poolEmbeddings(embs) {
   const dim = embs[0].length;
   const pooled = new Array(dim).fill(0);
-  embs.forEach(vec => vec.forEach((v, i) => pooled[i] += v));
-  return pooled.map(v => v / embs.length);
+  embs.forEach((vec) => vec.forEach((v, i) => (pooled[i] += v)));
+  return pooled.map((v) => v / embs.length);
 }
 
-async function callLLMWithCombinedOutput(messages, temperature = 0.7) {
-  if (!messages.some(m => m.role === "system")) {
-    messages.unshift({ role: "system", content: fallbackSystemPrompt });
-  }
-
-  try {
-    const res = await openai.chat.completions.create({
-      model: "deepseek/deepseek-chat:free",
-      messages,
-      temperature
-    });
-
-    const raw = res.choices?.[0]?.message?.content?.trim();
-    if (!raw || typeof raw !== "string") {
-      console.error("❌ Empty or invalid LLM output:", res);
-      return null;
-    }
-
-    console.log("🧠 DeepSeek Combined Output:", raw);
-    return parseAiResponse(raw);
-  } catch (e) {
-    console.error("LLM call failed:", e.message);
-    return null;
-  }
-}
-
+/** Get an embedding for a text query via HF Inference */
 async function getQueryEmbedding(text) {
   try {
     const response = await axios.post(
@@ -86,45 +183,37 @@ async function getQueryEmbedding(text) {
       { inputs: text },
       { headers: { Authorization: `Bearer ${hfApiKey}` } }
     );
-
     const vector = response.data;
-
-    if (Array.isArray(vector) && typeof vector[0] === "number") {
-      return vector;
-    } else if (Array.isArray(vector[0])) {
-      return vector[0];
-    }
-
-    console.warn("❌ Invalid vector structure:", response.data);
-    return null;
-  } catch (err) {
-    console.error("Embedding API error:", err.message);
+    // Some endpoints return [ [..], [..], ... ]
+    return Array.isArray(vector[0]) ? poolEmbeddings(vector) : vector;
+  } catch (e) {
+    console.error("❌ HF embedding failed:", e.message);
     return null;
   }
 }
 
-// --- Data lookups ---
-async function getBestAgencySnippet({ location, usage }) {
-  const text = `real estate for ${usage || "residential"} in ${location || "Berlin"}`;
-  const emb = await getQueryEmbedding(text);
-  if (!emb) return agencyChunks[0]?.text || "Beispiel Immobilien GMBH – your Berlin experts.";
-
+/** Pick the best agency snippet based on cosine similarity */
+async function getBestAgencySnippet(queryText) {
+  const emb = await getQueryEmbedding(queryText);
+  if (!emb) return agencyChunks[0]?.text || "";
   let best = { score: -1, text: "" };
   for (const chunk of agencyChunks) {
     if (!chunk.embedding || chunk.embedding.length !== emb.length) continue;
     const score = cosineSimilarity(emb, chunk.embedding);
     if (score > best.score) best = { score, text: chunk.text };
   }
-  return best.text || agencyChunks[0]?.text;
+  return best.text || agencyChunks[0]?.text || "";
 }
 
+/** Pick the best property based on extractedInfo */
 async function getBestProperty(info) {
   const { usage, location, budget, propertyType } = info;
   const query = `usage: ${usage}, location: ${location}, budget: ${budget}, propertyType: ${propertyType}`;
   const emb = await getQueryEmbedding(query);
   if (!emb) return null;
 
-  let bestScore = -1, bestIndex = -1;
+  let bestScore = -1,
+    bestIndex = -1;
   for (let i = 0; i < propertyEmbeddings.length; i++) {
     const vec = propertyEmbeddings[i];
     if (!vec || vec.length !== emb.length) continue;
@@ -136,10 +225,11 @@ async function getBestProperty(info) {
   }
 
   const threshold = 0.5;
-  return bestScore >= threshold ? allProperties[bestIndex] : null;
+  if (bestScore < threshold) return null;
+  return allProperties[bestIndex] || null;
 }
 
-// --- Main unified reply for 'salesman' only ---
+/** Generate a full JSON reply for the sales conversation */
 async function generateSalesmanReply(convo, message, language = "en") {
   const formatPriming = `
 Return JSON like:
@@ -147,7 +237,10 @@ Return JSON like:
   "summary": "...",
   "reply": "...",
   "extractedInfo": {
-    "usage": "...", "location": "...", "budget": "...", "propertyType": "...",
+    "usage": "...",
+    "location": "...",
+    "budget": "...",
+    "propertyType": "...",
     "contact": { "name": "", "email": "", "phone": "" }
   },
   "missingInfo": ["..."],
@@ -155,102 +248,57 @@ Return JSON like:
   "urgency": "...",
   "suggestions": ["...", "..."]
 }`;
-
   const prompt = `
 You are Sasha, a professional real estate agent at Beispiel Immobilien GMBH.
 
 Conversation so far:
-${convo.messages.map(m => `${m.role}: ${m.content}`).join("\n")}
-User message: "${message}"
+${convo.messages.map((m) => `${m.role}: ${m.content}`).join("\n")}
 
-Instructions:
-- Understand the full conversation
-- Summarize it
-- Extract user intent (usage, location, budget, propertyType, contact)
-- Identify missing fields
-- Guess mood and urgency
-- Give a natural reply as Sasha
-- Provide 2 helpful suggestions
+User: ${message}
+
 ${formatPriming}
 `;
 
-  const finalMessages = [
+  const messages = [
     { role: "system", content: fallbackSystemPrompt },
-    { role: "user", content: prompt }
+    ...convo.messages,
+    { role: "system", content: prompt },
   ];
-
-  const parsed = await callLLMWithCombinedOutput(finalMessages);
-
-  if (!parsed || !parsed.reply) return fallbackJson("I’m not sure I understood that. Could you rephrase?");
-
-  const { extractedInfo, suggestions } = parsed;
-  const hasEnough = extractedInfo?.usage && extractedInfo?.location && extractedInfo?.budget && extractedInfo?.propertyType;
-  const agencySnippet = await getBestAgencySnippet(extractedInfo || {});
-  const property = hasEnough ? await getBestProperty(extractedInfo) : null;
-
-  return {
-    reply: parsed.reply + (property ? `\n\nHere's a suggestion: ${property.title}` : ""),
-    extractedInfo,
-    suggestions: suggestions || [],
-    summary: parsed.summary || ""
-  };
+  const parsed = await callLLMWithCombinedOutput(messages);
+  return parsed || fallbackJson();
 }
 
-// --- Politeness and Other ---
+/** Generate a polite follow‑up or apology */
 async function generatePolitenessReply(convo, language = "English") {
-  const agencySnippet = await getBestAgencySnippet({});
   const prompt = `
-You are Sasha from Beispiel Immobilien GMBH. A user greeted you politely.
+You are Sasha, a friendly agent at Beispiel Immobilien. Continue politely.
 
-Agency Info: ${agencySnippet}
-Reply in ${language} and make the user feel welcome as Sasha.
+Conversation so far:
+${convo.messages.map((m) => `${m.role}: ${m.content}`).join("\n")}
 
-Return JSON: { "reply": "...", "suggestions": ["...", "..."] }`;
-
+Return JSON only: { "reply": "...", "suggestions": ["...", "..."] }`;
   const messages = [
     { role: "system", content: fallbackSystemPrompt },
     ...convo.messages,
-    { role: "system", content: prompt }
+    { role: "system", content: prompt },
   ];
-
-  const raw = await callLLMWithCombinedOutput(messages);
-  return raw || fallbackJson();
+  const parsed = await callLLMWithCombinedOutput(messages);
+  return parsed || fallbackJson();
 }
 
-async function generateOtherReply(convo, language = "English") {
-  const agencySnippet = await getBestAgencySnippet({});
-  const prompt = `
-You are Sasha from Beispiel Immobilien GMBH. The user said something off-topic.
-
-Agency Info: ${agencySnippet}
-Gently guide them back to real estate topics in ${language}.
-
-Return JSON: { "reply": "...", "suggestions": ["...", "..."] }`;
-
+/** Generate any other free‑form reply */
+async function generateOtherReply(convo, promptText) {
   const messages = [
     { role: "system", content: fallbackSystemPrompt },
     ...convo.messages,
-    { role: "system", content: prompt }
+    { role: "system", content: promptText },
   ];
-
-  const raw = await callLLMWithCombinedOutput(messages);
-  return raw || fallbackJson();
-}
-
-// --- Fallback ---
-function fallbackJson(text = "⚠️ Fallback reply – no structured data.") {
-  return {
-    reply: text,
-    extractedInfo: {
-      usage: "", location: "", budget: "", propertyType: "",
-      contact: { name: "", email: "", phone: "" }
-    },
-    suggestions: ["Contact an agent", "Try again later"]
-  };
+  const parsed = await callLLMWithCombinedOutput(messages);
+  return parsed || fallbackJson();
 }
 
 export {
   generateSalesmanReply,
   generatePolitenessReply,
-  generateOtherReply
+  generateOtherReply,
 };
