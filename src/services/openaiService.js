@@ -1,5 +1,3 @@
-// src/services/openaiService.js
-
 import dotenv from "dotenv";
 import axios from "axios";
 import fs from "fs/promises";
@@ -27,6 +25,7 @@ const allProperties = loadPropertiesData();
 
 let agencyChunks = [];
 let propertyEmbeddings = [];
+
 try {
   const rawAgency = await fs.readFile(
     path.join(process.cwd(), "scripts/agency/agencyWithEmbeddings.json"),
@@ -35,12 +34,16 @@ try {
   agencyChunks = JSON.parse(rawAgency);
 
   const rawProps = await fs.readFile(
-    path.join(process.cwd(), "scripts/property/propertyEmbeddings.json"),
+    path.join(process.cwd(), "scripts/properties/propertiesWithEmbeddings.json"),
     "utf-8"
   );
   propertyEmbeddings = JSON.parse(rawProps);
-} catch {
+
+  console.log("✅ Loaded agency chunks:", agencyChunks.length);
+  console.log("✅ Loaded property embeddings:", propertyEmbeddings.length);
+} catch (e) {
   console.warn("⚠️ Could not load precomputed embeddings; proceeding with empty arrays");
+  console.warn(e.message);
 }
 
 function fallbackJson(text = "⚠️ Fallback reply – no structured data.") {
