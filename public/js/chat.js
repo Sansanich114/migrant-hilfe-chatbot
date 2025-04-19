@@ -3,12 +3,20 @@ document.addEventListener("DOMContentLoaded", () => {
   const chatContainer = document.getElementById("chatContainer");
   const chatInput = document.getElementById("chatInput");
   const sendBtn = document.getElementById("sendBtn");
+  const suggestionsContainer = document.getElementById("suggestions");
+  const debugBox = document.getElementById("debugInfo");
 
-  async function sendMessage() {
-    const userMessage = chatInput.value.trim();
+  // Generate a session ID if not already set
+  if (!localStorage.getItem("sessionId")) {
+    localStorage.setItem("sessionId", `sess_${Date.now()}_${Math.floor(Math.random() * 100000)}`);
+  }
+
+  const sessionId = localStorage.getItem("sessionId");
+
+  async function sendMessage(userMessage) {
     if (!userMessage) return;
 
-    // Create and display the user's message bubble
+    // Display user's message
     const userDiv = document.createElement("div");
     userDiv.classList.add("message", "user");
     const userBubble = document.createElement("div");
@@ -16,77 +24,115 @@ document.addEventListener("DOMContentLoaded", () => {
     userBubble.textContent = userMessage;
     userDiv.appendChild(userBubble);
     chatContainer.appendChild(userDiv);
-    chatInput.value = "";
-    chatContainer.scrollTop = chatContainer.scrollHeight;
+    scrollToBottom();
 
-    // Prepare payload with user message, conversationId and userId if available
+    chatInput.value = "";
+
+    // Optional: show typing indicator
+    const typingDiv = document.createElement("div");
+    typingDiv.classList.add("message", "bot", "typing-message");
+    typingDiv.innerHTML = `
+      <div class="bubble">
+        <div class="typing-indicator">
+          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        </div>
+      </div>`;
+    chatContainer.appendChild(typingDiv);
+    scrollToBottom();
+
+    // Prepare request payload
     const payload = {
       message: userMessage,
       conversationId: localStorage.getItem("conversationId") || null,
       userId: localStorage.getItem("userId") || null,
+      sessionId,
     };
 
     try {
       const response = await fetch("/chat", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+
       const data = await response.json();
+      typingDiv.remove();
+
       if (response.ok) {
-        // Save conversationId from response if not already stored
-        if (data.conversationId) {
-          localStorage.setItem("conversationId", data.conversationId);
-        }
-        // Display the chatbot's reply
+        // Save IDs for future requests
+        if (data.conversationId) localStorage.setItem("conversationId", data.conversationId);
+        if (data.userId) localStorage.setItem("userId", data.userId);
+
+        // Display bot response
         const botDiv = document.createElement("div");
         botDiv.classList.add("message", "bot");
-        const botWrapper = document.createElement("div");
-        botWrapper.classList.add("bot-wrapper");
         const botBubble = document.createElement("div");
         botBubble.classList.add("bubble");
-        botBubble.textContent = data.reply;
-        botWrapper.appendChild(botBubble);
-        botDiv.appendChild(botWrapper);
+        botBubble.textContent = data.reply || "🤖 No reply received.";
+        botDiv.appendChild(botBubble);
         chatContainer.appendChild(botDiv);
+
+        // Render suggestions
+        renderSuggestions(data.suggestions || []);
+
+        // Optional: Show debug info
+        if (debugBox) {
+          debugBox.innerText = `
+Missing Info: ${data.missingInfo?.join(", ") || "None"}
+User Mood: ${data.userMood || "?"}
+Urgency: ${data.urgency || "?"}
+          `.trim();
+        }
       } else {
-        // Display error message from backend
-        const errorDiv = document.createElement("div");
-        errorDiv.classList.add("message", "bot");
-        const errorWrapper = document.createElement("div");
-        errorWrapper.classList.add("bot-wrapper");
-        const errorBubble = document.createElement("div");
-        errorBubble.classList.add("bubble");
-        errorBubble.textContent = data.error || "An error occurred.";
-        errorWrapper.appendChild(errorBubble);
-        errorDiv.appendChild(errorWrapper);
-        chatContainer.appendChild(errorDiv);
+        showError(data.error || "❌ Error from server.");
       }
     } catch (err) {
-      console.error("Chat request failed:", err);
-      const errorDiv = document.createElement("div");
-      errorDiv.classList.add("message", "bot");
-      const errorWrapper = document.createElement("div");
-      errorWrapper.classList.add("bot-wrapper");
-      const errorBubble = document.createElement("div");
-      errorBubble.classList.add("bubble");
-      errorBubble.textContent = "Network error, please try again.";
-      errorWrapper.appendChild(errorBubble);
-      errorDiv.appendChild(errorWrapper);
-      chatContainer.appendChild(errorDiv);
+      typingDiv.remove();
+      console.error("Request failed:", err);
+      showError("⚠️ Network error. Try again.");
+    } finally {
+      scrollToBottom();
     }
+  }
+
+  function showError(errorMsg) {
+    const errorDiv = document.createElement("div");
+    errorDiv.classList.add("message", "bot");
+    const errorBubble = document.createElement("div");
+    errorBubble.classList.add("bubble");
+    errorBubble.textContent = errorMsg;
+    errorDiv.appendChild(errorBubble);
+    chatContainer.appendChild(errorDiv);
+  }
+
+  function scrollToBottom() {
     chatContainer.scrollTop = chatContainer.scrollHeight;
   }
 
-  sendBtn.addEventListener("click", sendMessage);
+  function renderSuggestions(suggestions) {
+    suggestionsContainer.innerHTML = "";
+    if (!suggestions.length) return;
 
-  // Allow sending message with Enter (without Shift)
+    suggestions.forEach((suggestion) => {
+      const btn = document.createElement("div");
+      btn.classList.add("suggestion");
+      btn.textContent = suggestion;
+      btn.onclick = () => sendMessage(suggestion);
+      suggestionsContainer.appendChild(btn);
+    });
+  }
+
+  // Send button click
+  sendBtn.addEventListener("click", () => {
+    const message = chatInput.value.trim();
+    sendMessage(message);
+  });
+
+  // Allow Enter (without Shift) to send message
   chatInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      sendMessage();
+      sendMessage(chatInput.value.trim());
     }
   });
 });
