@@ -1,21 +1,28 @@
 // src/controllers/chatController.js
-import Conversation from "../models/Conversation.js";
+
 import User from "../models/User.js";
 import {
   generateSalesmanReply,
   generatePolitenessReply,
-  generateOtherReply
+  generateOtherReply,
+  getBestAgencySnippet,
+  getBestProperty,
 } from "../services/openaiService.js";
 import { classifyMessage } from "../services/classificationService.js";
+import {
+  getSessionMessages,
+  saveSessionMessage,
+} from "../services/memoryStore.js";
 
 export async function chat(req, res) {
   try {
-    const { conversationId, message, userId: clientUserId } = req.body;
-    if (!message) {
-      return res.status(400).json({ error: "Message is required." });
+    const { sessionId, message, userId: clientUserId } = req.body;
+
+    if (!sessionId || !message) {
+      return res.status(400).json({ error: "Missing sessionId or message." });
     }
 
-    // Step 0: Handle user creation
+    // Step 0: Handle user creation if none provided
     let userId = clientUserId;
     if (!userId) {
       const newUser = new User({
@@ -26,39 +33,40 @@ export async function chat(req, res) {
       userId = newUser._id.toString();
     }
 
-    // Step 1: Load or create conversation
-    let conversation = await Conversation.findById(conversationId);
-    if (!conversation) {
-      conversation = new Conversation({
-        userId,
-        conversationName: "Default Conversation",
-        messages: [
-          {
-            role: "system",
-            content: process.env.SYSTEM_PROMPT || "Default system prompt",
-          },
-          {
-            role: "assistant",
-            content: "Welcome to the chat. How can I help you with your real estate needs today?",
-            timestamp: new Date(),
-          },
-        ],
-      });
-      await conversation.save();
-      return res.status(200).json({
-        reply: "Welcome to the chat. How can I help you with your real estate needs today?",
-        conversationId: conversation._id.toString(),
-        userId,
-      });
-    }
+    // Step 1: Get session memory (last 20 messages)
+    const messages = getSessionMessages(sessionId);
 
-    // Step 2: Append user message
-    conversation.messages.push({ role: "user", content: message, timestamp: new Date() });
+    // Step 2: Save user message to session
+    saveSessionMessage(sessionId, {
+      role: "user",
+      content: message,
+      timestamp: new Date(),
+    });
 
-    // Step 3: Classify the intent
-    const { category, language } = await classifyMessage(conversation.messages, message);
+    // Step 3: Load user profile for personalization
+    const user = await User.findById(userId);
+    const userProfile = user?.profileInfo || {};
 
-    // Step 4: Generate response using category-specific logic
+    // Step 4: Classify the user message
+    const { category, language } = await classifyMessage(messages, message);
+
+    // Step 5: Prepare convo object with embeddings + profile
+    const agencySnippet = await getBestAgencySnippet(message);
+    const fakeExtractedInfo = {
+      ...userProfile,
+      ...guessMinimalIntent(message), // fallback in case LLM gives nothing
+    };
+    const bestProperty = await getBestProperty(fakeExtractedInfo);
+    const propertySnippet = bestProperty?.description || "";
+
+    const conversation = {
+      messages,
+      userProfile,
+      agencySnippet,
+      propertySnippet,
+    };
+
+    // Step 6: Generate reply
     let replyData;
     if (category === "salesman") {
       replyData = await generateSalesmanReply(conversation, message, language);
@@ -68,21 +76,26 @@ export async function chat(req, res) {
       replyData = await generateOtherReply(conversation, language);
     }
 
-    // Step 5: Append assistant response
-    conversation.messages.push({
+    // Step 7: Save assistant reply to session
+    saveSessionMessage(sessionId, {
       role: "assistant",
       content: replyData.reply,
       timestamp: new Date(),
     });
 
-    // Step 6: Save conversation
-    conversation.summary = replyData.summary || "";
-    await conversation.save();
+    // Step 8: Merge extractedInfo into User.profileInfo
+    if (replyData.extractedInfo && user) {
+      user.profileInfo = {
+        ...user.profileInfo,
+        ...replyData.extractedInfo,
+      };
+      await user.save();
+    }
 
-    // Step 7: Return structured response
+    // Step 9: Return structured response
     return res.status(200).json({
       ...replyData,
-      conversationId: conversation._id.toString(),
+      sessionId,
       userId,
     });
 
@@ -90,4 +103,15 @@ export async function chat(req, res) {
     console.error("💥 Error in /chat:", err);
     return res.status(500).json({ error: "Unable to process request." });
   }
+}
+
+// Optional fallback if LLM doesn't extract anything
+function guessMinimalIntent(text) {
+  const lower = text.toLowerCase();
+  return {
+    location: lower.includes("berlin") ? "Berlin" : lower.includes("hamburg") ? "Hamburg" : "",
+    propertyType: lower.includes("office") ? "commercial" : lower.includes("apartment") ? "apartment" : "",
+    budget: lower.includes("€") ? "undisclosed" : "",
+    usage: lower.includes("rent") ? "rent" : lower.includes("buy") ? "buy" : "",
+  };
 }

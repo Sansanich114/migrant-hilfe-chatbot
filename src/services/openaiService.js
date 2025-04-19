@@ -191,7 +191,20 @@ async function getBestProperty(info) {
   return allProperties[bestIndex] || null;
 }
 
+function summarizeProfile(profile = {}) {
+  const parts = [];
+  if (profile.location) parts.push(`interested in properties in ${profile.location}`);
+  if (profile.budget) parts.push(`has a budget around ${profile.budget}€`);
+  if (profile.propertyType) parts.push(`is looking for ${profile.propertyType}`);
+  if (profile.usage) parts.push(`intends to use it for ${profile.usage}`);
+  return parts.length ? `The user ${parts.join(", ")}.` : "";
+}
+
 async function generateSalesmanReply(convo, message, language = "en") {
+  const userSummary = summarizeProfile(convo.userProfile);
+  const agencySnippet = convo.agencySnippet || "";
+  const propertySnippet = convo.propertySnippet || "";
+
   const formatPriming = `
 Return JSON like:
 {
@@ -209,8 +222,17 @@ Return JSON like:
   "urgency": "...",
   "suggestions": ["...", "..."]
 }`;
+
   const prompt = `
 You are Sasha, a professional real estate agent at Beispiel Immobilien GMBH.
+
+${userSummary}
+
+Agency info:
+${agencySnippet}
+
+Best matching property:
+${propertySnippet}
 
 Conversation so far:
 ${convo.messages.map((m) => `${m.role}: ${m.content}`).join("\n")}
@@ -260,4 +282,6 @@ export {
   generateSalesmanReply,
   generatePolitenessReply,
   generateOtherReply,
+  getBestProperty,
+  getBestAgencySnippet,
 };
